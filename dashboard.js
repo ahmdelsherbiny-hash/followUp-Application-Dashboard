@@ -2,7 +2,20 @@
 const SPREADSHEET_ID = '1eRp9k1JWjvyFO8IymyEUAu7Sd6woqgu4Oe0D26xY5k4';
 const REFRESH_INTERVAL_SECONDS = 30;
 
+let globalRawReports = [];
 let reportsData = [];
+let globalDateFilter = null;
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxwKtjE_bJnEG4Iky2GMTwROE9JFR7oA3r10d_vkowVkpUPkAg2dukbSVHv0XEt5bmX2g/exec";
+
+async function updateGlobalFilterBackend(min, max) {
+    try {
+        await fetch(GAS_URL, {
+            method: "POST",
+            body: JSON.stringify({min: min, max: max}),
+            headers: { "Content-Type": "text/plain;charset=utf-8" }
+        });
+    } catch(e) { console.error("GAS error", e); }
+}
 let changeRequestsData = [];
 let uuidsData = [];
 
@@ -69,13 +82,7 @@ function parseGvizReports(table) {
     
     const getIndex = (key) => {
         const k = key.toLowerCase().trim();
-        
-        // Fallback to row 0 if it is a header row
-        if (isFirstRowHeader) {
-            return firstRowValues.indexOf(k);
-        }
-        
-        // Otherwise, search inside cols labels
+        if (isFirstRowHeader) return firstRowValues.indexOf(k);
         return cols.findIndex(col => {
             const label = col.label.toLowerCase().trim();
             if (label === k) return true;
@@ -103,8 +110,33 @@ function parseGvizReports(table) {
     const curIdx = getIndex('q16');
     const valUsdIdx = getIndex('q18');
     
+    const dateJIdx = 9;
+    const dateBWIdx = 74;
+    
     const results = [];
     const startIndex = isFirstRowHeader ? 1 : 0;
+    
+    function robustParseDate(val, fmt) {
+        if (val && typeof val === 'string' && val.startsWith('Date(')) {
+            const m = val.match(/Date\((\d+),\s*(\d+),\s*(\d+)/);
+            if (m) return new Date(parseInt(m[1]), parseInt(m[2]), parseInt(m[3]));
+        }
+        if (fmt) {
+            const parts = String(fmt).split(/[-/]/);
+            if (parts.length === 3 && parts[0].length <= 2 && parts[1].length <= 2 && parts[2].length === 4) {
+                return new Date(parts[2], parseInt(parts[1])-1, parts[0]);
+            }
+            const d = new Date(fmt);
+            if (!isNaN(d.getTime())) return d;
+        }
+        if (val) {
+            const n = parseFloat(val);
+            if (!isNaN(n) && n > 30000) return new Date(Math.round((n - 25569) * 86400000));
+            const d = new Date(val);
+            if (!isNaN(d.getTime())) return d;
+        }
+        return null;
+    }
     
     table.rows.slice(startIndex).forEach(row => {
         if (!row || !row.c) return;
@@ -121,15 +153,18 @@ function parseGvizReports(table) {
             return cell ? (cell.f || String(cell.v || '')) : '';
         };
         
-        // Skip sheet key header row if it slips in
         const tsVal = cellVal(tsIndex);
-        if (tsVal && String(tsVal).trim().toLowerCase() === 'timestamp') {
-            return;
-        }
+        if (tsVal && String(tsVal).trim().toLowerCase() === 'timestamp') return;
         
         const pId = cellVal(projIdIdx) ? String(cellVal(projIdIdx)).trim() : '';
         const usdVal = parseFloat(cellVal(valUsdIdx)) || 0;
         const localVal = parseFloat(cellVal(valIdx)) || 0;
+        
+        let dateJStr = cellFmt(dateJIdx) || cellVal(dateJIdx) || '';
+        let dateBWStr = cellFmt(dateBWIdx) || cellVal(dateBWIdx) || '';
+        
+        let dateJ = robustParseDate(cellVal(dateJIdx), dateJStr);
+        let dateBW = robustParseDate(cellVal(dateBWIdx), dateBWStr);
         
         results.push({
             timestamp: cellVal(tsIndex) || '',
@@ -144,7 +179,9 @@ function parseGvizReports(table) {
             contractValue: localVal,
             currency: cellVal(curIdx) || '',
             valueUsd: usdVal,
-            isProjectReport: !!(pId && pId !== '')
+            isProjectReport: !!(pId && pId !== ''),
+            dateJ: dateJ ? dateJ.getTime() : null,
+            dateBW: dateBW ? dateBW.getTime() : null
         });
     });
     
@@ -274,19 +311,33 @@ async function loadData() {
         if (loader) loader.classList.remove('hidden');
         
         // Fetch 4 tabs in parallel via JSONP (fully CORS-safe!)
-        const [reportsTable, requestsTable, uuidsTable, ddTable] = await Promise.all([
+        const [reportsTable, requestsTable, uuidsTable, ddTable, filterTable] = await Promise.all([
             fetchSheetJSONP('master output database'),
             fetchSheetJSONP('change request'),
             fetchSheetJSONP('UUIDs'),
-            fetchSheetJSONP('dd_lst')
+            fetchSheetJSONP('dd_lst'),
+            fetchSheetJSONP('Dashboard Filter').catch(() => null)
         ]);
+        
+        // Parse global filter from GAS sheet
+        if (filterTable && filterTable.rows && filterTable.rows.length > 0) {
+            const minV = filterTable.rows[0].c[0] ? filterTable.rows[0].c[0].v : null;
+            const maxV = filterTable.rows[0].c[1] ? filterTable.rows[0].c[1].v : null;
+            if (minV && maxV) {
+                globalDateFilter = { min: Number(minV), max: Number(maxV) };
+            } else {
+                globalDateFilter = null;
+            }
+        } else {
+            globalDateFilter = null;
+        }
         
         // Parse registries first
         parseDropdownRegistry(ddTable);
         
         // Parse table objects
-        const rawReports = parseGvizReports(reportsTable);
-        reportsData = deduplicateReports(rawReports);
+        globalRawReports = parseGvizReports(reportsTable);
+        applyGlobalDateFilter();
         changeRequestsData = parseChangeRequestsGviz(requestsTable);
         uuidsData = parseUUIDsGviz(uuidsTable);
         
@@ -937,6 +988,357 @@ window.addEventListener('DOMContentLoaded', () => {
     if (searchBox) {
         searchBox.addEventListener('input', () => {
             filterTable();
+        });
+    }
+});
+
+
+// --- Admin Filter & Password Logic ---
+
+function applyGlobalDateFilter() {
+    if (!globalDateFilter) {
+        reportsData = deduplicateReports(globalRawReports);
+    } else {
+        const filtered = globalRawReports.filter(r => {
+            // Check if any of the target dates fall within the range
+            const validJ = r.dateJ && r.dateJ >= globalDateFilter.min && r.dateJ <= globalDateFilter.max;
+            const validBW = r.dateBW && r.dateBW >= globalDateFilter.min && r.dateBW <= globalDateFilter.max;
+            return validJ || validBW;
+        });
+        reportsData = deduplicateReports(filtered);
+    }
+}
+
+function updateFilterStatusUI() {
+    const dot = document.getElementById('admin-filter-dot');
+    const statusIcon = document.getElementById('filter-status-icon');
+    const statusText = document.getElementById('filter-status-text');
+    
+    if (globalDateFilter) {
+        if (dot) dot.classList.remove('hidden');
+        if (statusIcon) {
+            statusIcon.className = 'filter-status-icon active';
+            statusIcon.innerHTML = '<i class="fa-solid fa-filter"></i>';
+            statusIcon.style.color = 'var(--theme-accent)';
+        }
+        if (statusText) {
+            const fMin = new Date(globalDateFilter.min).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
+            const fMax = new Date(globalDateFilter.max).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
+            statusText.innerText = `الفلتر نشط: عرض البيانات من ${fMin} إلى ${fMax}`;
+        }
+    } else {
+        if (dot) dot.classList.add('hidden');
+        if (statusIcon) {
+            statusIcon.className = 'filter-status-icon neutral';
+            statusIcon.innerHTML = '<i class="fa-solid fa-filter-circle-xmark"></i>';
+            statusIcon.style.color = 'var(--text-muted)';
+        }
+        if (statusText) {
+            statusText.innerText = 'لا يوجد فلتر نشط — يتم عرض كل البيانات المتاحة';
+        }
+    }
+}
+
+function buildTimelineSlider() {
+    const sliderContainer = document.getElementById('timeline-slider');
+    const fill = document.getElementById('timeline-fill');
+    let thumbLeft = document.getElementById('timeline-thumb-left');
+    let thumbRight = document.getElementById('timeline-thumb-right');
+    const ticksContainer = document.getElementById('timeline-ticks');
+    
+    if (!sliderContainer || !fill || !thumbLeft || !thumbRight || !ticksContainer) return;
+
+    // Collect unique dates from J and BW
+    const datesSet = new Set();
+    globalRawReports.forEach(r => {
+        if (r.dateJ) datesSet.add(r.dateJ);
+        if (r.dateBW) datesSet.add(r.dateBW);
+    });
+    
+    let sortedTimestamps = Array.from(datesSet).sort((a, b) => a - b);
+    if (sortedTimestamps.length === 0) {
+        sliderContainer.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:20px;font-size:13px;">لا توجد تواريخ لفلترتها</div>';
+        return;
+    }
+
+    const minSpacing = 60;
+    sliderContainer.style.minWidth = Math.max(400, sortedTimestamps.length * minSpacing) + 'px';
+
+    ticksContainer.innerHTML = '';
+    sortedTimestamps.forEach((ts) => {
+        const d = new Date(ts);
+        const ddmm = d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
+        
+        const tick = document.createElement('div');
+        tick.className = 'timeline-tick';
+        
+        // Position percentage (RTL inverted)
+        let p = sortedTimestamps.length > 1 ? (sortedTimestamps.indexOf(ts) / (sortedTimestamps.length - 1)) * 100 : 50;
+        p = 100 - p;
+        tick.style.left = p + '%';
+        tick.textContent = ddmm;
+        
+        ticksContainer.appendChild(tick);
+    });
+
+    let startI = 0;
+    let endI = sortedTimestamps.length - 1;
+    
+    // If filter is active, initialize handles to filter range
+    if (globalDateFilter) {
+        const startIdx = sortedTimestamps.findIndex(ts => ts >= globalDateFilter.min);
+        let endIdx = -1;
+        for (let i = sortedTimestamps.length - 1; i >= 0; i--) {
+            if (sortedTimestamps[i] <= globalDateFilter.max) {
+                endIdx = i;
+                break;
+            }
+        }
+        if (startIdx !== -1) startI = startIdx;
+        if (endIdx !== -1) endI = endIdx;
+    }
+
+    const maxI = sortedTimestamps.length - 1 || 1;
+    
+    const updateUI = () => {
+        const p1 = 100 - ((startI / maxI) * 100);
+        const p2 = 100 - ((endI / maxI) * 100);
+        // p1 (start date) is physically on the right. p2 (end date) is physically on the left.
+        thumbLeft.style.left = p1 + '%';
+        thumbRight.style.left = p2 + '%';
+        fill.style.left = p2 + '%';
+        fill.style.width = (p1 - p2) + '%';
+        
+        // Update date inputs visually using local YYYY-MM-DD to avoid UTC timezone shifts
+        const fromInput = document.getElementById('filter-date-from');
+        const toInput = document.getElementById('filter-date-to');
+        
+        const toYMD = (ts) => {
+            const d = new Date(ts);
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        };
+        
+        if (fromInput) fromInput.value = toYMD(sortedTimestamps[startI]);
+        if (toInput) toInput.value = toYMD(sortedTimestamps[endI]);
+    };
+
+    let draggingThumb = null;
+    
+    const getIFromEvent = (e) => {
+        const rect = sliderContainer.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        let x = clientX - rect.left;
+        let pct = Math.max(0, Math.min(1, x / rect.width));
+        // RTL inverted: physical right (pct=1) is index 0
+        return Math.round((1 - pct) * maxI);
+    };
+
+    const onDragStart = (e, type) => {
+        if (e.type !== 'touchstart') e.preventDefault();
+        draggingThumb = type;
+    };
+    
+    const onDragMove = (e) => {
+        if (!draggingThumb) return;
+        let i = getIFromEvent(e);
+        
+        if (draggingThumb === 'left') {
+            if (i > endI) i = endI;
+            startI = i;
+        } else {
+            if (i < startI) i = startI;
+            endI = i;
+        }
+        updateUI();
+    };
+    
+    const onDragEnd = () => {
+        if (draggingThumb) {
+            draggingThumb = null;
+        }
+    };
+
+    // Clean up old events if re-rendering
+    if (sliderContainer._onDragMove) {
+        document.removeEventListener('mousemove', sliderContainer._onDragMove);
+        document.removeEventListener('mouseup', sliderContainer._onDragEnd);
+        document.removeEventListener('touchmove', sliderContainer._onDragMove);
+        document.removeEventListener('touchend', sliderContainer._onDragEnd);
+    }
+    sliderContainer._onDragMove = onDragMove;
+    sliderContainer._onDragEnd = onDragEnd;
+    
+    const newThumbLeft = thumbLeft.cloneNode(true);
+    thumbLeft.parentNode.replaceChild(newThumbLeft, thumbLeft);
+    const newThumbRight = thumbRight.cloneNode(true);
+    thumbRight.parentNode.replaceChild(newThumbRight, thumbRight);
+    
+    // Fix: Re-assign variables so updateUI modifies the live DOM nodes
+    thumbLeft = newThumbLeft;
+    thumbRight = newThumbRight;
+    
+    // Add logic to allow typing dates directly
+    const fromInput = document.getElementById('filter-date-from');
+    const toInput = document.getElementById('filter-date-to');
+    
+    const onDateInputChange = () => {
+        const fromVal = fromInput.value;
+        const toVal = toInput.value;
+        if (!fromVal || !toVal) return;
+        
+        // Parse YYYY-MM-DD as local time to match sheet dates
+        const parseLocalYMD = (str) => {
+            const parts = str.split('-');
+            return new Date(parts[0], parseInt(parts[1])-1, parts[2]).getTime();
+        };
+        
+        const fTime = parseLocalYMD(fromVal);
+        const tTime = parseLocalYMD(toVal);
+        
+        // Find closest indices in sortedTimestamps
+        let newStartI = 0;
+        let newEndI = sortedTimestamps.length - 1;
+        
+        // Find first date >= fTime
+        const sIdx = sortedTimestamps.findIndex(ts => ts >= fTime);
+        if (sIdx !== -1) newStartI = sIdx;
+        else newStartI = sortedTimestamps.length - 1;
+        
+        // Find last date <= tTime
+        let eIdx = -1;
+        for (let i = sortedTimestamps.length - 1; i >= 0; i--) {
+            if (sortedTimestamps[i] <= tTime) { eIdx = i; break; }
+        }
+        if (eIdx !== -1) newEndI = eIdx;
+        else newEndI = 0;
+        
+        if (newStartI > newEndI) {
+            // Swap if they crossed
+            const tmp = newStartI;
+            newStartI = newEndI;
+            newEndI = tmp;
+        }
+        
+        startI = newStartI;
+        endI = newEndI;
+        updateUI();
+    };
+
+    if (fromInput) fromInput.addEventListener('change', onDateInputChange);
+    if (toInput) toInput.addEventListener('change', onDateInputChange);
+
+    
+    newThumbLeft.addEventListener('mousedown', e => onDragStart(e, 'left'));
+    newThumbRight.addEventListener('mousedown', e => onDragStart(e, 'right'));
+    newThumbLeft.addEventListener('touchstart', e => onDragStart(e, 'left'), {passive: true});
+    newThumbRight.addEventListener('touchstart', e => onDragStart(e, 'right'), {passive: true});
+    
+    document.addEventListener('mousemove', onDragMove);
+    document.addEventListener('mouseup', onDragEnd);
+    document.addEventListener('touchmove', onDragMove, {passive: true});
+    document.addEventListener('touchend', onDragEnd);
+    
+    updateUI();
+    
+    // Setup Apply/Reset buttons
+    sliderContainer._currentDates = sortedTimestamps;
+    sliderContainer._getRange = () => {
+        return {
+            min: sortedTimestamps[startI],
+            max: sortedTimestamps[endI]
+        };
+    };
+}
+
+// Add DOMContentLoaded hook for Admin modales
+window.addEventListener('DOMContentLoaded', () => {
+    const adminBtn = document.getElementById('admin-logo-btn');
+    const adminStatusIcon = document.getElementById('admin-status-icon');
+    if (sessionStorage.getItem('adminAuth') === 'true' && adminStatusIcon) {
+        adminStatusIcon.className = 'fa-solid fa-unlock';
+    }
+    const pwdModal = document.getElementById('admin-password-modal');
+    const pwdClose = document.getElementById('admin-pwd-close-btn');
+    const pwdInput = document.getElementById('admin-pwd-input');
+    const pwdSubmit = document.getElementById('admin-pwd-submit');
+    const pwdError = document.getElementById('admin-pwd-error');
+    
+    const filterModal = document.getElementById('admin-filter-modal');
+    const filterClose = document.getElementById('admin-filter-close-btn');
+    const filterReset = document.getElementById('filter-reset-btn');
+    const filterApply = document.getElementById('filter-apply-btn');
+
+    if (adminBtn) {
+        adminBtn.addEventListener('click', () => {
+            pwdInput.value = '';
+            if (pwdError) pwdError.classList.add('hidden');
+            pwdModal.classList.remove('hidden');
+            pwdModal.classList.add('show');
+            setTimeout(() => pwdInput.focus(), 100);
+        });
+    }
+
+    const closePwd = () => {
+        pwdModal.classList.remove('show');
+        setTimeout(() => pwdModal.classList.add('hidden'), 300);
+    };
+
+    if (pwdClose) pwdClose.addEventListener('click', closePwd);
+    
+    const verifyPwd = () => {
+        if (pwdInput.value === 'Sabi25Sabi') {
+            closePwd();
+            // Show filter modal
+            filterModal.classList.remove('hidden');
+            filterModal.classList.add('show');
+            buildTimelineSlider();
+            updateFilterStatusUI();
+        } else {
+            if (pwdError) pwdError.classList.remove('hidden');
+        }
+    };
+
+    if (pwdSubmit) pwdSubmit.addEventListener('click', verifyPwd);
+    if (pwdInput) pwdInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') verifyPwd();
+    });
+
+    const closeFilter = () => {
+        filterModal.classList.remove('show');
+        setTimeout(() => filterModal.classList.add('hidden'), 300);
+    };
+
+    if (filterClose) filterClose.addEventListener('click', closeFilter);
+
+    if (filterApply) {
+        filterApply.addEventListener('click', () => {
+            const sliderContainer = document.getElementById('timeline-slider');
+            if (sliderContainer._getRange) {
+                globalDateFilter = sliderContainer._getRange();
+                updateGlobalFilterBackend(globalDateFilter.min, globalDateFilter.max);
+            }
+            applyGlobalDateFilter();
+            updateKPIs();
+            renderCharts();
+            populateTables();
+            updateFilterStatusUI();
+            closeFilter();
+        });
+    }
+
+    if (filterReset) {
+        filterReset.addEventListener('click', () => {
+            globalDateFilter = null;
+            updateGlobalFilterBackend(null, null);
+            applyGlobalDateFilter();
+            updateKPIs();
+            renderCharts();
+            populateTables();
+            updateFilterStatusUI();
+            buildTimelineSlider(); // Reset slider visual
         });
     }
 });

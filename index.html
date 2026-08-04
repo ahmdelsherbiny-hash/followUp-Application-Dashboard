@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@6.6.6/css/flag-icons.min.css">
     
     <!-- Custom Style Sheet -->
-    <link rel="stylesheet" href="style.css?v=1.4">
+    <link rel="stylesheet" href="style.css?v=1.32">
     
     <!-- Chart.js library via CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -35,8 +35,9 @@
                 </div>
             </div>
             
-            <div class="logo-wrapper">
+            <div class="logo-wrapper" id="admin-logo-btn" style="cursor: pointer; position: relative;" title="إعدادات المشرف">
                 <img src="arab_contractors_logo.png" alt="شعار المقاولون العرب">
+                <div id="admin-filter-dot" class="admin-filter-dot hidden" style="position: absolute; top: -5px; right: -5px; width: 12px; height: 12px; background: var(--theme-accent); border-radius: 50%; box-shadow: 0 0 8px var(--theme-accent);"></div>
             </div>
             
             <div class="header-controls">
@@ -49,20 +50,7 @@
                     </div>
                 </div>
 
-                <!-- Last updated timestamp -->
-                <div class="sync-status-badge" style="background: rgba(255, 255, 255, 0.03);">
-                    <div class="sync-info" style="text-align: center;">
-                        <span style="font-size: 11px;">آخر تحديث للبيانات</span>
-                        <strong id="last-updated" style="font-family: 'Outfit', sans-serif; font-size: 14px; color: var(--theme-accent);">-:-:-</strong>
-                    </div>
-                </div>
-                
-                <!-- Manual Sync Trigger -->
-                <button class="refresh-btn" id="refresh-btn" title="تحديث البيانات الآن">
-                    <i class="fa-solid fa-arrows-rotate"></i>
-                </button>
-                
-                <!-- Theme Toggle Button (Toggles between Corporate and AEGov Design System) -->
+                <!-- Theme Toggle Button -->
                 <button class="theme-toggle-btn" id="theme-toggle-btn" title="تبديل المظهر (Corporate / AEGov DLS)">
                     <i class="fa-solid fa-circle-half-stroke"></i>
                     <span>تبديل المظهر</span>
@@ -163,7 +151,6 @@
                 <div class="countries-list" id="countries-list">
                     <!-- Dynamic Country rows will be injected here -->
                 </div>
-                
 
             </div>
 
@@ -291,7 +278,103 @@
         </div>
     </div>
 
+    <!-- ====== Admin Password Modal ====== -->
+    <div id="admin-password-modal" class="modal-overlay hidden">
+        <div class="modal-card admin-pwd-card">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-shield-halved" style="color: var(--theme-accent); margin-left: 8px;"></i> منطقة المشرف</h2>
+                <button class="modal-close-btn" id="admin-pwd-close-btn">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="modal-body admin-pwd-body">
+                <div class="admin-lock-icon">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                <p class="admin-pwd-hint">أدخل كلمة المرور للوصول إلى لوحة إعدادات المشرف</p>
+                <div class="admin-input-row">
+                    <input type="password" id="admin-pwd-input" class="admin-pwd-input" placeholder="كلمة المرور..." autocomplete="off">
+                    <button id="admin-pwd-submit" class="admin-pwd-submit-btn">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                </div>
+                <div id="admin-pwd-error" class="admin-pwd-error hidden">
+                    <i class="fa-solid fa-circle-exclamation"></i> كلمة المرور غير صحيحة، حاول مجدداً
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== Admin Date Filter Modal ====== -->
+    <div id="admin-filter-modal" class="modal-overlay hidden">
+        <div class="modal-card admin-filter-card">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-calendar-days" style="color: var(--theme-accent); margin-left: 8px;"></i> فلتر الفترة الزمنية للوحة المؤشرات</h2>
+                <button class="modal-close-btn" id="admin-filter-close-btn">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="filter-modal-hint">اختر نطاقاً زمنياً لتصفية جميع إحصائيات وبيانات لوحة المؤشرات. يُحفظ اختيارك تلقائياً ويظل نشطاً حتى تقوم بتغييره.</p>
+
+                <!-- Activity density bar chart with horizontal scroll -->
+                <div class="filter-density-section">
+                    <div class="filter-density-label">
+                        <i class="fa-solid fa-timeline"></i>
+                        <span>اسحب المؤشرين لتحديد النطاق الزمني (تواريخ الأعمدة J و BW)</span>
+                    </div>
+                    <div class="timeline-slider-wrapper">
+                        <div class="timeline-slider-container" id="timeline-slider">
+                            <div class="timeline-track"></div>
+                            <div class="timeline-fill" id="timeline-fill"></div>
+                            <div class="timeline-thumb" id="timeline-thumb-left" style="left: 0%;"></div>
+                            <div class="timeline-thumb" id="timeline-thumb-right" style="left: 100%;"></div>
+                            <div class="timeline-ticks" id="timeline-ticks"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Date range pickers -->
+                <div class="filter-date-range-row">
+                    <div class="filter-date-group">
+                        <label class="filter-date-label"><i class="fa-solid fa-calendar-plus"></i> من تاريخ</label>
+                        <input type="date" id="filter-date-from" class="filter-date-input">
+                    </div>
+                    <div class="filter-date-divider">
+                        <i class="fa-solid fa-arrow-left-long"></i>
+                    </div>
+                    <div class="filter-date-group">
+                        <label class="filter-date-label"><i class="fa-solid fa-calendar-check"></i> إلى تاريخ</label>
+                        <input type="date" id="filter-date-to" class="filter-date-input">
+                    </div>
+                </div>
+
+                <!-- Active filter status -->
+                <div class="filter-active-status" id="filter-active-status">
+                    <div class="filter-status-icon neutral" id="filter-status-icon">
+                        <i class="fa-solid fa-filter-circle-xmark"></i>
+                    </div>
+                    <div class="filter-status-text" id="filter-status-text">
+                        لا يوجد فلتر نشط — يتم عرض كل البيانات المتاحة
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="filter-actions">
+                    <button id="filter-reset-btn" class="filter-btn filter-btn-reset">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        إعادة تعيين الفلتر
+                    </button>
+                    <button id="filter-apply-btn" class="filter-btn filter-btn-apply">
+                        <i class="fa-solid fa-check-circle"></i>
+                        تطبيق الفلتر وتحديث البيانات
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Core Javascript Logic -->
-    <script src="dashboard.js?v=1.8"></script>
+    <script src="dashboard.js?v=1.32"></script>
 </body>
 </html>
