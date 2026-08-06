@@ -325,6 +325,16 @@ async function loadData() {
             const maxV = filterTable.rows[0].c[1] ? filterTable.rows[0].c[1].v : null;
             if (minV && maxV) {
                 globalDateFilter = { min: Number(minV), max: Number(maxV) };
+                
+                // Hack to persist 'Auto Latest Date' globally: if max is Jan 1 2100
+                const autoLatestChk = document.getElementById('auto-latest-date-chk');
+                if (globalDateFilter.max >= 4102400000000) {
+                    if (autoLatestChk) autoLatestChk.checked = true;
+                    localStorage.setItem('autoLatestDate', 'true');
+                } else {
+                    if (autoLatestChk) autoLatestChk.checked = false;
+                    localStorage.setItem('autoLatestDate', 'false');
+                }
             } else {
                 globalDateFilter = null;
             }
@@ -943,6 +953,13 @@ function setupModalBindings(periodLabel, activeData) {
 
 // Initialize on page load
 window.addEventListener('DOMContentLoaded', () => {
+    // Setup auto-latest-date from localStorage
+    const savedAutoLatest = localStorage.getItem('autoLatestDate');
+    const autoLatestChkInit = document.getElementById('auto-latest-date-chk');
+    if (autoLatestChkInit && savedAutoLatest !== null) {
+        autoLatestChkInit.checked = (savedAutoLatest === 'true');
+    }
+
     // Setup Theme from localStorage
     const savedTheme = localStorage.getItem('appTheme') || 'corporate';
     selectTheme(savedTheme);
@@ -1096,6 +1113,7 @@ function buildTimelineSlider() {
     
     if (autoLatestChk) {
         autoLatestChk.onchange = () => {
+            localStorage.setItem('autoLatestDate', autoLatestChk.checked);
             if (autoLatestChk.checked) {
                 endI = maxI;
                 updateUI();
@@ -1156,6 +1174,7 @@ function buildTimelineSlider() {
             endI = i;
             if (autoLatestChk && autoLatestChk.checked && endI !== maxI) {
                 autoLatestChk.checked = false;
+                localStorage.setItem('autoLatestDate', 'false');
             }
         }
         updateUI();
@@ -1231,6 +1250,7 @@ function buildTimelineSlider() {
         startI = newStartI;
         if (newEndI !== endI && autoLatestChk && autoLatestChk.checked && newEndI !== maxI) {
             autoLatestChk.checked = false;
+            localStorage.setItem('autoLatestDate', 'false');
         }
         endI = newEndI;
         updateUI();
@@ -1327,7 +1347,15 @@ window.addEventListener('DOMContentLoaded', () => {
             const sliderContainer = document.getElementById('timeline-slider');
             if (sliderContainer._getRange) {
                 globalDateFilter = sliderContainer._getRange();
-                updateGlobalFilterBackend(globalDateFilter.min, globalDateFilter.max);
+                
+                let outMax = globalDateFilter.max;
+                const autoLatestChk = document.getElementById('auto-latest-date-chk');
+                if (autoLatestChk && autoLatestChk.checked) {
+                    outMax = 4102444800000; // Jan 1 2100 timestamp
+                    globalDateFilter.max = outMax; // Update locally too
+                }
+                
+                updateGlobalFilterBackend(globalDateFilter.min, outMax);
             }
             applyGlobalDateFilter();
             updateKPIs();
