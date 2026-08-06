@@ -1023,8 +1023,16 @@ function updateFilterStatusUI() {
         }
         if (statusText) {
             const fMin = new Date(globalDateFilter.min).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
-            const fMax = new Date(globalDateFilter.max).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
-            statusText.innerText = `الفلتر نشط: عرض البيانات من ${fMin} إلى ${fMax}`;
+            
+            let toText = '';
+            const autoLatestChk = document.getElementById('auto-latest-date-chk');
+            if (autoLatestChk && autoLatestChk.checked) {
+                toText = 'أخر تاريخ تحديث';
+            } else {
+                toText = new Date(globalDateFilter.max).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' });
+            }
+            
+            statusText.innerText = `الفلتر نشط: عرض البيانات من ${fMin} إلى ${toText}`;
         }
     } else {
         if (dot) dot.classList.add('hidden');
@@ -1100,6 +1108,20 @@ function buildTimelineSlider() {
 
     const maxI = sortedTimestamps.length - 1 || 1;
     
+    const autoLatestChk = document.getElementById('auto-latest-date-chk');
+    if (autoLatestChk && autoLatestChk.checked) {
+        endI = maxI;
+    }
+    
+    if (autoLatestChk) {
+        autoLatestChk.onchange = () => {
+            if (autoLatestChk.checked) {
+                endI = maxI;
+                updateUI();
+            }
+        };
+    }
+    
     const updateUI = () => {
         const p1 = 100 - ((startI / maxI) * 100);
         const p2 = 100 - ((endI / maxI) * 100);
@@ -1151,6 +1173,9 @@ function buildTimelineSlider() {
         } else {
             if (i < startI) i = startI;
             endI = i;
+            if (autoLatestChk && autoLatestChk.checked && endI !== maxI) {
+                autoLatestChk.checked = false;
+            }
         }
         updateUI();
     };
@@ -1223,6 +1248,9 @@ function buildTimelineSlider() {
         }
         
         startI = newStartI;
+        if (newEndI !== endI && autoLatestChk && autoLatestChk.checked && newEndI !== maxI) {
+            autoLatestChk.checked = false;
+        }
         endI = newEndI;
         updateUI();
     };

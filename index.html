@@ -339,6 +339,7 @@
                     <div class="filter-date-group">
                         <label class="filter-date-label"><i class="fa-solid fa-calendar-plus"></i> من تاريخ</label>
                         <input type="date" id="filter-date-from" class="filter-date-input">
+                        <div style="height: 14px; margin-top: 8px;"></div>
                     </div>
                     <div class="filter-date-divider">
                         <i class="fa-solid fa-arrow-left-long"></i>
@@ -346,6 +347,10 @@
                     <div class="filter-date-group">
                         <label class="filter-date-label"><i class="fa-solid fa-calendar-check"></i> إلى تاريخ</label>
                         <input type="date" id="filter-date-to" class="filter-date-input">
+                        <div style="display: flex; align-items: center; justify-content: flex-start; margin-top: 8px; gap: 6px; font-size: 0.85rem; color: var(--text-secondary);">
+                            <input type="checkbox" id="auto-latest-date-chk" style="accent-color: var(--theme-accent); cursor: pointer; width: 14px; height: 14px; margin: 0;">
+                            <label for="auto-latest-date-chk" style="cursor: pointer; margin: 0; line-height: 1;">أخر تاريخ تحديث</label>
+                        </div>
                     </div>
                 </div>
 
