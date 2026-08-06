@@ -48,7 +48,7 @@ function fetchSheetJSONP(sheetName) {
             }
         };
         
-        const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=responseHandler:${callbackName}&sheet=${encodeURIComponent(sheetName)}`;
+        const url = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=responseHandler:${callbackName}&sheet=${encodeURIComponent(sheetName)}&_nocache=${Date.now()}`;
         
         const script = document.createElement('script');
         script.src = url;
