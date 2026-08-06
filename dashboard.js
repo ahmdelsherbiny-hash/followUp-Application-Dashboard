@@ -401,36 +401,27 @@ function updateKPIs() {
     if (coverageSub) coverageSub.innerHTML = `<span>${activeCountries}</span> دولة | <span>${expectedBranches.size}</span> قطاعات وفروع`;
     
     // Calculate Project and Branch commitment rates
-    const reportsByMonth = {};
+    const activeData = { projects: new Set(), branches: new Set(), raw: reportsData };
     reportsData.forEach(r => {
-        const d = parseSheetTimestamp(r.timestamp);
-        if (!d) return;
-        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        if (!reportsByMonth[key]) {
-            reportsByMonth[key] = { projects: new Set(), branches: new Set(), raw: [] };
-        }
-        reportsByMonth[key].raw.push(r);
         if (r.isProjectReport && r.projectName) {
             if (expectedProjects.has(r.projectName)) {
-                reportsByMonth[key].projects.add(r.projectName);
+                activeData.projects.add(r.projectName);
             }
         } else if (!r.isProjectReport && r.branchName) {
             if (expectedBranches.has(r.branchName)) {
-                reportsByMonth[key].branches.add(r.branchName);
+                activeData.branches.add(r.branchName);
             }
         }
     });
 
-    const monthsList = Object.keys(reportsByMonth).sort();
-    let activeMonth = '';
-    if (monthsList.length === 0) {
-        const now = new Date();
-        activeMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    let periodLabel = 'الفترة المحددة';
+    if (!globalDateFilter) {
+        periodLabel = 'كل البيانات المتاحة';
     } else {
-        activeMonth = monthsList[monthsList.length - 1];
+        const fMin = new Date(globalDateFilter.min).toLocaleDateString('ar-EG', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const fMax = new Date(globalDateFilter.max).toLocaleDateString('ar-EG', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        periodLabel = `من ${fMin} إلى ${fMax}`;
     }
-
-    const activeData = reportsByMonth[activeMonth] || { projects: new Set(), branches: new Set(), raw: [] };
     const totalProjs = expectedProjects.size || 114;
     const totalBranches = expectedBranches.size || 28;
     
@@ -449,7 +440,7 @@ function updateKPIs() {
     if (branchSubEl) branchSubEl.innerText = `${activeData.branches.size} من ${totalBranches} فرع`;
 
     // Setup Modal bindings
-    setupModalBindings(activeMonth, activeData);
+    setupModalBindings(periodLabel, activeData);
 }
 
 // Populate Data Tables
@@ -827,7 +818,7 @@ function parseDropdownRegistry(table) {
 }
 
 // Setup Pop-up modal list binders and data populations
-function setupModalBindings(activeMonth, activeData) {
+function setupModalBindings(periodLabel, activeData) {
     const projCard = document.getElementById('kpi-proj-commitment-card');
     const branchCard = document.getElementById('kpi-branch-commitment-card');
     const modal = document.getElementById('compliance-modal');
@@ -838,22 +829,12 @@ function setupModalBindings(activeMonth, activeData) {
     
     if (!modal || !modalCloseBtn || !submittedBody || !lateBody || !projCard || !branchCard) return;
     
-    const formatArabicMonth = (monthKey) => {
-        const [yr, mn] = monthKey.split('-');
-        const arabicMonths = {
-            '01': 'يناير', '02': 'فبراير', '03': 'مارس', '04': 'أبريل',
-            '05': 'مايو', '06': 'يونيو', '07': 'يوليو', '08': 'أغسطس',
-            '09': 'سبتمبر', '10': 'أكتوبر', '11': 'نوفمبر', '12': 'ديسمبر'
-        };
-        return `${arabicMonths[mn] || mn} ${yr}`;
-    };
-    
     const showModal = (type) => {
         submittedBody.innerHTML = '';
         lateBody.innerHTML = '';
         
         if (type === 'project') {
-            modalTitle.innerText = `التزام المشروعات - دورة ${formatArabicMonth(activeMonth)}`;
+            modalTitle.innerText = `التزام المشروعات - ${periodLabel}`;
             
             // Populate Submitted Projects
             let submittedCount = 0;
@@ -897,7 +878,7 @@ function setupModalBindings(activeMonth, activeData) {
             }
             
         } else if (type === 'branch') {
-            modalTitle.innerText = `التزام الفروع والشركات - دورة ${formatArabicMonth(activeMonth)}`;
+            modalTitle.innerText = `التزام الفروع والشركات - ${periodLabel}`;
             
             // Populate Submitted Branches
             let submittedCount = 0;
