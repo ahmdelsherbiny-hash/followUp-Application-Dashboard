@@ -30,9 +30,19 @@ let syncTimer = null;
 let secondsRemaining = REFRESH_INTERVAL_SECONDS;
 
 // Chart references for dynamic updates
-
 let countryChart = null;
 let timelineChart = null;
+
+// Leaflet Map state variables
+let executiveMap = null;
+let markersGroup = null;
+let geoJsonLayer = null;
+let currentTileLayer = null;
+let currentTileStyle = 'dark';
+let showBranches = true;
+let showProjects = true;
+let currentRegion = 'all';
+let menaGeoJsonData = null;
 
 // JSONP Script Loader to bypass CORS issues on local files (file:/// URL)
 function fetchSheetJSONP(sheetName) {
@@ -106,9 +116,60 @@ function parseGvizReports(table) {
     const projNameIdx = getIndex('q1');
     const dateIdx = getIndex('q2');
     const clientIdx = getIndex('q3');
+    const consultantIdx = getIndex('q4');
+    const scopeIdx = getIndex('q5');
+    const contractTypeIdx = getIndex('q6');
+    const fundingSourceIdx = getIndex('q7');
+    const mapsLinkIdx = getIndex('q8');
+    
+    const contractStartDateIdx = getIndex('q9');
+    const siteHandoverDateIdx = getIndex('q10');
+    const drawingsDateIdx = getIndex('q11');
+    const contractEndDateIdx = getIndex('q12');
+    const revisedEndDateIdx = getIndex('q13');
+    
     const valIdx = getIndex('q14');
+    const revisedContractValIdx = getIndex('q15');
     const curIdx = getIndex('q16');
+    const exchangeRateIdx = getIndex('q17');
     const valUsdIdx = getIndex('q18');
+    
+    const advancePaymentIdx = getIndex('q19');
+    const executedWorkApprovedIdx = getIndex('q20');
+    const approvedMaterialsIdx = getIndex('q21');
+    const executedWorkTotalIdx = getIndex('q22');
+    const totalMaterialsIdx = getIndex('q23');
+    const plannedProgressIdx = getIndex('q24');
+    const paidWorkIdx = getIndex('q25');
+    const dueDebtIdx = getIndex('q26');
+    const uncollectibleWorkIdx = getIndex('q27');
+    const collectedLiquidityIdx = getIndex('q28');
+    const lastInvoiceApprovalDateIdx = getIndex('q29');
+    const lastCollectionDateIdx = getIndex('q30');
+    const laborCostIdx = getIndex('q31');
+    const profitLossIdx = getIndex('q32');
+    const claimsStatusIdx = getIndex('q33');
+    const claimsValueIdx = getIndex('q34');
+    const retainedLiquidityIdx = getIndex('q35');
+    const lettersOfGuaranteeIdx = getIndex('q36');
+    const expectedFinishDateIdx = getIndex('q37');
+    const scheduleStatusIdx = getIndex('q38');
+    const extensionRequestedIdx = getIndex('q39');
+    const extensionReasonNoClaimIdx = getIndex('q40');
+    const extensionClaimDateIdx = getIndex('q41');
+    const extensionPeriodIdx = getIndex('q42');
+    const extensionApprovalStatusIdx = getIndex('q43');
+    const extensionDocLinkIdx = getIndex('q44');
+    const extensionApprovedPeriodIdx = getIndex('q45');
+    const revisedEndDateUnderApprovalIdx = getIndex('q46');
+    
+    const subcontractorsDueIdx = getIndex('q57');
+    const openLGTotalIdx = getIndex('q59');
+    const expectedReceipts6MIdx = getIndex('q61');
+    const expectedPayments6MIdx = getIndex('q62');
+    const currentYearPlannedWorkIdx = getIndex('q64');
+    const currentYearExecutedWorkIdx = getIndex('q65');
+    const projectObstaclesIdx = getIndex('q66');
     
     const dateJIdx = 9;
     const dateBWIdx = 74;
@@ -142,13 +203,13 @@ function parseGvizReports(table) {
         if (!row || !row.c) return;
         
         const cellVal = (idx) => {
-            if (idx === -1 || idx >= row.c.length) return null;
+            if (idx === -1 || idx === undefined || idx >= row.c.length) return null;
             const cell = row.c[idx];
             return cell ? cell.v : null;
         };
         
         const cellFmt = (idx) => {
-            if (idx === -1 || idx >= row.c.length) return '';
+            if (idx === -1 || idx === undefined || idx >= row.c.length) return '';
             const cell = row.c[idx];
             return cell ? (cell.f || String(cell.v || '')) : '';
         };
@@ -157,12 +218,30 @@ function parseGvizReports(table) {
         if (tsVal && String(tsVal).trim().toLowerCase() === 'timestamp') return;
         
         const pId = cellVal(projIdIdx) ? String(cellVal(projIdIdx)).trim() : '';
-        const usdVal = parseFloat(cellVal(valUsdIdx)) || 0;
-        const localVal = parseFloat(cellVal(valIdx)) || 0;
+        
+        const formatNum = (idx) => {
+            const raw = cellVal(idx);
+            if (raw === null || raw === undefined || raw === '') return 0;
+            const n = parseFloat(String(raw).replace(/,/g, ''));
+            return isNaN(n) ? 0 : n;
+        };
+
+        const formatDate = (idx) => {
+            const rawVal = cellVal(idx);
+            const fmtVal = cellFmt(idx);
+            if (!rawVal && !fmtVal) return '-';
+            const parsed = robustParseDate(rawVal, fmtVal);
+            if (parsed && !isNaN(parsed.getTime())) {
+                return parsed.toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' });
+            }
+            return fmtVal || String(rawVal);
+        };
+        
+        const usdVal = formatNum(valUsdIdx);
+        const localVal = formatNum(valIdx);
         
         let dateJStr = cellFmt(dateJIdx) || cellVal(dateJIdx) || '';
         let dateBWStr = cellFmt(dateBWIdx) || cellVal(dateBWIdx) || '';
-        
         let dateJ = robustParseDate(cellVal(dateJIdx), dateJStr);
         let dateBW = robustParseDate(cellVal(dateBWIdx), dateBWStr);
         
@@ -174,11 +253,63 @@ function parseGvizReports(table) {
             country: cellVal(countryIdx) || '',
             branchName: cellVal(branchNameIdx) || '',
             projectName: cellVal(projNameIdx) || '',
-            measurementDate: cellFmt(dateIdx) || cellVal(dateIdx) || '',
+            measurementDate: formatDate(dateIdx),
             clientName: cellVal(clientIdx) || '',
+            consultantName: cellVal(consultantIdx) || '',
+            scopeOfWork: cellVal(scopeIdx) || '',
+            contractType: cellVal(contractTypeIdx) || '',
+            fundingSource: cellVal(fundingSourceIdx) || '',
+            mapsLink: cellVal(mapsLinkIdx) || '',
+            
+            contractStartDate: formatDate(contractStartDateIdx),
+            siteHandoverDate: formatDate(siteHandoverDateIdx),
+            drawingsDate: formatDate(drawingsDateIdx),
+            contractEndDate: formatDate(contractEndDateIdx),
+            revisedEndDate: formatDate(revisedEndDateIdx),
+            
             contractValue: localVal,
+            revisedContractValue: formatNum(revisedContractValIdx),
             currency: cellVal(curIdx) || '',
+            exchangeRate: formatNum(exchangeRateIdx),
             valueUsd: usdVal,
+            
+            advancePayment: formatNum(advancePaymentIdx),
+            executedWorkApproved: formatNum(executedWorkApprovedIdx),
+            approvedMaterials: formatNum(approvedMaterialsIdx),
+            executedWorkTotal: formatNum(executedWorkTotalIdx),
+            totalMaterials: formatNum(totalMaterialsIdx),
+            plannedProgressPercent: formatNum(plannedProgressIdx),
+            paidWork: formatNum(paidWorkIdx),
+            dueDebt: formatNum(dueDebtIdx),
+            uncollectibleWork: formatNum(uncollectibleWorkIdx),
+            collectedLiquidity: formatNum(collectedLiquidityIdx),
+            lastInvoiceApprovalDate: formatDate(lastInvoiceApprovalDateIdx),
+            lastCollectionDate: formatDate(lastCollectionDateIdx),
+            laborCost: formatNum(laborCostIdx),
+            profitLoss: formatNum(profitLossIdx),
+            claimsStatus: cellVal(claimsStatusIdx) || 'لا يوجد',
+            claimsValue: formatNum(claimsValueIdx),
+            retainedLiquidity: formatNum(retainedLiquidityIdx),
+            lettersOfGuaranteeValue: formatNum(lettersOfGuaranteeIdx),
+            expectedFinishDate: formatDate(expectedFinishDateIdx),
+            scheduleStatus: cellVal(scheduleStatusIdx) || 'داخل المدة',
+            extensionRequested: cellVal(extensionRequestedIdx) || 'لا',
+            extensionReasonNoClaim: cellVal(extensionReasonNoClaimIdx) || '',
+            extensionClaimDate: formatDate(extensionClaimDateIdx),
+            extensionPeriod: cellVal(extensionPeriodIdx) || '-',
+            extensionApprovalStatus: cellVal(extensionApprovalStatusIdx) || '-',
+            extensionDocLink: cellVal(extensionDocLinkIdx) || '',
+            extensionApprovedPeriod: cellVal(extensionApprovedPeriodIdx) || '-',
+            revisedEndDateUnderApproval: formatDate(revisedEndDateUnderApprovalIdx),
+            
+            subcontractorsDue: formatNum(subcontractorsDueIdx),
+            openLGTotal: formatNum(openLGTotalIdx),
+            expectedReceipts6M: formatNum(expectedReceipts6MIdx),
+            expectedPayments6M: formatNum(expectedPayments6MIdx),
+            currentYearPlannedWork: formatNum(currentYearPlannedWorkIdx),
+            currentYearExecutedWork: formatNum(currentYearExecutedWorkIdx),
+            projectObstacles: cellVal(projectObstaclesIdx) || 'لا توجد معوقات مسجلة',
+            
             isProjectReport: !!(pId && pId !== ''),
             dateJ: dateJ ? dateJ.getTime() : null,
             dateBW: dateBW ? dateBW.getTime() : null
@@ -294,6 +425,45 @@ function parseUUIDsGviz(table) {
     return results;
 }
 
+// Parse Dropdown Registry (dd_lst) for Branches and Projects
+function parseDropdownRegistry(table) {
+    if (!table || !table.cols || !table.rows) return;
+    
+    expectedProjects.clear();
+    expectedBranches.clear();
+    branchToCountryMap = {};
+    projectToBranchMap = {};
+    projectToCountryMap = {};
+
+    table.rows.forEach(row => {
+        if (!row || !row.c) return;
+        const cell = (idx) => (idx < row.c.length && row.c[idx] && row.c[idx].v) ? String(row.c[idx].v).trim() : '';
+        
+        const cBranch = cell(2) || cell(0);
+        const b = cell(3);
+        const bProj = cell(5);
+        const p = cell(6);
+
+        if (b) {
+            expectedBranches.add(b);
+            if (cBranch) branchToCountryMap[b] = cBranch;
+        }
+        if (p) {
+            expectedProjects.add(p);
+            if (bProj) {
+                projectToBranchMap[p] = bProj;
+            }
+        }
+    });
+
+    for (const proj of expectedProjects) {
+        const bName = projectToBranchMap[proj];
+        if (bName && branchToCountryMap[bName]) {
+            projectToCountryMap[proj] = branchToCountryMap[bName];
+        }
+    }
+}
+
 // Format financial value in USD
 function formatCurrencyUSD(value) {
     if (value >= 1e6) {
@@ -355,6 +525,7 @@ async function loadData() {
         updateKPIs();
         renderCharts();
         populateTables();
+        updateMapMarkers();
         
         // Update connection status
         const pulse = document.getElementById('pulse-indicator');
@@ -466,6 +637,15 @@ function populateTables() {
     } else {
         sortedReports.slice(0, 50).forEach(r => {
             const tr = document.createElement('tr');
+            tr.style.cursor = 'pointer';
+            tr.title = 'اضغط لعرض تفاصيل التقرير / المشروع وموقعه على الخريطة';
+            tr.onclick = () => {
+                if (r.isProjectReport) {
+                    openProjectDetailModal(r.projectName, r.branchName, r.country);
+                } else {
+                    openBranchDetailModal(r.branchName, r.country);
+                }
+            };
             
             // Format timestamp
             const dateObj = new Date(r.timestamp);
@@ -503,6 +683,11 @@ function populateTables() {
     } else {
         sortedRequests.forEach(req => {
             const tr = document.createElement('tr');
+            tr.style.cursor = 'pointer';
+            tr.title = 'اضغط لعرض تفاصيل الفرع وموقعه على الخريطة';
+            tr.onclick = () => {
+                openBranchDetailModal(req.branch, req.country);
+            };
             
             const dateObj = new Date(req.timestamp);
             const dateStr = isNaN(dateObj.getTime()) ? req.timestamp : dateObj.toLocaleString('ar-EG', { dateStyle: 'short' });
@@ -535,7 +720,8 @@ function renderCharts() {
     const deepColor = cssStyle.getPropertyValue('--theme-deep').trim();
     const panelColor = cssStyle.getPropertyValue('--theme-panel').trim();
     const textColor = cssStyle.getPropertyValue('--text-primary').trim() || '#FFFFFF';
-    const gridColor = `rgba(${cssStyle.getPropertyValue('--theme-accent-rgb').trim() || '255, 255, 255'}, 0.2)`;
+    const accentRgb = cssStyle.getPropertyValue('--theme-accent-rgb').trim() || '255, 255, 255';
+    const gridColor = `rgba(${accentRgb}, 0.2)`;
     
 
     
@@ -555,7 +741,7 @@ function renderCharts() {
     
     const timelineCtx = document.getElementById('timelineChart').getContext('2d');
     if (timelineChart) timelineChart.destroy();
-    
+
     timelineChart = new Chart(timelineCtx, {
         type: 'line',
         data: {
@@ -564,7 +750,7 @@ function renderCharts() {
                 label: 'عدد التحديثات المرفوعة',
                 data: activityCounts,
                 borderColor: accentColor,
-                backgroundColor: 'rgba(252, 163, 17, 0.1)',
+                backgroundColor: `rgba(${accentRgb}, 0.25)`,
                 borderWidth: 3,
                 fill: true,
                 tension: 0.3
@@ -588,6 +774,16 @@ function renderCharts() {
             }
         }
     });
+
+    // Create the fill only after Chart.js has measured the canvas. This avoids
+    // the transparent first-render fallback used by scriptable color callbacks.
+    const { top, bottom } = timelineChart.chartArea;
+    const timelineFillGradient = timelineCtx.createLinearGradient(0, top, 0, bottom);
+    timelineFillGradient.addColorStop(0.05, `rgba(${accentRgb}, 0.36)`);
+    timelineFillGradient.addColorStop(0.55, `rgba(${accentRgb}, 0.12)`);
+    timelineFillGradient.addColorStop(1, `rgba(${accentRgb}, 0)`);
+    timelineChart.data.datasets[0].backgroundColor = timelineFillGradient;
+    timelineChart.update('none');
     
     // 3. Reports by Country sidebar list
     const countryCounts = {};
@@ -612,6 +808,10 @@ function renderCharts() {
             
             const div = document.createElement('div');
             div.className = 'country-stat-row';
+            div.title = 'اضغط للتنقل إلى الدولة على الخريطة وعرض مشروعاتها وفروعها';
+            div.onclick = () => {
+                openCountryDrawer(country);
+            };
             div.innerHTML = `
                 <div class="country-name-info">
                     <span class="fi ${flagClass}"></span>
@@ -964,6 +1164,9 @@ window.addEventListener('DOMContentLoaded', () => {
     const savedTheme = localStorage.getItem('appTheme') || 'corporate';
     selectTheme(savedTheme);
     
+    // Initialize Leaflet Interactive Map
+    initExecutiveMap();
+
     // Load initial data
     loadData();
     
@@ -1284,7 +1487,49 @@ function buildTimelineSlider() {
 
 // Add DOMContentLoaded hook for Admin modales
 window.addEventListener('DOMContentLoaded', () => {
-    const adminBtn = document.getElementById('admin-logo-btn');
+    const performanceMapBtn = document.getElementById('performance-map-btn');
+    const performanceMapModal = document.getElementById('performance-map-modal');
+    const performanceMapClose = document.getElementById('performance-map-close-btn');
+    const performanceMapPwdInput = document.getElementById('performance-map-pwd-input');
+    const performanceMapPwdSubmit = document.getElementById('performance-map-pwd-submit');
+    const performanceMapPwdError = document.getElementById('performance-map-pwd-error');
+
+    const closePerformanceMapModal = () => {
+        performanceMapModal.classList.remove('show');
+        setTimeout(() => performanceMapModal.classList.add('hidden'), 300);
+    };
+
+    if (performanceMapBtn) {
+        performanceMapBtn.addEventListener('click', () => {
+            performanceMapPwdInput.value = '';
+            performanceMapPwdError.classList.add('hidden');
+            performanceMapModal.classList.remove('hidden');
+            performanceMapModal.classList.add('show');
+            setTimeout(() => performanceMapPwdInput.focus(), 100);
+        });
+    }
+
+    if (performanceMapClose) performanceMapClose.addEventListener('click', closePerformanceMapModal);
+    if (performanceMapModal) performanceMapModal.addEventListener('click', (event) => {
+        if (event.target === performanceMapModal) closePerformanceMapModal();
+    });
+
+    const verifyPerformanceMapPassword = () => {
+        if (performanceMapPwdInput.value === '1911') {
+            closePerformanceMapModal();
+            window.open('performance_map.html', '_blank', 'noopener');
+        } else {
+            performanceMapPwdError.classList.remove('hidden');
+            performanceMapPwdInput.focus();
+        }
+    };
+
+    if (performanceMapPwdSubmit) performanceMapPwdSubmit.addEventListener('click', verifyPerformanceMapPassword);
+    if (performanceMapPwdInput) performanceMapPwdInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') verifyPerformanceMapPassword();
+    });
+
+    const adminBtn = document.getElementById('admin-filter-btn') || document.getElementById('admin-logo-btn');
     const adminStatusIcon = document.getElementById('admin-status-icon');
     if (sessionStorage.getItem('adminAuth') === 'true' && adminStatusIcon) {
         adminStatusIcon.className = 'fa-solid fa-unlock';
@@ -1378,4 +1623,786 @@ window.addEventListener('DOMContentLoaded', () => {
             buildTimelineSlider(); // Reset slider visual
         });
     }
+
+    // Header Circle Action Buttons: Instant Sync on Click
+    const syncCircleBtn = document.getElementById('sync-circle-btn');
+    if (syncCircleBtn) {
+        syncCircleBtn.addEventListener('click', () => {
+            loadData();
+        });
+    }
 });
+
+
+// =========================================================================
+// Interactive Executive Map, GeoJSON, Markers, and Detail Modals Logic
+// =========================================================================
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+const MENA_AFRICA_BOUNDS = [
+    [-22.0, -22.0], // South-West (below Zambia & West of Guinea / Atlantic)
+    [40.0, 66.0]    // North-East (above Spain/Morocco/Levant & East of Oman/Gulf)
+];
+
+const ALLOWED_NAV_BOUNDS = [
+    [-26.0, -26.0],
+    [44.0, 70.0]
+];
+
+let currentHoveredCountryLayer = null;
+
+// Initialize Leaflet Map
+function initExecutiveMap() {
+    const mapEl = document.getElementById('executive-map');
+    if (!mapEl || typeof L === 'undefined') return;
+    if (executiveMap) return; // already initialized
+
+    // Strictly bounded to Arab Contractors operating zones with interactive zoom & drag enabled
+    executiveMap = L.map('executive-map', {
+        center: [10.5, 22.0],
+        zoom: 3.8,
+        minZoom: 3.5, // Restricts zooming out to the whole world
+        maxZoom: 16,  // Allows zooming in deep into projects
+        maxBounds: ALLOWED_NAV_BOUNDS,
+        maxBoundsViscosity: 1.0, // Hard elastic boundary
+        dragging: true,
+        touchZoom: true,
+        scrollWheelZoom: true,
+        doubleClickZoom: true,
+        boxZoom: true,
+        keyboard: true,
+        zoomControl: true,
+        attributionControl: false
+    });
+
+    // Position Zoom control nicely at top-left
+    if (executiveMap.zoomControl) {
+        executiveMap.zoomControl.setPosition('topleft');
+    }
+
+    executiveMap.fitBounds(MENA_AFRICA_BOUNDS, { padding: [10, 10] });
+
+    // Add Base Tile Layer (Dark Matter or Satellite)
+    const tileUrl = currentTileStyle === 'satellite'
+        ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+        : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+
+    currentTileLayer = L.tileLayer(tileUrl, {
+        subdomains: 'abcd',
+        maxZoom: 19
+    }).addTo(executiveMap);
+
+    // Marker Layer Group
+    markersGroup = L.layerGroup().addTo(executiveMap);
+
+    // Global map mouseout to guarantee clearing any stuck hover state
+    executiveMap.on('mouseout', () => {
+        if (currentHoveredCountryLayer && geoJsonLayer) {
+            geoJsonLayer.resetStyle(currentHoveredCountryLayer);
+            currentHoveredCountryLayer = null;
+        }
+    });
+
+    // Load Exact MENA/Africa GeoJSON boundaries (Direct memory load for 100% offline & local file reliability)
+    if (typeof MENA_GEOJSON !== 'undefined' && MENA_GEOJSON) {
+        menaGeoJsonData = MENA_GEOJSON;
+        renderGeoJsonBoundaries();
+    } else {
+        fetch('mena_africa.geojson')
+            .then(res => res.json())
+            .then(data => {
+                menaGeoJsonData = data;
+                renderGeoJsonBoundaries();
+            })
+            .catch(err => {
+                console.warn("Could not load mena_africa.geojson:", err);
+            });
+    }
+
+    // Invalidate size after layout renders and fit bounds
+    setTimeout(() => {
+        if (executiveMap) {
+            executiveMap.invalidateSize();
+            executiveMap.fitBounds(MENA_AFRICA_BOUNDS, { padding: [8, 8] });
+        }
+    }, 400);
+}
+
+// Default GeoJSON Country Boundary Style
+function getCountryBoundaryDefaultStyle() {
+    return {
+        color: 'rgba(250, 204, 21, 0.08)',
+        weight: 0.8,
+        opacity: 0.4,
+        fillColor: 'transparent',
+        fillOpacity: 0,
+        className: 'outline-none focus:outline-none select-none'
+    };
+}
+
+// Render GeoJSON boundaries with robust, non-sticking golden hover illumination
+function renderGeoJsonBoundaries() {
+    if (!executiveMap || !menaGeoJsonData) return;
+
+    if (geoJsonLayer) {
+        executiveMap.removeLayer(geoJsonLayer);
+    }
+
+    geoJsonLayer = L.geoJSON(menaGeoJsonData, {
+        style: getCountryBoundaryDefaultStyle,
+        onEachFeature: (feature, layer) => {
+            const isoCode = feature.properties ? feature.properties['ISO3166-1-Alpha-2'] : null;
+            const countryGeo = isoCode && typeof COUNTRIES_GEO !== 'undefined' ? COUNTRIES_GEO[isoCode] : null;
+            const countryName = countryGeo ? countryGeo.nameAr : (feature.properties ? (feature.properties.name || '') : '');
+
+            // Robust hover state handler
+            layer.on('mouseover', (e) => {
+                // Clear any previous stuck layer
+                if (currentHoveredCountryLayer && currentHoveredCountryLayer !== layer) {
+                    geoJsonLayer.resetStyle(currentHoveredCountryLayer);
+                }
+
+                currentHoveredCountryLayer = layer;
+                layer.setStyle({
+                    color: '#FACC15', // Vibrant golden illuminated border
+                    weight: 2.2,
+                    opacity: 0.95,
+                    fillColor: '#F59E0B',
+                    fillOpacity: 0.12 // Soft golden glow fill
+                });
+            });
+
+            layer.on('mouseout', (e) => {
+                geoJsonLayer.resetStyle(layer);
+                if (currentHoveredCountryLayer === layer) {
+                    currentHoveredCountryLayer = null;
+                }
+            });
+
+            // Click opens Country Drawer
+            layer.on('click', (e) => {
+                if (e && e.originalEvent && e.originalEvent.target && typeof e.originalEvent.target.blur === 'function') {
+                    e.originalEvent.target.blur();
+                }
+                if (countryGeo) {
+                    openCountryDrawer(countryGeo);
+                } else if (countryName) {
+                    openCountryDrawer(countryName);
+                }
+            });
+
+            // Tooltip
+            const flag = countryGeo ? countryGeo.flag : '🌐';
+            layer.bindTooltip(`
+                <div style="direction:rtl; font-family:'Tajawal',sans-serif; text-align:right; padding:3px 6px;">
+                    <span style="font-size:14px; margin-left:4px;">${flag}</span>
+                    <strong style="color:#fef08a; font-size:12px;">${countryName}</strong>
+                    <div style="font-size:10px; color:#94a3b8; margin-top:2px;">اضغط لعرض المشروعات والفروع</div>
+                </div>
+            `, { sticky: true, className: 'executive-map-tooltip' });
+        }
+    });
+
+    geoJsonLayer.addTo(executiveMap);
+}
+
+// Render dynamic map markers for branches & live projects
+function updateMapMarkers() {
+    if (!executiveMap || !markersGroup) return;
+
+    markersGroup.clearLayers();
+
+    const branchesToRender = new Set(expectedBranches);
+    const projectsToRender = new Set(expectedProjects);
+
+    // Also include any branches and projects found in raw reports
+    reportsData.forEach(r => {
+        if (r.branchName) branchesToRender.add(r.branchName);
+        if (r.isProjectReport && r.projectName) projectsToRender.add(r.projectName);
+    });
+
+    // 1. Render Blue Glowing Branch Markers
+    if (showBranches) {
+        branchesToRender.forEach(branchName => {
+            if (!branchName) return;
+            const country = branchToCountryMap[branchName] || '';
+            const bReports = reportsData.filter(r => r.branchName === branchName);
+            const bMapsLink = bReports.length > 0 ? bReports[0].mapsLink : null;
+            const coords = typeof getBranchCoordinates === 'function' ? getBranchCoordinates(branchName, country, bMapsLink) : { lat: 30.0444, lng: 31.2357, isHQ: false };
+            
+            const subProjectsCount = Array.from(projectsToRender).filter(p => projectToBranchMap[p] === branchName).length;
+            const submittalsCount = bReports.length;
+            const isHQ = coords.isHQ;
+
+            const iconHtml = `
+                <div class="branch-beacon-container" onclick="openBranchDetailModal('${escapeHtml(branchName)}', '${escapeHtml(country)}')">
+                    <div class="branch-beacon-glow-outer"></div>
+                    <div class="branch-beacon-glow-inner"></div>
+                    <div class="branch-beacon-core"></div>
+                </div>
+            `;
+
+            const branchIcon = L.divIcon({
+                html: iconHtml,
+                className: 'custom-branch-marker',
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+            });
+
+            const marker = L.marker([coords.lat, coords.lng], { icon: branchIcon });
+            
+            marker.bindTooltip(`
+                <div style="direction:rtl; font-family:'Tajawal',sans-serif; text-align:right; padding:4px;">
+                    <div style="font-weight:bold; color:#60a5fa; font-size:13px;">🏢 ${escapeHtml(branchName)} ${isHQ ? '(المقر الرئيسي)' : ''}</div>
+                    <div style="font-size:11px; color:#e2e8f0; margin-top:2px;">الدولة: ${escapeHtml(country || '-')}</div>
+                    <div style="font-size:11px; color:#93c5fd; margin-top:4px;">📁 ${subProjectsCount} مشاريع • 📝 ${submittalsCount} تقارير</div>
+                </div>
+            `, { direction: 'top', className: 'executive-map-tooltip' });
+
+            marker.on('click', () => openBranchDetailModal(branchName, country));
+            markersGroup.addLayer(marker);
+        });
+    }
+
+    // 2. Render Glowing Yellow Live Project Beacons (Exact style from ExecutiveMap)
+    if (showProjects) {
+        projectsToRender.forEach(projectName => {
+            if (!projectName) return;
+            const branchName = projectToBranchMap[projectName] || '';
+            const countryName = projectToCountryMap[projectName] || branchToCountryMap[branchName] || '';
+            const projReports = reportsData.filter(r => r.projectName === projectName || (r.isProjectReport && r.projectName.includes(projectName)));
+            const pMapsLink = projReports.length > 0 ? projReports[0].mapsLink : null;
+            const coords = typeof getProjectCoordinates === 'function' ? getProjectCoordinates(projectName, branchName, countryName, pMapsLink) : { lat: 30.0444, lng: 31.2357 };
+
+            const latestVal = projReports.length > 0 ? projReports[0].valueUsd : 0;
+            const client = projReports.length > 0 ? projReports[0].clientName : '';
+
+            const iconHtml = `
+                <div class="project-beacon-container" onclick="openProjectDetailModal('${escapeHtml(projectName)}', '${escapeHtml(branchName)}', '${escapeHtml(countryName)}')">
+                    <div class="project-beacon-glow-outer"></div>
+                    <div class="project-beacon-glow-inner"></div>
+                    <div class="project-beacon-core"></div>
+                </div>
+            `;
+
+            const projIcon = L.divIcon({
+                html: iconHtml,
+                className: 'custom-project-marker',
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+            });
+
+            const marker = L.marker([coords.lat, coords.lng], { icon: projIcon });
+            const valStr = latestVal > 0 ? formatCurrencyUSD(latestVal) : '';
+
+            marker.bindTooltip(`
+                <div style="direction:rtl; font-family:'Tajawal',sans-serif; text-align:right; padding:4px; min-width:150px;">
+                    <div style="font-weight:bold; color:#facc15; font-size:13px;">📍 ${escapeHtml(projectName)}</div>
+                    <div style="font-size:11px; color:#cbd5e1; margin-top:2px;">🏢 ${escapeHtml(branchName || '-')} (${escapeHtml(countryName || '-')})</div>
+                    ${client ? `<div style="font-size:10px; color:#94a3b8; margin-top:1px;">العميل: ${escapeHtml(client)}</div>` : ''}
+                    ${valStr ? `<div style="font-size:11px; color:#10b981; font-weight:bold; margin-top:3px;">💰 ${valStr}</div>` : ''}
+                </div>
+            `, { direction: 'top', className: 'executive-map-tooltip' });
+
+            marker.on('click', () => openProjectDetailModal(projectName, branchName, countryName));
+            markersGroup.addLayer(marker);
+        });
+    }
+
+    // Update Quick Legend Stats
+    const statsEl = document.getElementById('map-quick-stats');
+    if (statsEl) {
+        statsEl.innerHTML = `<i class="fa-solid fa-layer-group"></i> <span>${branchesToRender.size} فرع</span> • <span>${projectsToRender.size} مشروع</span> • <span>${reportsData.length} تقرير</span>`;
+    }
+}
+
+// Region Zoom Presets
+function filterMapRegion(region) {
+    currentRegion = region;
+    document.querySelectorAll('.region-pill').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-region') === region);
+    });
+
+    if (!executiveMap) return;
+
+    if (region === 'all') {
+        executiveMap.flyToBounds(MENA_AFRICA_BOUNDS, { padding: [10, 10], duration: 1.0 });
+    } else if (region === 'gcc') {
+        executiveMap.flyToBounds([[15.0, 35.0], [33.0, 60.0]], { padding: [15, 15], duration: 1.0 });
+    } else if (region === 'north_africa') {
+        executiveMap.flyToBounds([[18.0, -18.0], [37.5, 36.0]], { padding: [15, 15], duration: 1.0 });
+    } else if (region === 'sub_saharan') {
+        executiveMap.flyToBounds([[-35.0, -18.0], [16.0, 52.0]], { padding: [15, 15], duration: 1.0 });
+    } else if (region === 'middle_east') {
+        executiveMap.flyToBounds([[28.0, 33.0], [38.0, 50.0]], { padding: [15, 15], duration: 1.0 });
+    }
+}
+
+// Toggle Branches / Projects
+function toggleMapLayer(layer) {
+    if (layer === 'branches') {
+        showBranches = !showBranches;
+        const btn = document.getElementById('toggle-branches-btn');
+        if (btn) btn.classList.toggle('active', showBranches);
+    } else if (layer === 'projects') {
+        showProjects = !showProjects;
+        const btn = document.getElementById('toggle-projects-btn');
+        if (btn) btn.classList.toggle('active', showProjects);
+    }
+    updateMapMarkers();
+}
+
+// Switch between Dark and Satellite tile layers
+function toggleTileLayerStyle() {
+    currentTileStyle = currentTileStyle === 'dark' ? 'satellite' : 'dark';
+    const btn = document.getElementById('toggle-tile-style-btn');
+    const label = document.getElementById('tile-style-label');
+
+    if (btn && label) {
+        if (currentTileStyle === 'satellite') {
+            btn.classList.add('active');
+            label.innerText = 'خريطة داكنة';
+            const icon = btn.querySelector('i');
+            if (icon) icon.className = 'fa-solid fa-moon';
+        } else {
+            btn.classList.remove('active');
+            label.innerText = 'قمر صناعي';
+            const icon = btn.querySelector('i');
+            if (icon) icon.className = 'fa-solid fa-satellite';
+        }
+    }
+
+    if (currentTileLayer && executiveMap) {
+        const tileUrl = currentTileStyle === 'satellite'
+            ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+            : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+        currentTileLayer.setUrl(tileUrl);
+    }
+}
+
+// Fullscreen toggle for map section
+function toggleMapFullscreen() {
+    const mapSection = document.getElementById('map-section-card');
+    const fsIcon = document.getElementById('fullscreen-icon');
+    if (!mapSection) return;
+
+    mapSection.classList.toggle('fullscreen-map');
+    const isFs = mapSection.classList.contains('fullscreen-map');
+    if (fsIcon) {
+        fsIcon.className = isFs ? 'fa-solid fa-compress' : 'fa-solid fa-expand';
+    }
+
+    setTimeout(() => {
+        if (executiveMap) executiveMap.invalidateSize();
+    }, 250);
+}
+
+// =========================================================================
+// Country Drawer, Branch Modal, and Project Modal Handlers
+// =========================================================================
+
+function openCountryDrawer(countryDataOrName) {
+    const drawerOverlay = document.getElementById('country-drawer-overlay');
+    if (!drawerOverlay) return;
+
+    let countryGeo = null;
+    let countryName = '';
+
+    if (typeof countryDataOrName === 'string') {
+        countryName = countryDataOrName;
+        countryGeo = typeof findCountryGeo === 'function' ? findCountryGeo(countryName) : null;
+    } else if (countryDataOrName && typeof countryDataOrName === 'object') {
+        countryGeo = countryDataOrName;
+        countryName = countryGeo.nameAr || countryGeo.fullNameAr || countryGeo.nameEn;
+    }
+
+    const flagClass = getFlagIconClass(countryName);
+    const region = countryGeo ? countryGeo.region : 'إقليمي';
+
+    document.getElementById('drawer-country-name').innerText = countryName;
+    const flagEl = document.getElementById('drawer-country-flag');
+    if (flagEl) {
+        flagEl.className = `drawer-flag fi ${flagClass}`;
+    }
+    const regEl = document.getElementById('drawer-country-region');
+    if (regEl) {
+        regEl.innerText = region.replace('_', ' ');
+    }
+
+    // Filter projects & branches for this country
+    const countryProjects = Array.from(expectedProjects).filter(p => {
+        const c = projectToCountryMap[p] || branchToCountryMap[projectToBranchMap[p]] || '';
+        return c.toLowerCase().includes(countryName.toLowerCase()) || countryName.toLowerCase().includes(c.toLowerCase());
+    });
+
+    const countryBranches = Array.from(expectedBranches).filter(b => {
+        const c = branchToCountryMap[b] || '';
+        return c.toLowerCase().includes(countryName.toLowerCase()) || countryName.toLowerCase().includes(c.toLowerCase());
+    });
+
+    const countryReports = reportsData.filter(r => {
+        return (r.country && (r.country.includes(countryName) || countryName.includes(r.country))) ||
+               (r.projectName && countryProjects.includes(r.projectName)) ||
+               (r.branchName && countryBranches.includes(r.branchName));
+    });
+
+    document.getElementById('drawer-kpi-projects').innerText = countryProjects.length;
+    document.getElementById('drawer-kpi-branches').innerText = countryBranches.length;
+    document.getElementById('drawer-kpi-uploads').innerText = countryReports.length;
+
+    // Render projects list
+    const projListEl = document.getElementById('drawer-projects-list');
+    projListEl.innerHTML = '';
+    if (countryProjects.length === 0) {
+        projListEl.innerHTML = `<div style="color:var(--text-muted); font-size:12px; padding:12px 0;">لا توجد مشاريع مسجلة حالياً في هذه الدولة</div>`;
+    } else {
+        countryProjects.forEach(pName => {
+            const bName = projectToBranchMap[pName] || '-';
+            const pReports = reportsData.filter(r => r.projectName === pName);
+            const latestVal = pReports.length > 0 && pReports[0].valueUsd ? formatCurrencyUSD(pReports[0].valueUsd) : '';
+            const isSubmitted = pReports.length > 0;
+
+            const div = document.createElement('div');
+            div.className = 'drawer-item-card';
+            div.onclick = () => {
+                closeCountryDrawer();
+                openProjectDetailModal(pName, bName, countryName);
+            };
+            div.innerHTML = `
+                <div class="drawer-item-header">
+                    <span class="drawer-item-title">📍 ${escapeHtml(pName)}</span>
+                    ${latestVal ? `<span class="drawer-item-badge">${latestVal}</span>` : ''}
+                </div>
+                <div class="drawer-item-sub">
+                    <span>🏢 ${escapeHtml(bName)}</span>
+                    <span style="color:${isSubmitted ? '#10B981' : '#F59E0B'}; font-weight:700;">
+                        ${isSubmitted ? '✓ تم الرفع' : '⏳ قيد المتابعة'}
+                    </span>
+                </div>
+            `;
+            projListEl.appendChild(div);
+        });
+    }
+
+    // Render branches list
+    const branchListEl = document.getElementById('drawer-branches-list');
+    branchListEl.innerHTML = '';
+    if (countryBranches.length === 0) {
+        branchListEl.innerHTML = `<div style="color:var(--text-muted); font-size:12px; padding:12px 0;">تتم إدارة العمليات من المقر الإقليمي المجاور</div>`;
+    } else {
+        countryBranches.forEach(bName => {
+            const subProjects = Array.from(expectedProjects).filter(p => projectToBranchMap[p] === bName).length;
+            const bReports = reportsData.filter(r => r.branchName === bName);
+
+            const div = document.createElement('div');
+            div.className = 'drawer-item-card';
+            div.onclick = () => {
+                closeCountryDrawer();
+                openBranchDetailModal(bName, countryName);
+            };
+            div.innerHTML = `
+                <div class="drawer-item-header">
+                    <span class="drawer-item-title">🏢 ${escapeHtml(bName)}</span>
+                    <span class="drawer-item-badge">${subProjects} مشروعات</span>
+                </div>
+                <div class="drawer-item-sub">
+                    <span>إجمالي التقارير: ${bReports.length}</span>
+                    <span style="color:var(--theme-accent); font-weight:700;">عرض التفاصيل ❯</span>
+                </div>
+            `;
+            branchListEl.appendChild(div);
+        });
+    }
+
+    drawerOverlay.classList.remove('hidden');
+    setTimeout(() => drawerOverlay.classList.add('open'), 10);
+
+    // Fly to country on map
+    if (countryGeo && executiveMap) {
+        executiveMap.flyTo([countryGeo.lat, countryGeo.lng], countryGeo.zoom || 6, { duration: 1.2 });
+    }
+}
+
+function closeCountryDrawer(e) {
+    if (e && e.target !== document.getElementById('country-drawer-overlay') && !e.target.closest('.drawer-close-btn')) {
+        return;
+    }
+    const drawerOverlay = document.getElementById('country-drawer-overlay');
+    if (drawerOverlay) {
+        drawerOverlay.classList.remove('open');
+        setTimeout(() => drawerOverlay.classList.add('hidden'), 350);
+    }
+}
+
+function openBranchDetailModal(branchName, countryName) {
+    const modal = document.getElementById('branch-detail-modal');
+    if (!modal) return;
+
+    document.getElementById('branch-modal-name').innerText = branchName;
+    const country = countryName || branchToCountryMap[branchName] || '-';
+    document.getElementById('branch-modal-country').innerText = country;
+
+    const subProjects = Array.from(expectedProjects).filter(p => projectToBranchMap[p] === branchName);
+    document.getElementById('branch-modal-projects-count').innerText = subProjects.length;
+
+    const branchReports = reportsData.filter(r => r.branchName === branchName);
+    document.getElementById('branch-modal-reports-count').innerText = branchReports.length;
+
+    const isSubmitted = branchReports.length > 0;
+    const statusEl = document.getElementById('branch-modal-status');
+    if (statusEl) {
+        statusEl.innerHTML = isSubmitted
+            ? `<span style="color:#10B981; font-weight:700;">✓ تم الإرسال</span>`
+            : `<span style="color:#EF4444; font-weight:700;">لم يرسل بعد</span>`;
+    }
+
+    // Render projects list for this branch
+    const listEl = document.getElementById('branch-modal-projects-list');
+    listEl.innerHTML = '';
+    if (subProjects.length === 0) {
+        listEl.innerHTML = `<div style="text-align:center; color:var(--text-muted); padding:16px;">لا توجد مشاريع مخصصة لهذا الفرع في السجل</div>`;
+    } else {
+        subProjects.forEach(pName => {
+            const pReports = reportsData.filter(r => r.projectName === pName);
+            const val = pReports.length > 0 && pReports[0].valueUsd ? formatCurrencyUSD(pReports[0].valueUsd) : '-';
+            const isRep = pReports.length > 0;
+
+            const row = document.createElement('div');
+            row.className = 'detail-project-row';
+            row.style.cursor = 'pointer';
+            row.onclick = () => {
+                closeBranchDetailModal();
+                openProjectDetailModal(pName, branchName, country);
+            };
+            row.innerHTML = `
+                <div>
+                    <strong style="color:var(--text-primary);">📍 ${escapeHtml(pName)}</strong>
+                    <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">القيمة: ${val}</div>
+                </div>
+                <span style="font-weight:700; color:${isRep ? '#10B981' : '#F59E0B'};">
+                    ${isRep ? '✓ تم الرفع' : '⏳ متأخر'}
+                </span>
+            `;
+            listEl.appendChild(row);
+        });
+    }
+
+    modal.classList.remove('hidden');
+    setTimeout(() => modal.classList.add('show'), 10);
+
+    // Pan map to branch coordinates
+    if (executiveMap && typeof getBranchCoordinates === 'function') {
+        const bReports = reportsData.filter(r => r.branchName === branchName);
+        const bMapsLink = bReports.length > 0 ? bReports[0].mapsLink : null;
+        const coords = getBranchCoordinates(branchName, country, bMapsLink);
+        executiveMap.flyTo([coords.lat, coords.lng], 7, { duration: 1.0 });
+    }
+}
+
+function closeBranchDetailModal() {
+    const modal = document.getElementById('branch-detail-modal');
+    if (modal) {
+        modal.classList.remove('show');
+        setTimeout(() => modal.classList.add('hidden'), 300);
+    }
+}
+
+// Switch Project Modal Internal Tabs
+function switchProjModalTab(tabId, btnElement) {
+    document.querySelectorAll('.proj-tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.proj-tab-content').forEach(content => content.classList.remove('active'));
+
+    if (btnElement) btnElement.classList.add('active');
+    const target = document.getElementById('proj-tab-' + tabId);
+    if (target) target.classList.add('active');
+}
+
+function openProjectDetailModal(projectName, branchName, countryName) {
+    const modal = document.getElementById('project-detail-modal');
+    if (!modal) return;
+
+    // Reset to first tab
+    switchProjModalTab('financials', document.querySelector('.proj-tab-btn'));
+
+    document.getElementById('project-modal-name').innerText = projectName;
+    const branch = branchName || projectToBranchMap[projectName] || '-';
+    const country = countryName || projectToCountryMap[projectName] || branchToCountryMap[branch] || '-';
+
+    document.getElementById('project-modal-country-badge').innerText = `🌍 ${country}`;
+    document.getElementById('project-modal-branch-badge').innerText = `🏢 ${branch}`;
+
+    // Find latest project report
+    const pReports = reportsData.filter(r => r.projectName === projectName || (r.isProjectReport && r.projectName.includes(projectName)));
+    const latestReport = pReports.length > 0 ? pReports[0] : (globalRawReports.find(r => r.projectName === projectName) || null);
+
+    const fmtMoney = (val, cur) => {
+        if (!val || val === 0) return '-';
+        return `${Number(val).toLocaleString('ar-EG')} ${cur || ''}`.trim();
+    };
+
+    const scheduleBadge = document.getElementById('project-modal-schedule-badge');
+    const mapLinkBtn = document.getElementById('project-modal-map-link');
+
+    if (!latestReport) {
+        if (scheduleBadge) {
+            scheduleBadge.className = 'detail-tag status delayed';
+            scheduleBadge.innerText = 'لم يتم رفع تقرير بعد';
+        }
+        if (mapLinkBtn) mapLinkBtn.classList.add('hidden');
+
+        // Set default empty states
+        document.getElementById('pm-val-usd').innerText = '-';
+        document.getElementById('pm-val-local').innerText = 'لا توجد بيانات مرفوعة';
+        document.getElementById('pm-progress-percent').innerText = '-';
+        document.getElementById('pm-executed-work-label').innerText = 'حجم المنفذ: -';
+        document.getElementById('pm-collected-liquidity').innerText = '-';
+        document.getElementById('pm-advance-sub').innerText = 'الدفعة المقدمة: -';
+        document.getElementById('pm-due-debt').innerText = '-';
+        document.getElementById('pm-paid-sub').innerText = 'المسدد للمشروع: -';
+
+        document.getElementById('pm-revised-val').innerText = '-';
+        document.getElementById('pm-advance-val').innerText = '-';
+        document.getElementById('pm-executed-approved').innerText = '-';
+        document.getElementById('pm-materials-val').innerText = '-';
+        document.getElementById('pm-executed-total').innerText = '-';
+        document.getElementById('pm-paid-work').innerText = '-';
+        document.getElementById('pm-lg-val').innerText = '-';
+        document.getElementById('pm-retained-liquidity').innerText = '-';
+        document.getElementById('pm-subcontractors-due').innerText = '-';
+        document.getElementById('pm-profit-loss').innerText = '-';
+
+        document.getElementById('pm-start-date').innerText = '-';
+        document.getElementById('pm-handover-date').innerText = '-';
+        document.getElementById('pm-drawings-date').innerText = '-';
+        document.getElementById('pm-end-date').innerText = '-';
+        document.getElementById('pm-revised-end-date').innerText = '-';
+        document.getElementById('pm-expected-finish-date').innerText = '-';
+        document.getElementById('pm-last-invoice-date').innerText = '-';
+        document.getElementById('pm-last-collection-date').innerText = '-';
+
+        document.getElementById('pm-schedule-status-txt').innerText = 'غير متوفر';
+        document.getElementById('pm-ext-requested-txt').innerText = '-';
+        document.getElementById('pm-ext-period-txt').innerText = '-';
+        document.getElementById('pm-ext-approved-txt').innerText = '-';
+        document.getElementById('pm-measurement-date-txt').innerText = '-';
+
+        document.getElementById('pm-client-txt').innerText = '-';
+        document.getElementById('pm-consultant-txt').innerText = '-';
+        document.getElementById('pm-branch-txt').innerText = branch;
+        document.getElementById('pm-country-txt').innerText = country;
+        document.getElementById('pm-scope-txt').innerText = '-';
+        document.getElementById('pm-contract-type-txt').innerText = '-';
+        document.getElementById('pm-funding-txt').innerText = '-';
+        document.getElementById('pm-currency-rate-txt').innerText = '-';
+
+        document.getElementById('pm-obstacles-txt').innerText = 'لم يتم تسجيل تقرير تحديث لهذا المشروع خلال الفترة المحددة.';
+        document.getElementById('pm-claims-status-txt').innerText = 'لا يوجد';
+        document.getElementById('pm-claims-val-txt').innerText = '-';
+        document.getElementById('pm-userstamp-txt').innerText = 'لم يُرفع بعد';
+    } else {
+        const cur = latestReport.currency || '';
+        const isDelayed = latestReport.scheduleStatus && (latestReport.scheduleStatus.includes('متأخر') || latestReport.scheduleStatus.includes('خارج'));
+        
+        if (scheduleBadge) {
+            scheduleBadge.className = `detail-tag status ${isDelayed ? 'delayed' : ''}`;
+            scheduleBadge.innerText = latestReport.scheduleStatus || 'داخل المدة';
+        }
+
+        // Map link
+        if (mapLinkBtn) {
+            if (latestReport.mapsLink && latestReport.mapsLink.startsWith('http')) {
+                mapLinkBtn.href = latestReport.mapsLink;
+                mapLinkBtn.classList.remove('hidden');
+            } else {
+                mapLinkBtn.classList.add('hidden');
+            }
+        }
+
+        // Top Financial KPIs
+        document.getElementById('pm-val-usd').innerText = latestReport.valueUsd > 0 ? formatCurrencyUSD(latestReport.valueUsd) : 'غير مدخل';
+        document.getElementById('pm-val-local').innerText = latestReport.contractValue > 0 ? fmtMoney(latestReport.contractValue, cur) : '-';
+        document.getElementById('pm-progress-percent').innerText = latestReport.plannedProgressPercent > 0 ? `${latestReport.plannedProgressPercent}%` : '-';
+        document.getElementById('pm-executed-work-label').innerText = latestReport.executedWorkApproved > 0 ? `المنفذ: ${fmtMoney(latestReport.executedWorkApproved, cur)}` : 'حجم المنفذ: -';
+        
+        document.getElementById('pm-collected-liquidity').innerText = latestReport.collectedLiquidity > 0 ? fmtMoney(latestReport.collectedLiquidity, cur) : '-';
+        document.getElementById('pm-advance-sub').innerText = latestReport.advancePayment > 0 ? `الدفعة المقدمة: ${fmtMoney(latestReport.advancePayment, cur)}` : 'الدفعة المقدمة: -';
+        
+        document.getElementById('pm-due-debt').innerText = latestReport.dueDebt > 0 ? fmtMoney(latestReport.dueDebt, cur) : '-';
+        document.getElementById('pm-paid-sub').innerText = latestReport.paidWork > 0 ? `المسدد: ${fmtMoney(latestReport.paidWork, cur)}` : 'المسدد: -';
+
+        // Financial Grid
+        document.getElementById('pm-revised-val').innerText = fmtMoney(latestReport.revisedContractValue, cur);
+        document.getElementById('pm-advance-val').innerText = fmtMoney(latestReport.advancePayment, cur);
+        document.getElementById('pm-executed-approved').innerText = fmtMoney(latestReport.executedWorkApproved, cur);
+        document.getElementById('pm-materials-val').innerText = fmtMoney(latestReport.approvedMaterials, cur);
+        document.getElementById('pm-executed-total').innerText = fmtMoney(latestReport.executedWorkTotal, cur);
+        document.getElementById('pm-paid-work').innerText = fmtMoney(latestReport.paidWork, cur);
+        document.getElementById('pm-lg-val').innerText = fmtMoney(latestReport.lettersOfGuaranteeValue || latestReport.openLGTotal, cur);
+        document.getElementById('pm-retained-liquidity').innerText = fmtMoney(latestReport.retainedLiquidity, cur);
+        document.getElementById('pm-subcontractors-due').innerText = fmtMoney(latestReport.subcontractorsDue, cur);
+        document.getElementById('pm-profit-loss').innerText = fmtMoney(latestReport.profitLoss, cur);
+
+        // Dates Grid
+        document.getElementById('pm-start-date').innerText = latestReport.contractStartDate || '-';
+        document.getElementById('pm-handover-date').innerText = latestReport.siteHandoverDate || '-';
+        document.getElementById('pm-drawings-date').innerText = latestReport.drawingsDate || '-';
+        document.getElementById('pm-end-date').innerText = latestReport.contractEndDate || '-';
+        document.getElementById('pm-revised-end-date').innerText = latestReport.revisedEndDate || '-';
+        document.getElementById('pm-expected-finish-date').innerText = latestReport.expectedFinishDate || '-';
+        document.getElementById('pm-last-invoice-date').innerText = latestReport.lastInvoiceApprovalDate || '-';
+        document.getElementById('pm-last-collection-date').innerText = latestReport.lastCollectionDate || '-';
+
+        // Extensions & Schedule Box
+        document.getElementById('pm-schedule-status-txt').innerText = latestReport.scheduleStatus || '-';
+        document.getElementById('pm-ext-requested-txt').innerText = latestReport.extensionRequested || '-';
+        document.getElementById('pm-ext-period-txt').innerText = latestReport.extensionPeriod || '-';
+        document.getElementById('pm-ext-approved-txt').innerText = latestReport.extensionApprovedPeriod || '-';
+        document.getElementById('pm-measurement-date-txt').innerText = latestReport.measurementDate || '-';
+
+        // Contract & Stakeholders
+        document.getElementById('pm-client-txt').innerText = latestReport.clientName || '-';
+        document.getElementById('pm-consultant-txt').innerText = latestReport.consultantName || '-';
+        document.getElementById('pm-branch-txt').innerText = latestReport.branchName || branch;
+        document.getElementById('pm-country-txt').innerText = latestReport.country || country;
+        document.getElementById('pm-scope-txt').innerText = latestReport.scopeOfWork || '-';
+        document.getElementById('pm-contract-type-txt').innerText = latestReport.contractType || '-';
+        document.getElementById('pm-funding-txt').innerText = latestReport.fundingSource || '-';
+        document.getElementById('pm-currency-rate-txt').innerText = `${cur || '-'} ${latestReport.exchangeRate > 0 ? `(سعر الصرف للدولار: ${latestReport.exchangeRate})` : ''}`.trim();
+
+        // Obstacles & Claims
+        document.getElementById('pm-obstacles-txt').innerText = latestReport.projectObstacles || 'لا توجد معوقات مسجلة حالياً.';
+        document.getElementById('pm-claims-status-txt').innerText = latestReport.claimsStatus || 'لا يوجد';
+        document.getElementById('pm-claims-val-txt').innerText = fmtMoney(latestReport.claimsValue, cur);
+
+        // Userstamp
+        const dObj = new Date(latestReport.timestamp);
+        const dateStr = isNaN(dObj.getTime()) ? latestReport.timestamp : dObj.toLocaleString('ar-EG', { dateStyle: 'long', timeStyle: 'short' });
+        document.getElementById('pm-userstamp-txt').innerText = `${latestReport.userstamp || '-'} (${dateStr})`;
+    }
+
+    modal.classList.remove('hidden');
+    setTimeout(() => modal.classList.add('show'), 10);
+
+    // Pan map to project coordinates
+    if (executiveMap && typeof getProjectCoordinates === 'function') {
+        const coords = getProjectCoordinates(projectName, branch, country, latestReport ? latestReport.mapsLink : null);
+        executiveMap.flyTo([coords.lat, coords.lng], 8, { duration: 1.0 });
+    }
+}
+
+function closeProjectDetailModal() {
+    const modal = document.getElementById('project-detail-modal');
+    if (modal) {
+        modal.classList.remove('show');
+        setTimeout(() => modal.classList.add('hidden'), 300);
+    }
+}

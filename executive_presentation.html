@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>العرض التنفيذي | منظومة مؤشرات المشروعات والخريطة التفاعلية</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* ===========================================
+           CSS CUSTOM PROPERTIES (EXECUTIVE THEME)
+           =========================================== */
+        :root {
+            --stage-bg: #060A12;
+            --slide-bg: #0B132B;
+            --theme-accent: #F59E0B;
+            --theme-accent-glow: rgba(245, 158, 11, 0.35);
+            --theme-gold-light: #FDE68A;
+            --theme-blue: #3B82F6;
+            --theme-emerald: #10B981;
+            --text-primary: #F8FAFC;
+            --text-secondary: #CBD5E1;
+            --text-muted: #94A3B8;
+            --card-bg: rgba(15, 23, 42, 0.75);
+            --card-border: rgba(245, 158, 11, 0.22);
+            --card-border-subtle: rgba(255, 255, 255, 0.1);
+            
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --duration-normal: 0.6s;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Tajawal', sans-serif;
+        }
+
+        /* ===========================================
+           1. MANDATORY FIXED 16:9 STAGE BASE STYLES
+           =========================================== */
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background: var(--stage-bg);
+            color: var(--text-primary);
+        }
+
+        .deck-viewport {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+            background: var(--stage-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .deck-stage {
+            position: absolute;
+            width: 1920px;
+            height: 1080px;
+            overflow: hidden;
+            transform-origin: 0 0;
+            background: radial-gradient(circle at 85% 15%, #16254A 0%, #0B132B 55%, #070C18 100%);
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8);
+        }
+
+        .slide {
+            position: absolute;
+            inset: 0;
+            width: 1920px;
+            height: 1080px;
+            padding: 80px 120px 90px 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
+            overflow: hidden;
+            background: transparent;
+        }
+
+        .slide.active,
+        .slide.visible {
+            visibility: visible;
+            opacity: 1;
+            pointer-events: auto;
+            z-index: 1;
+        }
+
+        /* Ambient Glow Orbs */
+        .ambient-orb {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            filter: blur(80px);
+            z-index: 0;
+        }
+
+        .orb-top-right {
+            width: 700px;
+            height: 700px;
+            background: radial-gradient(circle, rgba(245, 158, 11, 0.12) 0%, rgba(245, 158, 11, 0) 70%);
+            top: -150px;
+            right: -150px;
+        }
+
+        .orb-bottom-left {
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0) 70%);
+            bottom: -100px;
+            left: -100px;
+        }
+
+        /* ===========================================
+           ANIMATIONS & REVEALS
+           =========================================== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(35px);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+
+        .slide.visible .reveal {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal:nth-child(1) { transition-delay: 0.08s; }
+        .reveal:nth-child(2) { transition-delay: 0.16s; }
+        .reveal:nth-child(3) { transition-delay: 0.24s; }
+        .reveal:nth-child(4) { transition-delay: 0.32s; }
+        .reveal:nth-child(5) { transition-delay: 0.40s; }
+
+        /* ===========================================
+           SLIDE COMMON COMPONENTS
+           =========================================== */
+        .slide-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .brand-logo-area {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .brand-logo-area img {
+            height: 70px;
+            filter: drop-shadow(0 4px 14px rgba(0,0,0,0.5));
+        }
+
+        .slide-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 20px;
+            border-radius: 30px;
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid var(--card-border);
+            color: var(--theme-gold-light);
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .slide-category {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--theme-accent);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .slide-category::before {
+            content: '';
+            display: inline-block;
+            width: 32px;
+            height: 4px;
+            background: var(--theme-accent);
+            border-radius: 2px;
+        }
+
+        .slide-title {
+            font-size: 58px;
+            font-weight: 900;
+            line-height: 1.15;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+        }
+
+        .slide-title span {
+            color: var(--theme-accent);
+            background: linear-gradient(135deg, #FDE68A 0%, #F59E0B 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .slide-subtitle {
+            font-size: 26px;
+            line-height: 1.5;
+            color: var(--text-muted);
+            max-width: 1200px;
+            margin-bottom: 40px;
+        }
+
+        .slide-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 20px;
+            color: var(--text-muted);
+            font-size: 17px;
+            z-index: 10;
+        }
+
+        /* ===========================================
+           CARD & GRID LAYOUTS
+           =========================================== */
+        .cards-grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+            z-index: 10;
+        }
+
+        .cards-grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 36px;
+            z-index: 10;
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border-subtle);
+            border-radius: 20px;
+            padding: 36px 32px;
+            backdrop-filter: blur(14px);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .glass-card.highlight {
+            border-color: var(--card-border);
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(15, 23, 42, 0.8) 100%);
+        }
+
+        .card-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 14px;
+            background: rgba(245, 158, 11, 0.12);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            color: var(--theme-accent);
+        }
+
+        .card-icon.blue {
+            background: rgba(59, 130, 246, 0.12);
+            border-color: rgba(59, 130, 246, 0.3);
+            color: var(--theme-blue);
+        }
+
+        .card-icon.emerald {
+            background: rgba(16, 185, 129, 0.12);
+            border-color: rgba(16, 185, 129, 0.3);
+            color: var(--theme-emerald);
+        }
+
+        .card-title {
+            font-size: 28px;
+            font-weight: 800;
+            color: #FFFFFF;
+        }
+
+        .card-desc {
+            font-size: 20px;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        /* Metric Chips */
+        .kpi-stats-row {
+            display: flex;
+            gap: 24px;
+            margin-top: 30px;
+        }
+
+        .kpi-chip-lg {
+            flex: 1;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 18px;
+            padding: 24px 28px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .kpi-chip-lg i {
+            font-size: 38px;
+            color: var(--theme-accent);
+        }
+
+        .kpi-chip-lg .val {
+            font-family: 'Outfit', sans-serif;
+            font-size: 36px;
+            font-weight: 900;
+            color: #FFFFFF;
+            line-height: 1.1;
+        }
+
+        .kpi-chip-lg .lbl {
+            font-size: 17px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Comparison Row (Before / After) */
+        .compare-split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            z-index: 10;
+        }
+
+        .compare-box {
+            padding: 36px;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .compare-box.old {
+            background: rgba(239, 68, 68, 0.06);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .compare-box.new {
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .compare-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-size: 26px;
+            font-weight: 800;
+        }
+
+        .compare-box.old .compare-header { color: #F87171; }
+        .compare-box.new .compare-header { color: #34D399; }
+
+        .compare-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .compare-list li {
+            font-size: 20px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            line-height: 1.5;
+        }
+
+        /* ===========================================
+           CONTROLS & PROGRESS BAR
+           =========================================== */
+        .deck-controls {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 8px 18px;
+            border-radius: 30px;
+            z-index: 1000;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+        }
+
+        .deck-ctrl-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 16px;
+            cursor: pointer;
+            padding: 6px 12px;
+            border-radius: 20px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .deck-ctrl-btn:hover {
+            color: #FFFFFF;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .slide-counter {
+            font-family: 'Outfit', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--theme-gold-light);
+            padding: 0 8px;
+        }
+
+        .deck-progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #F59E0B, #FDE68A);
+            z-index: 1001;
+            transition: width 0.3s ease;
+            width: 16.66%;
+        }
+
+        /* Quick keyboard hint in corner */
+        .kbd-hint {
+            position: fixed;
+            bottom: 28px;
+            left: 30px;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 13px;
+            z-index: 1000;
+            font-family: 'Outfit', sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <div class="deck-progress-bar" id="progressBar"></div>
+
+    <div class="deck-viewport">
+        <main class="deck-stage" id="deckStage">
+
+            <!-- ========================================================
+                 SLIDE 1: TITLE SLIDE (منظومة مؤشرات المشروعات والخريطة)
+                 ======================================================== -->
+            <section class="slide active visible" id="slide-1">
+                <div class="ambient-orb orb-top-right"></div>
+                <div class="ambient-orb orb-bottom-left"></div>
+
+                <div class="slide-header reveal">
+                    <div class="brand-logo-area">
+                        <img src="arab_contractors_logo.png" alt="المقاولون العرب">
+                    </div>
+                    <div class="slide-badge">
+                        <i class="fa-solid fa-satellite-dish"></i>
+                        <span>منظومة الرصد والمتابعة اللحظية • الإصدار 2.0</span>
+                    </div>
+                </div>
+
+                <div class="slide-content-center">
+                    <div class="slide-category reveal">التحول الرقمي والذكاء الجغرافي للمشروعات</div>
+                    <h1 class="slide-title reveal" style="font-size: 74px;">
+                        لوحة مؤشرات المشروعات الحية<br>
+                        <span>وخريطة تحليل الأداء الإقليمي</span>
+                    </h1>
+                    <p class="slide-subtitle reveal" style="font-size: 28px;">
+                        منظومة تنفيذية متكاملة تدمج مؤشرات الأداء المالي والتعاقدي بالتموضع المكاني الذكي لكافة فروع ومشروعات شركة المقاولون العرب حول العالم.
+                    </p>
+
+                    <div class="kpi-stats-row reveal">
+                        <div class="kpi-chip-lg">
+                            <i class="fa-solid fa-earth-africa"></i>
+                            <div>
+                                <div class="val">30 دولة</div>
+                                <div class="lbl">نطاق التغطية الإقليمية</div>
+                            </div>
+                        </div>
+                        <div class="kpi-chip-lg">
+                            <i class="fa-solid fa-building-columns"></i>
+                            <div>
+                                <div class="val">28 فرع وشركة</div>
+                                <div class="lbl">مقر إقليمي متصل لحظياً</div>
+                            </div>
+                        </div>
+                        <div class="kpi-chip-lg">
+                            <i class="fa-solid fa-helmet-safety"></i>
+                            <div>
+                                <div class="val">130 مشروع</div>
+                                <div class="lbl">مرصود بالإحداثيات البرية</div>
+                            </div>
+                        </div>
+                        <div class="kpi-chip-lg">
+                            <i class="fa-solid fa-bolt"></i>
+                            <div>
+                                <div class="val">Live 30s</div>
+                                <div class="lbl">معدل المزامنة السحابية</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="slide-footer reveal">
+                    <span>قطاع المتابعة والمعلومات — إدارة المشروعات الخارجية</span>
+                    <span>شركة المقاولون العرب (عثمان أحمد عثمان وشركاه) • 2026</span>
+                </div>
+            </section>
+
+
+            <!-- ========================================================
+                 SLIDE 2: THE STRATEGIC VISION & CHALLENGE (الرؤية والهدف)
+                 ======================================================== -->
+            <section class="slide" id="slide-2">
+                <div class="ambient-orb orb-top-right"></div>
+
+                <div class="slide-header reveal">
+                    <div class="brand-logo-area">
+                        <img src="arab_contractors_logo.png" alt="المقاولون العرب">
+                    </div>
+                    <div class="slide-badge">
+                        <i class="fa-solid fa-bullseye"></i>
+                        <span>الرؤية والهدف الاستراتيجي</span>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="slide-category reveal">لماذا تم بناء هذه المنظومة؟</div>
+                    <h2 class="slide-title reveal">الانتقال من <span>المتابعة التقليدية</span> إلى غرفة القيادة الرقمية</h2>
+                    <p class="slide-subtitle reveal">
+                        توحيد مصادر البيانات وتوفير رؤية بانورامية حية لمتخذي القرار والإدارة العليا دون الحاجة لانتظار إعداد التقارير الدورية يدوياً.
+                    </p>
+
+                    <div class="compare-split reveal">
+                        <div class="compare-box old">
+                            <div class="compare-header">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                                <span>التحديات السابقة في المتابعة</span>
+                            </div>
+                            <ul class="compare-list">
+                                <li><i class="fa-solid fa-xmark" style="color:#EF4444;"></i> تقارير ورقية وجداول متباعدة تأخذ وقتاً طويلاً في التجميع والتدقيق.</li>
+                                <li><i class="fa-solid fa-xmark" style="color:#EF4444;"></i> صعوبة الربط البصري بين حجم التعاقدات والموقع الجغرافي الفعلي للمشروع.</li>
+                                <li><i class="fa-solid fa-xmark" style="color:#EF4444;"></i> تأخر اكتشاف المشروعات المتأخرة أو المعوقات والمطالبات المالية.</li>
+                            </ul>
+                        </div>
+
+                        <div class="compare-box new">
+                            <div class="compare-header">
+                                <i class="fa-solid fa-circle-check"></i>
+                                <span>الحل المتكامل في المنظومة الجديدة</span>
+                            </div>
+                            <ul class="compare-list">
+                                <li><i class="fa-solid fa-check" style="color:#10B981;"></i> تحديث فوري مباشر كل 30 ثانية متصل بقواعد بيانات سحابية مركزية.</li>
+                                <li><i class="fa-solid fa-check" style="color:#10B981;"></i> خريطة مكانية تفاعلية تعرض حالة وموقع كل مشروع وفرع بنقرة واحدة.</li>
+                                <li><i class="fa-solid fa-check" style="color:#10B981;"></i> مؤشرات أداء فورية (KPIs) تبرز نسب الإنجاز، السيولة، والديون والضمانات.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="slide-footer reveal">
+                    <span>التحول من إدارة البيانات إلى سرعة اتخاذ القرار الاستراتيجي</span>
+                    <span>شريحة 2 من 6</span>
+                </div>
+            </section>
+
+
+            <!-- ========================================================
+                 SLIDE 3: REAL-TIME LIVE DASHBOARD (الداشبورد الأساسي)
+                 ======================================================== -->
+            <section class="slide" id="slide-3">
+                <div class="ambient-orb orb-bottom-left"></div>
+
+                <div class="slide-header reveal">
+                    <div class="brand-logo-area">
+                        <img src="arab_contractors_logo.png" alt="المقاولون العرب">
+                    </div>
+                    <div class="slide-badge">
+                        <i class="fa-solid fa-chart-line"></i>
+                        <span>الداشبورد التنفيذي الذكي</span>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="slide-category reveal">المحور الأول: لوحة المؤشرات المركزية</div>
+                    <h2 class="slide-title reveal">رصد مالي وتعاقدي شامل <span>لحظة بلحظة</span></h2>
+                    <p class="slide-subtitle reveal">
+                        معالجة آلية للبيانات ورسم الرسوم البيانية والجداول الذكية في أجزاء من الثانية بمجرد رفع أي تقرير جديد.
+                    </p>
+
+                    <div class="cards-grid-3 reveal">
+                        <div class="glass-card highlight">
+                            <div class="card-icon"><i class="fa-solid fa-rotate"></i></div>
+                            <div class="card-title">مزامنة حية (Auto-Sync)</div>
+                            <div class="card-desc">
+                                فحص ومزامنة تلقائية مع السيرفر كل 30 ثانية مع مؤشر عداد دائري وتحديث ديناميكي بدون عمل Refresh.
+                            </div>
+                        </div>
+
+                        <div class="glass-card">
+                            <div class="card-icon emerald"><i class="fa-solid fa-scale-balanced"></i></div>
+                            <div class="card-title">حسابات مالية فورية</div>
+                            <div class="card-desc">
+                                احتساب قيم العقود بالدولار والعملات المحلية، نسب الإنجاز، السيولة المحصلة، الديون، وخطابات الضمان.
+                            </div>
+                        </div>
+
+                        <div class="glass-card">
+                            <div class="card-icon blue"><i class="fa-solid fa-sliders"></i></div>
+                            <div class="card-title">فلتر زمني مشفر (Slider)</div>
+                            <div class="card-desc">
+                                شريط تمرير زمني تفاعلي محمي بكلمة سر مخصصة للإدارة، لعزل وتحليل أي فترة زمنية سابقة أو حالية.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="slide-footer reveal">
+                    <span>دعم الوضع المزدوج الفاخر (Corporate Dark & Light Themes)</span>
+                    <span>شريحة 3 من 6</span>
+                </div>
+            </section>
+
+
+            <!-- ========================================================
+                 SLIDE 4: INTERACTIVE GEOSPATIAL MAP (التطوير الجديد: الخريطة)
+                 ======================================================== -->
+            <section class="slide" id="slide-4">
+                <div class="ambient-orb orb-top-right"></div>
+                <div class="ambient-orb orb-bottom-left"></div>
+
+                <div class="slide-header reveal">
+                    <div class="brand-logo-area">
+                        <img src="arab_contractors_logo.png" alt="المقاولون العرب">
+                    </div>
+                    <div class="slide-badge" style="background: rgba(16, 185, 129, 0.15); border-color: rgba(16, 185, 129, 0.4); color: #34D399;">
+                        <i class="fa-solid fa-map-location-dot"></i>
+                        <span>التطوير الأحدث • الذكاء المكاني</span>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="slide-category reveal">المحور الثاني: خريطة تحليل الأداء</div>
+                    <h2 class="slide-title reveal">تموضع جغرافي دقيق <span>100% على اليابسة</span></h2>
+                    <p class="slide-subtitle reveal">
+                        تحويل المشروعات الخارجية إلى مجسم مكاني حي يربط كل نقطة على الخريطة ببياناتها التعاقدية وتقاريرها المحدثة.
+                    </p>
+
+                    <div class="cards-grid-3 reveal">
+                        <div class="glass-card highlight">
+                            <div class="card-icon"><i class="fa-solid fa-location-crosshairs"></i></div>
+                            <div class="card-title">إحداثيات برية موثقة</div>
+                            <div class="card-desc">
+                                تثبيت مواقع كافة الـ 130 مشروعاً والـ 28 فرعاً على اليابسة بنسبة 100% مع التخلص من السقوط البحري في المدن الساحلية.
+                            </div>
+                        </div>
+
+                        <div class="glass-card">
+                            <div class="card-icon blue"><i class="fa-solid fa-hand-pointer"></i></div>
+                            <div class="card-title">تفاعل كامل دون تشويش</div>
+                            <div class="card-desc">
+                                إزالة النوافذ المنبثقة المزعجة واستبدالها بشريط معلومات ذكي أسفل الشاشة يعرض الدولة والعلم والفرع واسم المشروع فوراً.
+                            </div>
+                        </div>
+
+                        <div class="glass-card">
+                            <div class="card-icon emerald"><i class="fa-solid fa-folder-tree"></i></div>
+                            <div class="card-title">درج جانبي تنفيذي (Drawer)</div>
+                            <div class="card-desc">
+                                بالضغط على أي دولة تفتح نافذة جانبية فورية تسرد كافة الفروع والمشاريع التابعة لها مع إمكانية فتح الملف المالي والتعاقدي.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="slide-footer reveal">
+                    <span>تحكم فوري بإظهار وإخفاء الفروع والمشاريع من دليل الخريطة مباشرة</span>
+                    <span>شريحة 4 من 6</span>
+                </div>
+            </section>
+
+
+            <!-- ========================================================
+                 SLIDE 5: HIGH-PERFORMANCE ARCHITECTURE (المعمارية التقنية)
+                 ======================================================== -->
+            <section class="slide" id="slide-5">
+                <div class="ambient-orb orb-top-right"></div>
+
+                <div class="slide-header reveal">
+                    <div class="brand-logo-area">
+                        <img src="arab_contractors_logo.png" alt="المقاولون العرب">
+                    </div>
+                    <div class="slide-badge">
+                        <i class="fa-solid fa-microchip"></i>
+                        <span>الكفاءة والمعمارية التقنية</span>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="slide-category reveal">التميز الهندسي في البرمجة</div>
+                    <h2 class="slide-title reveal">أعلى درجات الأمان والسرعة <span>بدون تكاليف سيرفرات</span></h2>
+                    <p class="slide-subtitle reveal">
+                        اعتماد معمارية الويب الحديثة (Client-Side Serverless) التي تمنح استقراراً مطلقاً وسرعة تحميل فائقة.
+                    </p>
+
+                    <div class="cards-grid-2 reveal">
+                        <div class="glass-card">
+                            <div class="card-icon"><i class="fa-solid fa-gauge-high"></i></div>
+                            <div class="card-title">معالجة فورية على جهاز العميل</div>
+                            <div class="card-desc">
+                                تتم كافة العمليات الحسابية والرسومية على معالج جهاز المستخدم، مما يتيح تشغيل الداشبورد لآلاف المستخدمين في نفس اللحظة دون أي بطء أو ضغط على الخوادم.
+                            </div>
+                        </div>
+
+                        <div class="glass-card">
+                            <div class="card-icon emerald"><i class="fa-solid fa-shield-halved"></i></div>
+                            <div class="card-title">أمان سحابي وجاهزية للدومين الخاص</div>
+                            <div class="card-desc">
+                                إمكانية ربط المنظومة بدومين رسمي خاص بالشركة (مثل: dashboard.arabcont.com) مع حماية وتأمين الدخول السحابي عبر شهادات SSL و Cloudflare Zero Trust مجاناً.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="slide-footer reveal">
+                    <span>صفر تكلفة استضافة شهرية مع موثوقية تشغيل سحابية بنسبة 99.9%</span>
+                    <span>شريحة 5 من 6</span>
+                </div>
+            </section>
+
+
+            <!-- ========================================================
+                 SLIDE 6: STRATEGIC IMPACT & NEXT STEPS (الأثر والقيمة)
+                 ======================================================== -->
+            <section class="slide" id="slide-6">
+                <div class="ambient-orb orb-top-right"></div>
+                <div class="ambient-orb orb-bottom-left"></div>
+
+                <div class="slide-header reveal">
+                    <div class="brand-logo-area">
+                        <img src="arab_contractors_logo.png" alt="المقاولون العرب">
+                    </div>
+                    <div class="slide-badge">
+                        <i class="fa-solid fa-award"></i>
+                        <span>القيمة التنفيذية المضافة</span>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="slide-category reveal">الأثر الاستراتيجي لمنظومة المتابعة</div>
+                    <h2 class="slide-title reveal">تمكين الإدارة العليا من <span>الريادة والمتابعة اللحظية</span></h2>
+                    <p class="slide-subtitle reveal">
+                        رؤية واضحة وموحدة تعزز من مكانة شركة المقاولون العرب الإقليمية وتدعم سرعة التدخل وتذليل المعوقات.
+                    </p>
+
+                    <div class="cards-grid-3 reveal">
+                        <div class="glass-card highlight">
+                            <div class="card-icon"><i class="fa-solid fa-eye"></i></div>
+                            <div class="card-title">شفافية ورؤية 360°</div>
+                            <div class="card-desc">
+                                إحاطة فورية بموقف كافة المشروعات الخارجية وأرصدة الديون ونسب التنفيذ دون فجوات زمنية.
+                            </div>
+                        </div>
+
+                        <div class="glass-card">
+                            <div class="card-icon blue"><i class="fa-solid fa-stopwatch-24"></i></div>
+                            <div class="card-title">سرعة اتخاذ القرار</div>
+                            <div class="card-desc">
+                                الكشف المبكر عن معوقات المشروعات والمطالبات والمدد الإضافية لاتخاذ القرارات الاستباقية فوراً.
+                            </div>
+                        </div>
+
+                        <div class="glass-card">
+                            <div class="card-icon emerald"><i class="fa-solid fa-globe"></i></div>
+                            <div class="card-title">واجهة مشرفة للتوسع</div>
+                            <div class="card-desc">
+                                أداة عرض تنفيذية حديثة تبرز حجم وقوة مشروعات الشركة في قارات إفريقيا وآسيا والشرق الأوسط.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="slide-footer reveal">
+                    <span>شكراً لحسن استماعكم • شركة المقاولون العرب (عثمان أحمد عثمان وشركاه)</span>
+                    <span>نهاية العرض التنفيذي • 2026</span>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Presentation Chrome Controls -->
+    <nav class="deck-controls">
+        <button class="deck-ctrl-btn" id="prevBtn" title="الشريحة السابقة (السهم الأيمن)">
+            <i class="fa-solid fa-chevron-right"></i>
+            <span>السابق</span>
+        </button>
+        <span class="slide-counter" id="slideCounter">1 / 6</span>
+        <button class="deck-ctrl-btn" id="nextBtn" title="الشريحة التالية (السهم الأيسر / المسطرة)">
+            <span>التالي</span>
+            <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <button class="deck-ctrl-btn" id="fullscreenBtn" title="ملء الشاشة">
+            <i class="fa-solid fa-expand"></i>
+        </button>
+    </nav>
+
+    <div class="kbd-hint">استخدم مفاتيح الأسهم أو المسطرة للتنقل</div>
+
+    <script>
+        /* ===========================================
+           SLIDE PRESENTATION CONTROLLER
+           =========================================== */
+        class SlidePresentation {
+            constructor() {
+                this.slides = document.querySelectorAll('.slide');
+                this.currentSlide = 0;
+                this.totalSlides = this.slides.length;
+                this.stage = document.getElementById('deckStage');
+                this.progressBar = document.getElementById('progressBar');
+                this.counter = document.getElementById('slideCounter');
+                
+                this.setupStageScale();
+                this.setupKeyboardNav();
+                this.setupTouchNav();
+                this.setupButtons();
+                this.showSlide(0);
+            }
+
+            setupStageScale() {
+                const scale = () => {
+                    const vw = window.innerWidth;
+                    const vh = window.innerHeight;
+                    const factor = Math.min(vw / 1920, vh / 1080);
+                    const x = (vw - 1920 * factor) / 2;
+                    const y = (vh - 1080 * factor) / 2;
+                    this.stage.style.transform = `translate(${x}px, ${y}px) scale(${factor})`;
+                };
+                scale();
+                window.addEventListener('resize', scale);
+            }
+
+            setupKeyboardNav() {
+                window.addEventListener('keydown', (e) => {
+                    if (e.target.isContentEditable || ['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+                    
+                    // In RTL: ArrowLeft is Next, ArrowRight is Prev
+                    if (e.key === 'ArrowLeft' || e.key === ' ' || e.key === 'PageDown') {
+                        e.preventDefault();
+                        this.nextSlide();
+                    } else if (e.key === 'ArrowRight' || e.key === 'PageUp' || e.key === 'Backspace') {
+                        e.preventDefault();
+                        this.prevSlide();
+                    } else if (e.key === 'Home') {
+                        e.preventDefault();
+                        this.showSlide(0);
+                    } else if (e.key === 'End') {
+                        e.preventDefault();
+                        this.showSlide(this.totalSlides - 1);
+                    } else if (e.key === 'f' || e.key === 'F') {
+                        this.toggleFullscreen();
+                    }
+                });
+            }
+
+            setupTouchNav() {
+                let startX = 0;
+                window.addEventListener('touchstart', (e) => {
+                    startX = e.touches[0].clientX;
+                }, { passive: true });
+
+                window.addEventListener('touchend', (e) => {
+                    const diffX = e.changedTouches[0].clientX - startX;
+                    if (Math.abs(diffX) > 50) {
+                        if (diffX < 0) this.nextSlide();
+                        else this.prevSlide();
+                    }
+                }, { passive: true });
+            }
+
+            setupButtons() {
+                const prev = document.getElementById('prevBtn');
+                const next = document.getElementById('nextBtn');
+                const fs = document.getElementById('fullscreenBtn');
+
+                if (prev) prev.addEventListener('click', () => this.prevSlide());
+                if (next) next.addEventListener('click', () => this.nextSlide());
+                if (fs) fs.addEventListener('click', () => this.toggleFullscreen());
+            }
+
+            toggleFullscreen() {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(() => {});
+                } else {
+                    document.exitFullscreen().catch(() => {});
+                }
+            }
+
+            nextSlide() {
+                if (this.currentSlide < this.totalSlides - 1) {
+                    this.showSlide(this.currentSlide + 1);
+                }
+            }
+
+            prevSlide() {
+                if (this.currentSlide > 0) {
+                    this.showSlide(this.currentSlide - 1);
+                }
+            }
+
+            showSlide(index) {
+                this.currentSlide = Math.max(0, Math.min(index, this.totalSlides - 1));
+                
+                this.slides.forEach((slide, i) => {
+                    const isActive = i === this.currentSlide;
+                    slide.classList.toggle('active', isActive);
+                    slide.classList.toggle('visible', isActive);
+                });
+
+                if (this.counter) {
+                    this.counter.innerText = `${this.currentSlide + 1} / ${this.totalSlides}`;
+                }
+
+                if (this.progressBar) {
+                    const pct = ((this.currentSlide + 1) / this.totalSlides) * 100;
+                    this.progressBar.style.width = `${pct}%`;
+                }
+            }
+        }
+
+        // Initialize on DOM ready
+        document.addEventListener('DOMContentLoaded', () => {
+            new SlidePresentation();
+        });
+    </script>
+</body>
+</html>

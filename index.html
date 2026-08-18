@@ -10,8 +10,11 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@6.6.6/css/flag-icons.min.css">
     
+    <!-- Leaflet Interactive Map CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
     <!-- Custom Style Sheet -->
-    <link rel="stylesheet" href="style.css?v=1.32">
+    <link rel="stylesheet" href="style.css?v=2.1">
     
     <!-- Chart.js library via CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -35,25 +38,31 @@
                 </div>
             </div>
             
-            <div class="logo-wrapper" id="admin-logo-btn" style="cursor: pointer; position: relative;" title="إعدادات المشرف">
+            <div class="logo-wrapper">
                 <img src="arab_contractors_logo.png" alt="شعار المقاولون العرب">
-                <div id="admin-filter-dot" class="admin-filter-dot hidden" style="position: absolute; top: -5px; right: -5px; width: 12px; height: 12px; background: var(--theme-accent); border-radius: 50%; box-shadow: 0 0 8px var(--theme-accent);"></div>
             </div>
             
             <div class="header-controls">
-                <!-- Sync / Real-time Status Badge -->
-                <div class="sync-status-badge">
+                <!-- 1. Performance Map Button (Circular) -->
+                <button type="button" id="performance-map-btn" class="header-circle-btn performance-map-btn" title="تحليل الأداء (الخريطة التفاعلية والمشروعات)">
+                    <i class="fa-solid fa-map-location-dot"></i>
+                </button>
+
+                <!-- 2. Admin Timeline Filter Button (Circular with active badge) -->
+                <button class="header-circle-btn admin-filter-btn" id="admin-filter-btn" title="فلترة المشروعات حسب النطاق الزمني">
+                    <i class="fa-solid fa-filter"></i>
+                    <div id="admin-filter-dot" class="admin-filter-dot hidden"></div>
+                </button>
+
+                <!-- 3. Real-time Live Sync & Countdown (Circular) -->
+                <div class="header-circle-btn sync-status-circle" id="sync-circle-btn" title="متصل لحظياً بالخادم - التحديث القادم بعد قليل">
                     <div class="pulse-dot" id="pulse-indicator"></div>
-                    <div class="sync-info">
-                        <strong id="status-text">متصل لحظياً بالخادم</strong>
-                        <span>التحديث القادم خلال <strong id="countdown-seconds" style="font-family: 'Outfit', sans-serif; color: var(--theme-accent);">30</strong> ثانية</span>
-                    </div>
+                    <span id="countdown-seconds" class="sync-countdown-text">30</span>
                 </div>
 
-                <!-- Theme Toggle Button -->
-                <button class="theme-toggle-btn" id="theme-toggle-btn" title="تبديل المظهر (Corporate / AEGov DLS)">
+                <!-- 4. Theme Toggle Button (Circular) -->
+                <button class="header-circle-btn theme-toggle-btn" id="theme-toggle-btn" title="تبديل المظهر">
                     <i class="fa-solid fa-circle-half-stroke"></i>
-                    <span>تبديل المظهر</span>
                 </button>
             </div>
         </header>
@@ -90,7 +99,7 @@
                 <div class="kpi-card-header">
                     <span class="kpi-title">نطاق التغطية النشط</span>
                     <div class="kpi-icon-wrapper">
-                        <i class="fa-solid fa-folder-tree"></i>
+                        <i class="fa-solid fa-earth-africa"></i>
                     </div>
                 </div>
                 <div class="kpi-value" id="kpi-coverage-val">0</div>
@@ -144,7 +153,7 @@
                 <div class="chart-card-header">
                     <div class="chart-title">
                         <h2>توزيع التقارير حسب الدول</h2>
-                        <p>حجم التحديثات والمشروعات في كل دولة</p>
+                        <p>حجم التحديثات والمشروعات (اضغط على الدولة لعرض تفاصيلها على الخريطة)</p>
                     </div>
                 </div>
                 <!-- Country breakdown custom sidebar list -->
@@ -226,7 +235,365 @@
 
     </div>
 
-    <!-- Beautiful Pop-up Modal -->
+    <!-- Country Detail Side Drawer -->
+    <div id="country-drawer-overlay" class="country-drawer-overlay hidden" onclick="closeCountryDrawer(event)">
+        <div class="country-drawer" onclick="event.stopPropagation()">
+            <div class="drawer-header">
+                <div class="drawer-country-title">
+                    <span id="drawer-country-flag" class="drawer-flag"></span>
+                    <div>
+                        <h2 id="drawer-country-name">اسم الدولة</h2>
+                        <span id="drawer-country-region" class="drawer-region-tag">الإقليم</span>
+                    </div>
+                </div>
+                <button class="drawer-close-btn" onclick="closeCountryDrawer()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="drawer-body">
+                <!-- Country Quick KPIs -->
+                <div class="drawer-kpis-row">
+                    <div class="drawer-kpi-chip">
+                        <span class="chip-label">المشروعات المسجلة</span>
+                        <span class="chip-val" id="drawer-kpi-projects">0</span>
+                    </div>
+                    <div class="drawer-kpi-chip">
+                        <span class="chip-label">الفروع والقطاعات</span>
+                        <span class="chip-val" id="drawer-kpi-branches">0</span>
+                    </div>
+                    <div class="drawer-kpi-chip">
+                        <span class="chip-label">التقارير المرفوعة</span>
+                        <span class="chip-val" id="drawer-kpi-uploads">0</span>
+                    </div>
+                </div>
+
+                <!-- Projects in Country -->
+                <div class="drawer-section">
+                    <div class="drawer-section-title">
+                        <i class="fa-solid fa-diagram-project" style="color: var(--theme-accent);"></i>
+                        <span>المشروعات في هذه الدولة</span>
+                    </div>
+                    <div class="drawer-list" id="drawer-projects-list">
+                        <!-- Dynamic project cards -->
+                    </div>
+                </div>
+
+                <!-- Branches in Country -->
+                <div class="drawer-section">
+                    <div class="drawer-section-title">
+                        <i class="fa-solid fa-building" style="color: #3B82F6;"></i>
+                        <span>الفروع ومكاتب الإدارة</span>
+                    </div>
+                    <div class="drawer-list" id="drawer-branches-list">
+                        <!-- Dynamic branch cards -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Branch Detail Modal -->
+    <div id="branch-detail-modal" class="modal-overlay hidden" onclick="if(event.target===this) closeBranchDetailModal()">
+        <div class="modal-card detail-card branch-detail-card" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div class="detail-header-info">
+                    <div class="detail-icon-badge branch"><i class="fa-solid fa-building"></i></div>
+                    <div>
+                        <span class="detail-tag branch" id="branch-modal-type">فرع إقليمي</span>
+                        <h2 id="branch-modal-name">اسم الفرع</h2>
+                    </div>
+                </div>
+                <button class="modal-close-btn" onclick="closeBranchDetailModal()">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="modal-body detail-modal-body">
+                <div class="detail-stats-grid">
+                    <div class="detail-stat-box">
+                        <span class="stat-label">الدولة</span>
+                        <span class="stat-value" id="branch-modal-country">-</span>
+                    </div>
+                    <div class="detail-stat-box">
+                        <span class="stat-label">المشاريع التابعة</span>
+                        <span class="stat-value" id="branch-modal-projects-count">0</span>
+                    </div>
+                    <div class="detail-stat-box">
+                        <span class="stat-label">إجمالي التقارير</span>
+                        <span class="stat-value highlight" id="branch-modal-reports-count">0</span>
+                    </div>
+                    <div class="detail-stat-box">
+                        <span class="stat-label">حالة التقرير الشهري</span>
+                        <span class="stat-value" id="branch-modal-status">-</span>
+                    </div>
+                </div>
+
+                <div class="detail-info-group">
+                    <h3 class="detail-section-subtitle"><i class="fa-solid fa-list-check"></i> قائمة المشروعات التابعة للفرع</h3>
+                    <div class="detail-items-list" id="branch-modal-projects-list">
+                        <!-- Dynamic projects list -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Detail Modal (Rich Financial, Progress, and Dates View) -->
+    <div id="project-detail-modal" class="modal-overlay hidden" onclick="if(event.target===this) closeProjectDetailModal()">
+        <div class="modal-card detail-card project-detail-card" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div class="detail-header-info">
+                    <div class="detail-icon-badge project"><i class="fa-solid fa-location-dot"></i></div>
+                    <div>
+                        <div class="project-header-badges">
+                            <span class="detail-tag project" id="project-modal-country-badge">-</span>
+                            <span class="detail-tag branch" id="project-modal-branch-badge">-</span>
+                            <span class="detail-tag status" id="project-modal-schedule-badge">-</span>
+                        </div>
+                        <h2 id="project-modal-name">اسم المشروع</h2>
+                    </div>
+                </div>
+                <div class="modal-header-actions">
+                    <a id="project-modal-map-link" href="#" target="_blank" class="project-map-link-btn hidden" title="فتح الموقع في خرائط Google">
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        <span>خرائط Google</span>
+                    </a>
+                    <button class="modal-close-btn" onclick="closeProjectDetailModal()">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="modal-body detail-modal-body">
+                <!-- Navigation Tabs inside Project Modal -->
+                <div class="project-modal-tabs">
+                    <button class="proj-tab-btn active" onclick="switchProjModalTab('financials', this)">
+                        <i class="fa-solid fa-coins"></i>
+                        البيانات المالية والتعاقدية
+                    </button>
+                    <button class="proj-tab-btn" onclick="switchProjModalTab('schedule', this)">
+                        <i class="fa-solid fa-calendar-check"></i>
+                        البرنامج الزمني والتواريخ
+                    </button>
+                    <button class="proj-tab-btn" onclick="switchProjModalTab('contract', this)">
+                        <i class="fa-solid fa-file-contract"></i>
+                        أطراف المشروع والعقد
+                    </button>
+                    <button class="proj-tab-btn" onclick="switchProjModalTab('obstacles', this)">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        المعوقات والمطالبات
+                    </button>
+                </div>
+
+                <!-- Tab 1: Financials & Execution Progress -->
+                <div id="proj-tab-financials" class="proj-tab-content active">
+                    <!-- Top Financial KPIs Grid -->
+                    <div class="proj-kpi-cards-grid">
+                        <div class="proj-metric-card primary">
+                            <span class="metric-label">القيمة التعاقدية (USD)</span>
+                            <span class="metric-val" id="pm-val-usd">$0</span>
+                            <span class="metric-sub" id="pm-val-local">0 بالعملة المحلية</span>
+                        </div>
+                        <div class="proj-metric-card success">
+                            <span class="metric-label">نسبة الإنجاز المخططة</span>
+                            <span class="metric-val" id="pm-progress-percent">0%</span>
+                            <span class="metric-sub" id="pm-executed-work-label">حجم المنفذ: -</span>
+                        </div>
+                        <div class="proj-metric-card accent">
+                            <span class="metric-label">السيولة المحصلة الإجمالية</span>
+                            <span class="metric-val" id="pm-collected-liquidity">0</span>
+                            <span class="metric-sub" id="pm-advance-sub">الدفعة المقدمة: -</span>
+                        </div>
+                        <div class="proj-metric-card warning">
+                            <span class="metric-label">المديونية المستحقة (قابلة للصرف)</span>
+                            <span class="metric-val" id="pm-due-debt">0</span>
+                            <span class="metric-sub" id="pm-paid-sub">المسدد للمشروع: -</span>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Financial Key-Value Grid -->
+                    <div class="proj-details-grid">
+                        <div class="proj-data-row">
+                            <span class="data-key"><i class="fa-solid fa-money-bill-transfer"></i> القيمة التعاقدية المعدلة:</span>
+                            <span class="data-val" id="pm-revised-val">-</span>
+                        </div>
+                        <div class="proj-data-row">
+                            <span class="data-key"><i class="fa-solid fa-hand-holding-dollar"></i> الدفعة المقدمة المستلمة:</span>
+                            <span class="data-val" id="pm-advance-val">-</span>
+                        </div>
+                        <div class="proj-data-row">
+                            <span class="data-key"><i class="fa-solid fa-bars-progress"></i> حجم الأعمال المنفذة المعتمدة:</span>
+                            <span class="data-val" id="pm-executed-approved">-</span>
+                        </div>
+                        <div class="proj-data-row">
+                            <span class="data-key"><i class="fa-solid fa-cubes-stacked"></i> قيمة التشوينات المعتمدة:</span>
+                            <span class="data-val" id="pm-materials-val">-</span>
+                        </div>
+                        <div class="proj-data-row">
+                            <span class="data-key"><i class="fa-solid fa-chart-line"></i> حجم الأعمال شامل المستخلص الداخلي:</span>
+                            <span class="data-val" id="pm-executed-total">-</span>
+                        </div>
+                        <div class="proj-data-row">
+                            <span class="data-key"><i class="fa-solid fa-sack-dollar"></i> حجم الأعمال المسددة للمشروع:</span>
+                            <span class="data-val" id="pm-paid-work">-</span>
+                        </div>
+                        <div class="proj-data-row">
+                            <span class="data-key"><i class="fa-solid fa-shield-halved"></i> خطابات الضمان الإجمالية:</span>
+                            <span class="data-val" id="pm-lg-val">-</span>
+                        </div>
+                        <div class="proj-data-row">
+                            <span class="data-key"><i class="fa-solid fa-vault"></i> السيولة المحجوزة (تأمينات/غرامات):</span>
+                            <span class="data-val" id="pm-retained-liquidity">-</span>
+                        </div>
+                        <div class="proj-data-row">
+                            <span class="data-key"><i class="fa-solid fa-people-carry-box"></i> مستحقات مقاولي الباطن:</span>
+                            <span class="data-val" id="pm-subcontractors-due">-</span>
+                        </div>
+                        <div class="proj-data-row">
+                            <span class="data-key"><i class="fa-solid fa-scale-balanced"></i> صافي الربح / الخسارة:</span>
+                            <span class="data-val" id="pm-profit-loss">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Timeline & Dates -->
+                <div id="proj-tab-schedule" class="proj-tab-content">
+                    <div class="proj-timeline-grid">
+                        <div class="proj-date-card">
+                            <div class="date-icon"><i class="fa-solid fa-calendar-day"></i></div>
+                            <div class="date-info">
+                                <span class="date-label">تاريخ بدء المشروع التعاقدي</span>
+                                <span class="date-val" id="pm-start-date">-</span>
+                            </div>
+                        </div>
+                        <div class="proj-date-card">
+                            <div class="date-icon"><i class="fa-solid fa-map-pin"></i></div>
+                            <div class="date-info">
+                                <span class="date-label">تاريخ محضر استلام الموقع</span>
+                                <span class="date-val" id="pm-handover-date">-</span>
+                            </div>
+                        </div>
+                        <div class="proj-date-card">
+                            <div class="date-icon"><i class="fa-solid fa-compass-drafting"></i></div>
+                            <div class="date-info">
+                                <span class="date-label">تاريخ استلام اللوحات</span>
+                                <span class="date-val" id="pm-drawings-date">-</span>
+                            </div>
+                        </div>
+                        <div class="proj-date-card highlight">
+                            <div class="date-icon"><i class="fa-solid fa-flag-checkered"></i></div>
+                            <div class="date-info">
+                                <span class="date-label">تاريخ نهاية المشروع التعاقدي</span>
+                                <span class="date-val" id="pm-end-date">-</span>
+                            </div>
+                        </div>
+                        <div class="proj-date-card highlight-gold">
+                            <div class="date-icon"><i class="fa-solid fa-calendar-plus"></i></div>
+                            <div class="date-info">
+                                <span class="date-label">تاريخ النهاية المعدل (شامل المد)</span>
+                                <span class="date-val" id="pm-revised-end-date">-</span>
+                            </div>
+                        </div>
+                        <div class="proj-date-card">
+                            <div class="date-icon"><i class="fa-solid fa-binoculars"></i></div>
+                            <div class="date-info">
+                                <span class="date-label">تاريخ النهو المتوقع (رؤية الإشراف)</span>
+                                <span class="date-val" id="pm-expected-finish-date">-</span>
+                            </div>
+                        </div>
+                        <div class="proj-date-card">
+                            <div class="date-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                            <div class="date-info">
+                                <span class="date-label">تاريخ اعتماد آخر مستخلص</span>
+                                <span class="date-val" id="pm-last-invoice-date">-</span>
+                            </div>
+                        </div>
+                        <div class="proj-date-card">
+                            <div class="date-icon"><i class="fa-solid fa-money-check-dollar"></i></div>
+                            <div class="date-info">
+                                <span class="date-label">تاريخ آخر تحصيل نقدي</span>
+                                <span class="date-val" id="pm-last-collection-date">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Extension and Schedule Status Box -->
+                    <div class="proj-extension-box">
+                        <h4 class="box-subtitle"><i class="fa-solid fa-clock-rotate-left"></i> موقف المد الزمني والبرنامج</h4>
+                        <div class="extension-details-grid">
+                            <div><strong>موقف الجدول الزمني:</strong> <span id="pm-schedule-status-txt">-</span></div>
+                            <div><strong>تقديم طلب مد مدة:</strong> <span id="pm-ext-requested-txt">-</span></div>
+                            <div><strong>المدة الإضافية المقدمة:</strong> <span id="pm-ext-period-txt">-</span></div>
+                            <div><strong>المدة المعتمدة من العميل:</strong> <span id="pm-ext-approved-txt">-</span></div>
+                            <div><strong>تاريخ قياس مؤشرات الأداء:</strong> <span id="pm-measurement-date-txt">-</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Contract & Stakeholders -->
+                <div id="proj-tab-contract" class="proj-tab-content">
+                    <div class="proj-details-grid">
+                        <div class="proj-data-row">
+                            <span class="data-key"><i class="fa-solid fa-user-tie"></i> العميل / المالك:</span>
+                            <span class="data-val" id="pm-client-txt">-</span>
+                        </div>
+                        <div class="proj-data-row">
+                            <span class="data-key"><i class="fa-solid fa-user-gear"></i> الاستشاري المشرف:</span>
+                            <span class="data-val" id="pm-consultant-txt">-</span>
+                        </div>
+                        <div class="proj-data-row">
+                            <span class="data-key"><i class="fa-solid fa-building-flag"></i> الفرع والشركة المسؤولة:</span>
+                            <span class="data-val" id="pm-branch-txt">-</span>
+                        </div>
+                        <div class="proj-data-row">
+                            <span class="data-key"><i class="fa-solid fa-earth-africa"></i> الدولة:</span>
+                            <span class="data-val" id="pm-country-txt">-</span>
+                        </div>
+                        <div class="proj-data-row">
+                            <span class="data-key"><i class="fa-solid fa-helmet-safety"></i> مجال العمل والتخصص:</span>
+                            <span class="data-val" id="pm-scope-txt">-</span>
+                        </div>
+                        <div class="proj-data-row">
+                            <span class="data-key"><i class="fa-solid fa-file-signature"></i> نوع العقد:</span>
+                            <span class="data-val" id="pm-contract-type-txt">-</span>
+                        </div>
+                        <div class="proj-data-row">
+                            <span class="data-key"><i class="fa-solid fa-landmark"></i> جهة تمويل المشروع:</span>
+                            <span class="data-val" id="pm-funding-txt">-</span>
+                        </div>
+                        <div class="proj-data-row">
+                            <span class="data-key"><i class="fa-solid fa-money-bill-1-wave"></i> العملة وسعر الصرف وقت التعاقد:</span>
+                            <span class="data-val" id="pm-currency-rate-txt">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 4: Obstacles & Claims -->
+                <div id="proj-tab-obstacles" class="proj-tab-content">
+                    <div class="proj-obstacles-section">
+                        <div class="obstacle-block">
+                            <h4 class="box-subtitle warning"><i class="fa-solid fa-triangle-exclamation"></i> معوقات المشروع الفنية أو الإدارية</h4>
+                            <p class="obstacle-text" id="pm-obstacles-txt">لا توجد معوقات مسجلة حالياً في تقرير المتابعة.</p>
+                        </div>
+                        <div class="obstacle-block">
+                            <h4 class="box-subtitle"><i class="fa-solid fa-gavel"></i> موقف المطالبات والتحكيم</h4>
+                            <div class="claims-row">
+                                <div><strong>حالة المطالبات:</strong> <span id="pm-claims-status-txt">لا يوجد</span></div>
+                                <div><strong>قيمة المطالبات:</strong> <span id="pm-claims-val-txt">-</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Summary Info -->
+                <div class="proj-modal-footer-info" id="proj-modal-footer-box">
+                    <span><i class="fa-solid fa-circle-info"></i> آخر تحديث تم استلامه من المشرف: <strong id="pm-userstamp-txt">-</strong></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compliance Pop-up Modal (Submitted vs Late) -->
     <div id="compliance-modal" class="modal-overlay hidden">
         <div class="modal-card">
             <div class="modal-header">
@@ -273,6 +640,31 @@
                             </table>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== Performance Map Access Modal ====== -->
+    <div id="performance-map-modal" class="modal-overlay hidden">
+        <div class="modal-card admin-pwd-card" role="dialog" aria-modal="true" aria-labelledby="performance-map-modal-title">
+            <div class="modal-header">
+                <h2 id="performance-map-modal-title"><i class="fa-solid fa-screwdriver-wrench" style="color: var(--theme-accent); margin-left: 8px;"></i> تحت التطوير</h2>
+                <button type="button" class="modal-close-btn" id="performance-map-close-btn" aria-label="إغلاق">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="modal-body admin-pwd-body">
+                <div class="admin-lock-icon"><i class="fa-solid fa-screwdriver-wrench"></i></div>
+                <p class="admin-pwd-hint">الصفحة تحت التطوير. أدخل كلمة المرور للمتابعة.</p>
+                <div class="admin-input-row">
+                    <input type="password" id="performance-map-pwd-input" class="admin-pwd-input" placeholder="كلمة المرور..." autocomplete="off">
+                    <button type="button" id="performance-map-pwd-submit" class="admin-pwd-submit-btn" aria-label="فتح الخريطة">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                </div>
+                <div id="performance-map-pwd-error" class="admin-pwd-error hidden">
+                    <i class="fa-solid fa-circle-exclamation"></i> كلمة المرور غير صحيحة، حاول مجدداً
                 </div>
             </div>
         </div>
@@ -379,7 +771,16 @@
         </div>
     </div>
 
+    <!-- Leaflet JS Library -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Exact MENA & Africa GeoJSON Boundaries (Offline / Local File Ready) -->
+    <script src="mena_geojson.js"></script>
+
+    <!-- Geocoordinates and Geographic Helpers -->
+    <script src="geo_coords.js"></script>
+
     <!-- Core Javascript Logic -->
-    <script src="dashboard.js?v=1.33"></script>
+    <script src="dashboard.js?v=2.6"></script>
 </body>
 </html>
