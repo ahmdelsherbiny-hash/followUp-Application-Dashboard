@@ -32,17 +32,7 @@ let secondsRemaining = REFRESH_INTERVAL_SECONDS;
 // Chart references for dynamic updates
 let countryChart = null;
 let timelineChart = null;
-
-// Leaflet Map state variables
-let executiveMap = null;
-let markersGroup = null;
-let geoJsonLayer = null;
-let currentTileLayer = null;
-let currentTileStyle = 'dark';
-let showBranches = true;
-let showProjects = true;
-let currentRegion = 'all';
-let menaGeoJsonData = null;
+let timelineChartRevealObserver = null;
 
 // JSONP Script Loader to bypass CORS issues on local files (file:/// URL)
 function fetchSheetJSONP(sheetName) {
@@ -525,7 +515,6 @@ async function loadData() {
         updateKPIs();
         renderCharts();
         populateTables();
-        updateMapMarkers();
         
         // Update connection status
         const pulse = document.getElementById('pulse-indicator');
@@ -759,6 +748,7 @@ function renderCharts() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: false,
             scales: {
                 x: {
                     ticks: { color: textColor, font: { family: 'Outfit' } },
@@ -784,6 +774,27 @@ function renderCharts() {
     timelineFillGradient.addColorStop(1, `rgba(${accentRgb}, 0)`);
     timelineChart.data.datasets[0].backgroundColor = timelineFillGradient;
     timelineChart.update('none');
+
+    const revealTimelineChart = () => {
+        if (!timelineChart) return;
+        timelineChart.resize();
+        timelineChart.options.animation = { duration: 900, easing: 'easeOutCubic' };
+        timelineChart.reset();
+        timelineChart.update();
+    };
+    const timelineTarget = timelineCtx.canvas.closest('.chart-card') || timelineCtx.canvas;
+    if (timelineChartRevealObserver) timelineChartRevealObserver.disconnect();
+    if ('IntersectionObserver' in window) {
+        timelineChartRevealObserver = new IntersectionObserver((entries, observer) => {
+            if (!entries.some(entry => entry.isIntersecting)) return;
+            requestAnimationFrame(revealTimelineChart);
+            observer.disconnect();
+            timelineChartRevealObserver = null;
+        }, { threshold: 0.12 });
+        timelineChartRevealObserver.observe(timelineTarget);
+    } else {
+        requestAnimationFrame(revealTimelineChart);
+    }
     
     // 3. Reports by Country sidebar list
     const countryCounts = {};
@@ -1164,8 +1175,6 @@ window.addEventListener('DOMContentLoaded', () => {
     const savedTheme = localStorage.getItem('appTheme') || 'corporate';
     selectTheme(savedTheme);
     
-    // Initialize Leaflet Interactive Map
-    initExecutiveMap();
 
     // Load initial data
     loadData();
@@ -1648,364 +1657,6 @@ function escapeHtml(str) {
         .replace(/'/g, '&#039;');
 }
 
-const MENA_AFRICA_BOUNDS = [
-    [-22.0, -22.0], // South-West (below Zambia & West of Guinea / Atlantic)
-    [40.0, 66.0]    // North-East (above Spain/Morocco/Levant & East of Oman/Gulf)
-];
-
-const ALLOWED_NAV_BOUNDS = [
-    [-26.0, -26.0],
-    [44.0, 70.0]
-];
-
-let currentHoveredCountryLayer = null;
-
-// Initialize Leaflet Map
-function initExecutiveMap() {
-    const mapEl = document.getElementById('executive-map');
-    if (!mapEl || typeof L === 'undefined') return;
-    if (executiveMap) return; // already initialized
-
-    // Strictly bounded to Arab Contractors operating zones with interactive zoom & drag enabled
-    executiveMap = L.map('executive-map', {
-        center: [10.5, 22.0],
-        zoom: 3.8,
-        minZoom: 3.5, // Restricts zooming out to the whole world
-        maxZoom: 16,  // Allows zooming in deep into projects
-        maxBounds: ALLOWED_NAV_BOUNDS,
-        maxBoundsViscosity: 1.0, // Hard elastic boundary
-        dragging: true,
-        touchZoom: true,
-        scrollWheelZoom: true,
-        doubleClickZoom: true,
-        boxZoom: true,
-        keyboard: true,
-        zoomControl: true,
-        attributionControl: false
-    });
-
-    // Position Zoom control nicely at top-left
-    if (executiveMap.zoomControl) {
-        executiveMap.zoomControl.setPosition('topleft');
-    }
-
-    executiveMap.fitBounds(MENA_AFRICA_BOUNDS, { padding: [10, 10] });
-
-    // Add Base Tile Layer (Dark Matter or Satellite)
-    const tileUrl = currentTileStyle === 'satellite'
-        ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-        : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-
-    currentTileLayer = L.tileLayer(tileUrl, {
-        subdomains: 'abcd',
-        maxZoom: 19
-    }).addTo(executiveMap);
-
-    // Marker Layer Group
-    markersGroup = L.layerGroup().addTo(executiveMap);
-
-    // Global map mouseout to guarantee clearing any stuck hover state
-    executiveMap.on('mouseout', () => {
-        if (currentHoveredCountryLayer && geoJsonLayer) {
-            geoJsonLayer.resetStyle(currentHoveredCountryLayer);
-            currentHoveredCountryLayer = null;
-        }
-    });
-
-    // Load Exact MENA/Africa GeoJSON boundaries (Direct memory load for 100% offline & local file reliability)
-    if (typeof MENA_GEOJSON !== 'undefined' && MENA_GEOJSON) {
-        menaGeoJsonData = MENA_GEOJSON;
-        renderGeoJsonBoundaries();
-    } else {
-        fetch('mena_africa.geojson')
-            .then(res => res.json())
-            .then(data => {
-                menaGeoJsonData = data;
-                renderGeoJsonBoundaries();
-            })
-            .catch(err => {
-                console.warn("Could not load mena_africa.geojson:", err);
-            });
-    }
-
-    // Invalidate size after layout renders and fit bounds
-    setTimeout(() => {
-        if (executiveMap) {
-            executiveMap.invalidateSize();
-            executiveMap.fitBounds(MENA_AFRICA_BOUNDS, { padding: [8, 8] });
-        }
-    }, 400);
-}
-
-// Default GeoJSON Country Boundary Style
-function getCountryBoundaryDefaultStyle() {
-    return {
-        color: 'rgba(250, 204, 21, 0.08)',
-        weight: 0.8,
-        opacity: 0.4,
-        fillColor: 'transparent',
-        fillOpacity: 0,
-        className: 'outline-none focus:outline-none select-none'
-    };
-}
-
-// Render GeoJSON boundaries with robust, non-sticking golden hover illumination
-function renderGeoJsonBoundaries() {
-    if (!executiveMap || !menaGeoJsonData) return;
-
-    if (geoJsonLayer) {
-        executiveMap.removeLayer(geoJsonLayer);
-    }
-
-    geoJsonLayer = L.geoJSON(menaGeoJsonData, {
-        style: getCountryBoundaryDefaultStyle,
-        onEachFeature: (feature, layer) => {
-            const isoCode = feature.properties ? feature.properties['ISO3166-1-Alpha-2'] : null;
-            const countryGeo = isoCode && typeof COUNTRIES_GEO !== 'undefined' ? COUNTRIES_GEO[isoCode] : null;
-            const countryName = countryGeo ? countryGeo.nameAr : (feature.properties ? (feature.properties.name || '') : '');
-
-            // Robust hover state handler
-            layer.on('mouseover', (e) => {
-                // Clear any previous stuck layer
-                if (currentHoveredCountryLayer && currentHoveredCountryLayer !== layer) {
-                    geoJsonLayer.resetStyle(currentHoveredCountryLayer);
-                }
-
-                currentHoveredCountryLayer = layer;
-                layer.setStyle({
-                    color: '#FACC15', // Vibrant golden illuminated border
-                    weight: 2.2,
-                    opacity: 0.95,
-                    fillColor: '#F59E0B',
-                    fillOpacity: 0.12 // Soft golden glow fill
-                });
-            });
-
-            layer.on('mouseout', (e) => {
-                geoJsonLayer.resetStyle(layer);
-                if (currentHoveredCountryLayer === layer) {
-                    currentHoveredCountryLayer = null;
-                }
-            });
-
-            // Click opens Country Drawer
-            layer.on('click', (e) => {
-                if (e && e.originalEvent && e.originalEvent.target && typeof e.originalEvent.target.blur === 'function') {
-                    e.originalEvent.target.blur();
-                }
-                if (countryGeo) {
-                    openCountryDrawer(countryGeo);
-                } else if (countryName) {
-                    openCountryDrawer(countryName);
-                }
-            });
-
-            // Tooltip
-            const flag = countryGeo ? countryGeo.flag : '🌐';
-            layer.bindTooltip(`
-                <div style="direction:rtl; font-family:'Tajawal',sans-serif; text-align:right; padding:3px 6px;">
-                    <span style="font-size:14px; margin-left:4px;">${flag}</span>
-                    <strong style="color:#fef08a; font-size:12px;">${countryName}</strong>
-                    <div style="font-size:10px; color:#94a3b8; margin-top:2px;">اضغط لعرض المشروعات والفروع</div>
-                </div>
-            `, { sticky: true, className: 'executive-map-tooltip' });
-        }
-    });
-
-    geoJsonLayer.addTo(executiveMap);
-}
-
-// Render dynamic map markers for branches & live projects
-function updateMapMarkers() {
-    if (!executiveMap || !markersGroup) return;
-
-    markersGroup.clearLayers();
-
-    const branchesToRender = new Set(expectedBranches);
-    const projectsToRender = new Set(expectedProjects);
-
-    // Also include any branches and projects found in raw reports
-    reportsData.forEach(r => {
-        if (r.branchName) branchesToRender.add(r.branchName);
-        if (r.isProjectReport && r.projectName) projectsToRender.add(r.projectName);
-    });
-
-    // 1. Render Blue Glowing Branch Markers
-    if (showBranches) {
-        branchesToRender.forEach(branchName => {
-            if (!branchName) return;
-            const country = branchToCountryMap[branchName] || '';
-            const bReports = reportsData.filter(r => r.branchName === branchName);
-            const bMapsLink = bReports.length > 0 ? bReports[0].mapsLink : null;
-            const coords = typeof getBranchCoordinates === 'function' ? getBranchCoordinates(branchName, country, bMapsLink) : { lat: 30.0444, lng: 31.2357, isHQ: false };
-            
-            const subProjectsCount = Array.from(projectsToRender).filter(p => projectToBranchMap[p] === branchName).length;
-            const submittalsCount = bReports.length;
-            const isHQ = coords.isHQ;
-
-            const iconHtml = `
-                <div class="branch-beacon-container" onclick="openBranchDetailModal('${escapeHtml(branchName)}', '${escapeHtml(country)}')">
-                    <div class="branch-beacon-glow-outer"></div>
-                    <div class="branch-beacon-glow-inner"></div>
-                    <div class="branch-beacon-core"></div>
-                </div>
-            `;
-
-            const branchIcon = L.divIcon({
-                html: iconHtml,
-                className: 'custom-branch-marker',
-                iconSize: [24, 24],
-                iconAnchor: [12, 12]
-            });
-
-            const marker = L.marker([coords.lat, coords.lng], { icon: branchIcon });
-            
-            marker.bindTooltip(`
-                <div style="direction:rtl; font-family:'Tajawal',sans-serif; text-align:right; padding:4px;">
-                    <div style="font-weight:bold; color:#60a5fa; font-size:13px;">🏢 ${escapeHtml(branchName)} ${isHQ ? '(المقر الرئيسي)' : ''}</div>
-                    <div style="font-size:11px; color:#e2e8f0; margin-top:2px;">الدولة: ${escapeHtml(country || '-')}</div>
-                    <div style="font-size:11px; color:#93c5fd; margin-top:4px;">📁 ${subProjectsCount} مشاريع • 📝 ${submittalsCount} تقارير</div>
-                </div>
-            `, { direction: 'top', className: 'executive-map-tooltip' });
-
-            marker.on('click', () => openBranchDetailModal(branchName, country));
-            markersGroup.addLayer(marker);
-        });
-    }
-
-    // 2. Render Glowing Yellow Live Project Beacons (Exact style from ExecutiveMap)
-    if (showProjects) {
-        projectsToRender.forEach(projectName => {
-            if (!projectName) return;
-            const branchName = projectToBranchMap[projectName] || '';
-            const countryName = projectToCountryMap[projectName] || branchToCountryMap[branchName] || '';
-            const projReports = reportsData.filter(r => r.projectName === projectName || (r.isProjectReport && r.projectName.includes(projectName)));
-            const pMapsLink = projReports.length > 0 ? projReports[0].mapsLink : null;
-            const coords = typeof getProjectCoordinates === 'function' ? getProjectCoordinates(projectName, branchName, countryName, pMapsLink) : { lat: 30.0444, lng: 31.2357 };
-
-            const latestVal = projReports.length > 0 ? projReports[0].valueUsd : 0;
-            const client = projReports.length > 0 ? projReports[0].clientName : '';
-
-            const iconHtml = `
-                <div class="project-beacon-container" onclick="openProjectDetailModal('${escapeHtml(projectName)}', '${escapeHtml(branchName)}', '${escapeHtml(countryName)}')">
-                    <div class="project-beacon-glow-outer"></div>
-                    <div class="project-beacon-glow-inner"></div>
-                    <div class="project-beacon-core"></div>
-                </div>
-            `;
-
-            const projIcon = L.divIcon({
-                html: iconHtml,
-                className: 'custom-project-marker',
-                iconSize: [24, 24],
-                iconAnchor: [12, 12]
-            });
-
-            const marker = L.marker([coords.lat, coords.lng], { icon: projIcon });
-            const valStr = latestVal > 0 ? formatCurrencyUSD(latestVal) : '';
-
-            marker.bindTooltip(`
-                <div style="direction:rtl; font-family:'Tajawal',sans-serif; text-align:right; padding:4px; min-width:150px;">
-                    <div style="font-weight:bold; color:#facc15; font-size:13px;">📍 ${escapeHtml(projectName)}</div>
-                    <div style="font-size:11px; color:#cbd5e1; margin-top:2px;">🏢 ${escapeHtml(branchName || '-')} (${escapeHtml(countryName || '-')})</div>
-                    ${client ? `<div style="font-size:10px; color:#94a3b8; margin-top:1px;">العميل: ${escapeHtml(client)}</div>` : ''}
-                    ${valStr ? `<div style="font-size:11px; color:#10b981; font-weight:bold; margin-top:3px;">💰 ${valStr}</div>` : ''}
-                </div>
-            `, { direction: 'top', className: 'executive-map-tooltip' });
-
-            marker.on('click', () => openProjectDetailModal(projectName, branchName, countryName));
-            markersGroup.addLayer(marker);
-        });
-    }
-
-    // Update Quick Legend Stats
-    const statsEl = document.getElementById('map-quick-stats');
-    if (statsEl) {
-        statsEl.innerHTML = `<i class="fa-solid fa-layer-group"></i> <span>${branchesToRender.size} فرع</span> • <span>${projectsToRender.size} مشروع</span> • <span>${reportsData.length} تقرير</span>`;
-    }
-}
-
-// Region Zoom Presets
-function filterMapRegion(region) {
-    currentRegion = region;
-    document.querySelectorAll('.region-pill').forEach(btn => {
-        btn.classList.toggle('active', btn.getAttribute('data-region') === region);
-    });
-
-    if (!executiveMap) return;
-
-    if (region === 'all') {
-        executiveMap.flyToBounds(MENA_AFRICA_BOUNDS, { padding: [10, 10], duration: 1.0 });
-    } else if (region === 'gcc') {
-        executiveMap.flyToBounds([[15.0, 35.0], [33.0, 60.0]], { padding: [15, 15], duration: 1.0 });
-    } else if (region === 'north_africa') {
-        executiveMap.flyToBounds([[18.0, -18.0], [37.5, 36.0]], { padding: [15, 15], duration: 1.0 });
-    } else if (region === 'sub_saharan') {
-        executiveMap.flyToBounds([[-35.0, -18.0], [16.0, 52.0]], { padding: [15, 15], duration: 1.0 });
-    } else if (region === 'middle_east') {
-        executiveMap.flyToBounds([[28.0, 33.0], [38.0, 50.0]], { padding: [15, 15], duration: 1.0 });
-    }
-}
-
-// Toggle Branches / Projects
-function toggleMapLayer(layer) {
-    if (layer === 'branches') {
-        showBranches = !showBranches;
-        const btn = document.getElementById('toggle-branches-btn');
-        if (btn) btn.classList.toggle('active', showBranches);
-    } else if (layer === 'projects') {
-        showProjects = !showProjects;
-        const btn = document.getElementById('toggle-projects-btn');
-        if (btn) btn.classList.toggle('active', showProjects);
-    }
-    updateMapMarkers();
-}
-
-// Switch between Dark and Satellite tile layers
-function toggleTileLayerStyle() {
-    currentTileStyle = currentTileStyle === 'dark' ? 'satellite' : 'dark';
-    const btn = document.getElementById('toggle-tile-style-btn');
-    const label = document.getElementById('tile-style-label');
-
-    if (btn && label) {
-        if (currentTileStyle === 'satellite') {
-            btn.classList.add('active');
-            label.innerText = 'خريطة داكنة';
-            const icon = btn.querySelector('i');
-            if (icon) icon.className = 'fa-solid fa-moon';
-        } else {
-            btn.classList.remove('active');
-            label.innerText = 'قمر صناعي';
-            const icon = btn.querySelector('i');
-            if (icon) icon.className = 'fa-solid fa-satellite';
-        }
-    }
-
-    if (currentTileLayer && executiveMap) {
-        const tileUrl = currentTileStyle === 'satellite'
-            ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-            : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
-        currentTileLayer.setUrl(tileUrl);
-    }
-}
-
-// Fullscreen toggle for map section
-function toggleMapFullscreen() {
-    const mapSection = document.getElementById('map-section-card');
-    const fsIcon = document.getElementById('fullscreen-icon');
-    if (!mapSection) return;
-
-    mapSection.classList.toggle('fullscreen-map');
-    const isFs = mapSection.classList.contains('fullscreen-map');
-    if (fsIcon) {
-        fsIcon.className = isFs ? 'fa-solid fa-compress' : 'fa-solid fa-expand';
-    }
-
-    setTimeout(() => {
-        if (executiveMap) executiveMap.invalidateSize();
-    }, 250);
-}
-
 // =========================================================================
 // Country Drawer, Branch Modal, and Project Modal Handlers
 // =========================================================================
@@ -2126,10 +1777,6 @@ function openCountryDrawer(countryDataOrName) {
     drawerOverlay.classList.remove('hidden');
     setTimeout(() => drawerOverlay.classList.add('open'), 10);
 
-    // Fly to country on map
-    if (countryGeo && executiveMap) {
-        executiveMap.flyTo([countryGeo.lat, countryGeo.lng], countryGeo.zoom || 6, { duration: 1.2 });
-    }
 }
 
 function closeCountryDrawer(e) {
@@ -2199,13 +1846,6 @@ function openBranchDetailModal(branchName, countryName) {
     modal.classList.remove('hidden');
     setTimeout(() => modal.classList.add('show'), 10);
 
-    // Pan map to branch coordinates
-    if (executiveMap && typeof getBranchCoordinates === 'function') {
-        const bReports = reportsData.filter(r => r.branchName === branchName);
-        const bMapsLink = bReports.length > 0 ? bReports[0].mapsLink : null;
-        const coords = getBranchCoordinates(branchName, country, bMapsLink);
-        executiveMap.flyTo([coords.lat, coords.lng], 7, { duration: 1.0 });
-    }
 }
 
 function closeBranchDetailModal() {
@@ -2392,11 +2032,6 @@ function openProjectDetailModal(projectName, branchName, countryName) {
     modal.classList.remove('hidden');
     setTimeout(() => modal.classList.add('show'), 10);
 
-    // Pan map to project coordinates
-    if (executiveMap && typeof getProjectCoordinates === 'function') {
-        const coords = getProjectCoordinates(projectName, branch, country, latestReport ? latestReport.mapsLink : null);
-        executiveMap.flyTo([coords.lat, coords.lng], 8, { duration: 1.0 });
-    }
 }
 
 function closeProjectDetailModal() {
