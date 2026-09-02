@@ -8,7 +8,7 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@600;700;800&family=Outfit:wght@400;600;700;800;900&family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
     
     <!-- FontAwesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -43,7 +43,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            height: 76px;
+            height: 104px;
             padding: 0 24px;
             background: rgba(15, 23, 42, 0.95);
             backdrop-filter: blur(12px);
@@ -51,44 +51,231 @@
             border-bottom: 1px solid var(--border-color);
             z-index: 1000;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            gap: 20px;
+            direction: rtl;
+        }
+
+        /* Ultra Minimalist Header Stats (Top-Right) */
+        .header-side-right {
+            display: flex;
+            align-items: center;
+            z-index: 10;
+            flex-shrink: 0;
+        }
+
+        .minimal-stats-group {
+            display: flex;
+            align-items: center;
+            gap: 26px;
+            direction: rtl;
+            user-select: none;
+        }
+
+        .minimal-stat-item {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+        }
+
+        .minimal-stat-title {
+            font: 900 21px/1.15 Tajawal, sans-serif;
+            color: #ffffff;
+            letter-spacing: 0.01em;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .minimal-stat-value {
+            display: flex;
+            align-items: baseline;
+            gap: 3px;
+            direction: ltr;
+            font-family: Outfit, sans-serif;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stat-plus {
+            font-size: 14px;
+            font-weight: 800;
+            color: #10b981;
+        }
+
+        .stat-number {
+            font-size: 15px;
+            font-weight: 800;
+            line-height: 1;
+            color: #cbd5e1;
+            letter-spacing: 0.02em;
+        }
+
+        .minimal-stat-divider {
+            width: 1px;
+            height: 38px;
+            background: rgba(255, 255, 255, 0.14);
+        }
+
+        /* Light Theme Overrides */
+        [data-theme="aegov"] .minimal-stat-title {
+            color: #0f172a;
+            text-shadow: none;
+        }
+        [data-theme="aegov"] .stat-number {
+            color: #475569;
+        }
+        [data-theme="aegov"] .minimal-stat-divider {
+            background: rgba(15, 23, 42, 0.15);
         }
 
         .map-header-logo-center {
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
             display: flex;
             align-items: center;
             justify-content: center;
             height: 100%;
-            pointer-events: none;
+            flex-shrink: 0;
+            padding: 0 16px;
+            background: transparent !important;
+            box-shadow: none !important;
+            border: none !important;
+            pointer-events: auto;
         }
 
         .map-header-logo-center img {
-            height: 60px;
-            max-height: 85%;
+            height: 100px;
+            max-height: 96%;
             object-fit: contain;
-            filter: drop-shadow(0 3px 10px rgba(0, 0, 0, 0.5));
+            filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.45));
             transition: transform 0.2s ease;
             pointer-events: auto;
+            background: transparent !important;
         }
 
         .map-header-logo-center img:hover {
             transform: scale(1.03);
         }
 
+        /* Light Theme Overrides for Logo */
+        [data-theme="aegov"] .map-header-logo-center {
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+
+        [data-theme="aegov"] .map-header-logo-center img {
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.08)) !important;
+            background: transparent !important;
+        }
+
         .map-page-canvas-wrapper {
             position: relative;
             flex: 1;
             width: 100%;
-            height: calc(100vh - 76px);
+            height: calc(100vh - 104px);
         }
 
         #standalone-executive-map {
             width: 100%;
             height: 100%;
             background: #0B132B;
+        }
+
+        /* Natural Atlas-Grade Arabic Typography (100% Arabic World Map) */
+        .arabic-map-label {
+            background: transparent !important;
+            border: none !important;
+            pointer-events: none !important;
+        }
+
+        .map-label-country {
+            font-family: 'Tajawal', sans-serif;
+            font-weight: 700;
+            font-size: 11.5px;
+            letter-spacing: 0.3px;
+            color: #94a3b8;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
+            white-space: nowrap;
+            text-align: center;
+            user-select: none;
+            opacity: 0.85;
+            display: inline-block;
+        }
+        [data-theme="aegov"] .map-label-country {
+            color: #475569;
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.95);
+        }
+
+        .map-label-water {
+            font-family: 'Tajawal', sans-serif;
+            font-style: italic;
+            font-weight: 600;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+            color: #38bdf8;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
+            white-space: nowrap;
+            text-align: center;
+            user-select: none;
+            opacity: 0.75;
+            display: inline-block;
+        }
+        [data-theme="aegov"] .map-label-water {
+            color: #0284c7;
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.95);
+        }
+
+        .map-label-city {
+            font-family: 'Tajawal', sans-serif;
+            font-weight: 600;
+            font-size: 10px;
+            color: #cbd5e1;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
+            white-space: nowrap;
+            user-select: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+        .map-city-bullet {
+            width: 3.5px;
+            height: 3.5px;
+            border-radius: 50%;
+            background: #facc15;
+            display: inline-block;
+            box-shadow: 0 0 4px #facc15;
+        }
+        [data-theme="aegov"] .map-label-city {
+            color: #334155;
+            text-shadow: 0 1px 2px rgba(255, 255, 255, 0.95);
+        }
+        [data-theme="aegov"] .map-city-bullet {
+            background: #2563eb;
+            box-shadow: 0 0 4px rgba(37, 99, 235, 0.5);
+        }
+
+        .country-active-feature {
+            cursor: pointer;
+            transition: stroke 0.25s ease, fill 0.25s ease;
+        }
+
+        .country-inactive-feature {
+            cursor: default !important;
+            pointer-events: auto;
+        }
+
+        /* Marker Precision Fix - Exact Geo Anchor Centering */
+        .custom-branch-marker, .custom-project-marker {
+            background: transparent !important;
+            border: none !important;
+        }
+        .branch-beacon-container, .project-beacon-container {
+            position: relative;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin: 0;
+            padding: 0;
+            transform: none !important;
         }
 
         .back-dashboard-btn {
@@ -111,6 +298,1234 @@
             border-color: var(--theme-accent);
             color: var(--theme-accent);
         }
+
+        .header-side-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            z-index: 10;
+            flex: 1;
+            min-width: 0;
+            justify-content: flex-start;
+            overflow: hidden;
+        }
+
+        /* ==================================================== */
+        /* Stock Market Live Project Ticker Tape (Clean Flow)   */
+        /* ==================================================== */
+        .code-container {
+            width: 100%;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+
+        .header-stock-ticker {
+            position: relative;
+            flex: 1;
+            min-width: 0;
+            max-width: 100%;
+            height: 72px;
+            overflow-x: scroll;
+            overflow-y: hidden;
+            white-space: nowrap;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            mask-image: linear-gradient(to right, transparent 0%, black 4%, black 96%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to right, transparent 0%, black 4%, black 96%, transparent 100%);
+            display: flex;
+            align-items: center;
+            user-select: none;
+            direction: ltr;
+            cursor: grab;
+        }
+
+        .header-stock-ticker::-webkit-scrollbar {
+            display: none;
+            width: 0;
+            height: 0;
+        }
+
+        .header-stock-ticker:active {
+            cursor: grabbing;
+        }
+
+        .stock-ticker-track {
+            display: inline-flex;
+            align-items: center;
+            gap: 16px;
+            width: max-content;
+            will-change: scroll-position;
+        }
+
+        .stock-ticker-item {
+            display: inline-flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 1.5px;
+            padding: 3px 6px;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            cursor: pointer;
+            direction: rtl;
+            text-align: right;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            text-decoration: none;
+            flex-shrink: 0;
+        }
+
+        .stock-ticker-item:hover {
+            opacity: 0.75;
+            transform: translateY(-1px);
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        .stock-ticker-separator {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255, 255, 255, 0.22);
+            font-size: 14px;
+            margin: 0 4px;
+            user-select: none;
+            flex-shrink: 0;
+        }
+
+        .ticker-row-title {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            direction: rtl;
+            line-height: 1.2;
+        }
+
+        .ticker-proj-title {
+            font-size: 11.5px;
+            font-weight: 800;
+            color: #e2e8f0;
+            max-width: 165px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-family: 'Tajawal', sans-serif;
+            letter-spacing: 0.01em;
+        }
+
+        .ticker-row-metric {
+            display: flex;
+            align-items: baseline;
+            gap: 5px;
+            font-size: 10.5px;
+            font-weight: 700;
+            direction: rtl;
+            font-family: 'Tajawal', 'Outfit', sans-serif;
+            line-height: 1.2;
+        }
+
+        .ticker-metric-label {
+            color: #94a3b8;
+            font-size: 10.5px;
+        }
+
+        .ticker-metric-val {
+            font-weight: 800;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .ticker-metric-val.profit {
+            color: #10b981;
+        }
+
+        .ticker-metric-val.loss {
+            color: #ef4444;
+        }
+
+        .ticker-metric-val.neutral {
+            color: #cbd5e1;
+        }
+
+        .ticker-metric-val.prog {
+            color: #f1f5f9;
+        }
+
+        .ticker-delta-val {
+            font-size: 10px;
+            font-weight: 800;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .ticker-delta-val.up {
+            color: #34d399;
+        }
+
+        .ticker-delta-val.down {
+            color: #f87171;
+        }
+
+        .ticker-delta-val.neutral {
+            color: #94a3b8;
+        }
+
+        /* Light Theme Overrides for Ticker */
+        [data-theme="aegov"] .stock-ticker-item {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        [data-theme="aegov"] .stock-ticker-item:hover {
+            opacity: 0.75 !important;
+        }
+
+        [data-theme="aegov"] .ticker-proj-title {
+            color: #0f172a !important;
+            font-weight: 900 !important;
+        }
+
+        [data-theme="aegov"] .ticker-metric-label {
+            color: #64748b !important;
+            font-weight: 800 !important;
+        }
+
+        [data-theme="aegov"] .ticker-metric-val.prog {
+            color: #334155 !important;
+            font-weight: 800 !important;
+        }
+
+        [data-theme="aegov"] .ticker-metric-val.profit,
+        [data-theme="aegov"] .ticker-delta-val.up {
+            color: #059669 !important;
+        }
+
+        [data-theme="aegov"] .ticker-metric-val.loss,
+        [data-theme="aegov"] .ticker-delta-val.down {
+            color: #dc2626 !important;
+        }
+
+        [data-theme="aegov"] .ticker-metric-val.neutral,
+        [data-theme="aegov"] .ticker-delta-val.neutral {
+            color: #64748b !important;
+        }
+
+        [data-theme="aegov"] .stock-ticker-separator {
+            color: #94a3b8 !important;
+        }
+
+        .map-theme-switch {
+            position: relative;
+            width: 118px;
+            height: 40px;
+            padding: 3px;
+            flex-shrink: 0;
+            display: inline-block;
+            border: 1px solid rgba(148, 163, 184, 0.28);
+            border-radius: 999px;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.75));
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5), 0 2px 10px rgba(0, 0, 0, 0.25);
+            cursor: pointer;
+            overflow: hidden;
+            transition: all 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .map-theme-switch:hover {
+            border-color: rgba(56, 189, 248, 0.5);
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5), 0 0 14px rgba(56, 189, 248, 0.25);
+        }
+        .map-theme-switch:focus-visible {
+            outline: 2px solid #38bdf8;
+            outline-offset: 3px;
+        }
+        .map-theme-track {
+            position: relative;
+            display: flex;
+            direction: ltr;
+            align-items: center;
+            justify-content: space-between;
+            height: 100%;
+            padding: 0 12px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 10.5px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        .map-theme-label-dark {
+            color: #38bdf8;
+            opacity: 1;
+            transform: translateX(0);
+            transition: opacity 0.75s cubic-bezier(0.22, 1, 0.36, 1), color 0.75s ease, text-shadow 0.75s ease;
+            text-shadow: 0 0 10px rgba(56, 189, 248, 0.45);
+        }
+        .map-theme-label-light {
+            color: #94a3b8;
+            opacity: 0.45;
+            transition: opacity 0.75s cubic-bezier(0.22, 1, 0.36, 1), color 0.75s ease;
+        }
+        .tw-theme-thumb {
+            position: absolute;
+            top: 3px;
+            left: 4px;
+            display: grid;
+            width: 32px;
+            height: 32px;
+            place-items: center;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #38bdf8, #0284c7);
+            color: #0c4a6e;
+            font-size: 14px;
+            box-shadow: 0 3px 12px rgba(56, 189, 248, 0.45), 0 1px 3px rgba(0, 0, 0, 0.4);
+            transform: translateX(0) rotate(0deg);
+            transition: transform 0.85s cubic-bezier(0.25, 1, 0.35, 1), background 0.75s ease, color 0.75s ease, box-shadow 0.75s ease;
+        }
+        html[data-theme="aegov"] .map-theme-switch {
+            border-color: rgba(217, 119, 6, 0.35);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(241, 245, 249, 0.9));
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.08), 0 2px 10px rgba(217, 119, 6, 0.12);
+        }
+        html[data-theme="aegov"] .map-theme-switch:hover {
+            border-color: rgba(217, 119, 6, 0.6);
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.08), 0 0 14px rgba(217, 119, 6, 0.25);
+        }
+        .map-theme-switch[aria-pressed="true"] .tw-theme-thumb {
+            transform: translateX(78px) rotate(360deg);
+            background: linear-gradient(135deg, #fbbf24, #d97706);
+            color: #78350f;
+            box-shadow: 0 3px 14px rgba(245, 158, 11, 0.5), 0 1px 3px rgba(0, 0, 0, 0.15);
+        }
+        .map-theme-switch[aria-pressed="true"] .map-theme-label-dark {
+            color: #64748b;
+            opacity: 0.35;
+            text-shadow: none;
+        }
+        .map-theme-switch[aria-pressed="true"] .map-theme-label-light {
+            color: #b45309;
+            opacity: 1;
+            font-weight: 800;
+            text-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
+        }
+        html[data-theme="aegov"] body { background:#eef2f7; }
+        html[data-theme="aegov"] .map-page-header { background:rgba(255,255,255,.96); border-bottom-color:rgba(197,155,39,.38); box-shadow:0 4px 20px rgba(15,23,42,.12); }
+        html[data-theme="aegov"] #standalone-executive-map { background:#e2e8f0; }
+        @media(max-width:990px){
+            .minimal-stats-group{gap:14px}
+            .minimal-stat-title{font-size:17px}
+            .stat-number{font-size:13px}
+        }
+        @media(max-width:760px){
+            .map-page-header{height:84px;padding:0 14px}
+            .map-page-canvas-wrapper{height:calc(100vh - 84px)}
+            .map-header-logo-center img{height:74px}
+            .minimal-stats-group{gap:10px}
+            .minimal-stat-title{font-size:14px}
+            .stat-number{font-size:12px}
+            .minimal-stat-divider{height:26px}
+            .map-theme-switch{width:104px;height:36px}
+            .tw-theme-thumb{width:28px;height:28px;top:3px;left:3px;font-size:12px;transition:transform 0.85s cubic-bezier(0.25, 1, 0.35, 1), background 0.75s ease, color 0.75s ease, box-shadow 0.75s ease;}
+            .map-theme-track{font-size:9px;padding:0 8px}
+            .map-theme-switch[aria-pressed="true"] .tw-theme-thumb{transform:translateX(69px) rotate(360deg)}
+        }
+
+        .board-briefing {
+            position: absolute;
+            top: 18px;
+            right: 18px;
+            z-index: 700;
+            width: min(390px, calc(100vw - 36px));
+            padding: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-top: 3px solid #d8b05a;
+            background: rgba(8, 17, 31, 0.94);
+            box-shadow: 0 20px 55px rgba(0, 0, 0, 0.34);
+            backdrop-filter: blur(16px);
+        }
+
+        .board-briefing-eyebrow { color: #d8b05a; font: 800 11px/1 Outfit, sans-serif; letter-spacing: .16em; }
+        .board-briefing h1 { margin: 8px 0 4px; font: 900 23px/1.25 Tajawal, sans-serif; color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+        .board-briefing-subtitle { margin: 0; color: #cbd5e1; font-size: 11.5px; font-weight: 600; }
+        .board-primary-number { margin: 18px 0 14px; color: #fff4cf; font: 900 32px/1 Outfit, sans-serif; letter-spacing: -.03em; }
+        .board-primary-number span { display: block; margin-top: 5px; color: #94a3b8; font: 700 12px/1.2 Tajawal, sans-serif; letter-spacing: 0; }
+        .board-stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid rgba(255,255,255,.14); border-bottom: 1px solid rgba(255,255,255,.14); }
+        .board-stat { padding: 12px 8px; border-left: 1px solid rgba(255,255,255,.14); }
+        .board-stat:first-child { border-left: 0; }
+        .board-stat-label { display:block; color:#94a3b8; font-size:11px; font-weight:700; }
+        .board-stat-value { display:block; margin-top:5px; color:#edf1f7; font:800 16px/1 Outfit, sans-serif; }
+        .board-stat:first-child .board-stat-value { color:#fff4cf; font-size:22px; font-weight:900; letter-spacing:-.035em; }
+        .board-composition { display:grid; grid-template-columns: 172px 1fr; align-items:center; gap:16px; margin-top:16px; border-top:1px solid rgba(255,255,255,.14); padding-top:16px; }
+        .board-donut-wrap { position:relative; height:168px; }
+        .board-donut-center { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; color:#f7e5ae; font:900 19px Outfit,sans-serif; }
+        .board-composition-list { display:flex; flex-direction:column; gap:8px; }
+        .board-composition-item { display:flex; justify-content:space-between; align-items:center; color:#cbd5e1; font-size:11px; font-weight:700; }
+        .board-composition-item b { color:#edf1f7; font:800 12px Outfit,sans-serif; }
+        .board-composition-key { display:flex; align-items:center; gap:6px; font-weight:700; }
+        .board-composition-key i { width:8px; height:8px; border-radius:50%; display:inline-block; }
+        #country-drawer-overlay { justify-content:center; align-items:center; padding:14px; }
+        #country-drawer.board-country-dialog { width:min(1320px, 97vw); max-width:none; height:min(1040px, 97vh); overflow:hidden; border:1px solid rgba(216,176,90,.35); border-top:3px solid #d8b05a; transform:translateY(18px) scale(.98); }
+        #country-drawer-overlay.show #country-drawer.board-country-dialog { transform:translateY(0) scale(1); }
+        .country-board-head { display:flex; justify-content:space-between; align-items:flex-start; padding:22px 26px; border-bottom:1px solid rgba(255,255,255,.14); }
+        .country-board-eyebrow { color:#d8b05a; font:800 13px Outfit,sans-serif; letter-spacing:.15em; }
+        .country-board-title { margin:7px 0 0; color:#fff; font:900 32px Tajawal,sans-serif; }
+        .country-board-grid { display:grid; flex:1; min-height:0; grid-template-columns:1.05fr .95fr; gap:14px; padding:18px 26px 26px; overflow-y:auto; overscroll-behavior:contain; }
+        .country-board-kpis { grid-column:1/-1; display:grid; grid-template-columns:repeat(5, 1fr); gap:10px; }
+        .country-board-kpi { padding:12px 14px; background:rgba(255,255,255,.06); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,.16); border-radius:10px; color:inherit; font:inherit; text-align:right; cursor:pointer; transition:all .2s ease; display:flex; flex-direction:column; justify-content:space-between; }
+        .country-board-kpi:hover, .country-board-kpi[aria-expanded="true"] { background:rgba(59,130,246,.2); border-color:rgba(96,165,250,.8); transform:translateY(-2px); box-shadow:0 6px 20px rgba(0,0,0,.45); }
+        .country-board-kpi:focus-visible { outline:2px solid #93c5fd; outline-offset:2px; }
+        .country-board-kpi.active-kpi { background:rgba(59,130,246,.28); border-color:#60a5fa; box-shadow:0 0 16px rgba(59,130,246,.4); }
+        .kpi-main-label { display:block; color:#e2e8f0; font-size:12.5px; font-weight:800; line-height:1.35; }
+        .kpi-main-val { display:block; margin-top:6px; color:#ffffff; font:900 21px/1 Outfit,sans-serif; direction:ltr; text-align:right; text-shadow:0 1px 4px rgba(0,0,0,.35); }
+        .kpi-sub-ratio { display:flex; align-items:center; justify-content:space-between; gap:6px; margin-top:8px; padding-top:6px; border-top:1px solid rgba(255,255,255,.12); font-size:11.5px; }
+        .kpi-sub-label { color:#94a3b8; font-weight:700; }
+        .kpi-sub-val { color:#38bdf8; font:900 13px/1 Outfit,sans-serif; direction:ltr; }
+        .country-kpi-projects { grid-column:1/-1; padding:18px; background:rgba(59,130,246,.1); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border:1px solid rgba(96,165,250,.4); border-radius:12px; }
+        .country-kpi-projects[hidden] { display:none; }
+        .country-kpi-projects-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
+        .country-kpi-projects-title { color:#f8fafc; font-size:17px; font-weight:900; }
+        .country-kpi-projects-order { color:#94a3b8; font-size:12.5px; font-weight:700; }
+        .country-kpi-project-reset { display:none; padding:4px 10px; border-radius:6px; background:rgba(239,68,68,.25); border:1px solid #ef4444; color:#fca5a5; font:800 11.5px Tajawal,sans-serif; cursor:pointer; transition:all .2s; }
+        .country-kpi-project-reset:hover { background:rgba(239,68,68,.4); }
+        .country-kpi-project-reset.show { display:inline-flex; align-items:center; gap:5px; }
+        .country-kpi-project-list { display:grid; grid-template-columns:1fr; gap:9px; max-height:280px; overflow:auto; }
+        .country-kpi-project-item { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; background:rgba(11,20,34,.7); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,.12); border-radius:8px; cursor:pointer; transition:all .2s ease; }
+        .country-kpi-project-item:hover { background:rgba(59,130,246,.25); border-color:rgba(96,165,250,.7); transform:translateX(-3px); }
+        .country-kpi-project-item.is-selected { background:rgba(16,185,129,.25) !important; border-color:#10b981 !important; box-shadow:0 0 14px rgba(16,185,129,.35); }
+        .country-kpi-project-item.is-dimmed { opacity:0.35; filter:grayscale(0.6); }
+        .country-kpi-project-name { color:#f1f5f9; font-size:14.5px; font-weight:800; line-height:1.45; }
+        .country-kpi-project-value { color:#f8fafc; direction:ltr; unicode-bidi:isolate; font:900 17px Outfit,sans-serif; white-space:nowrap; }
+        .country-kpi-project-number { font:inherit; }
+        .country-kpi-project-unit { margin-left:5px; color:#94a3b8; font:700 13px Tajawal,sans-serif; }
+        .country-chart-card { min-height:365px; padding:18px; background:rgba(255,255,255,.05); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,.14); border-radius:12px; }
+        .country-chart-card.wide { grid-column:1/-1; min-height:430px; }
+        .country-chart-title { color:#f8fafc; font-size:16.5px; font-weight:900; }
+        .country-chart-sub { margin-top:4px; color:#94a3b8; font-size:12px; font-weight:700; }
+        .country-chart-canvas { position:relative; height:300px; margin-top:10px; }
+        .country-chart-card.wide .country-chart-canvas { height:350px; }
+        .country-chart-metric { position:absolute; right:8px; bottom:14px; left:8px; color:#f1f5f9; font:800 13px Tajawal,sans-serif; text-align:center; pointer-events:none; }
+        .country-chart-canvas canvas { opacity:0.1; transform:scale(.96); transition:opacity .5s cubic-bezier(.16, 1, .3, 1), transform .5s cubic-bezier(.16, 1, .3, 1); }
+        .country-chart-card.is-in-view .country-chart-canvas canvas { opacity:1; transform:scale(1); }
+        #country-contract-chart { transform:translateY(-28px) scale(.96); }
+        .country-chart-card.is-in-view #country-contract-chart { transform:translateY(-28px) scale(1); }
+        @media (prefers-reduced-motion: reduce) { .country-chart-canvas canvas { opacity:1; transform:none; } }
+        @media(max-width:1150px){ .country-board-kpis{grid-template-columns:repeat(3,1fr)} }
+        @media(max-width:760px){ #country-drawer.board-country-dialog{height:94vh}.country-board-grid{grid-template-columns:1fr;padding:14px}.country-board-kpis{grid-template-columns:repeat(2,1fr)}.country-kpi-project-list{grid-template-columns:1fr}.country-chart-card.wide{grid-column:auto} }
+        .board-watchlist { margin-top: 14px; border-top: 1px solid rgba(255,255,255,.14); padding-top: 12px; }
+        .board-watchlist-title { color:#f1f5f9; font-size:13px; font-weight:800; }
+        .board-watchlist-item { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 0 0; color:#cbd5e1; font-size:11.5px; font-weight:600; }
+        .board-watchlist-item strong { color:#facc15; font-weight:800; font-family:Outfit,sans-serif; white-space:nowrap; }
+        /* Interactive Arc Motion FAB Controls (Bottom-Left) */
+        .fab-container {
+            position: absolute;
+            bottom: 28px;
+            left: 52px;
+            z-index: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            font-family: Tajawal, sans-serif;
+        }
+
+        .fab-path-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 1px;
+            height: 1px;
+            pointer-events: none;
+        }
+
+        /* Main Trigger Button */
+        .fab-main {
+            position: relative;
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #10b981;
+            border: 1.5px solid rgba(16, 185, 129, 0.4);
+            box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.7),
+                        0 0 15px 0 rgba(16, 185, 129, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            outline: none;
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .fab-main:hover {
+            border-color: #10b981;
+            box-shadow: 0 10px 28px -4px rgba(0, 0, 0, 0.8),
+                        0 0 22px 4px rgba(16, 185, 129, 0.45);
+            transform: scale(1.08);
+        }
+
+        .fab-main svg {
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .fab-container.is-open .fab-main {
+            color: #f43f5e;
+            border-color: rgba(244, 63, 94, 0.5);
+            box-shadow: 0 0 22px rgba(244, 63, 94, 0.4);
+        }
+
+        .fab-container.is-open .fab-main svg {
+            transform: rotate(135deg);
+        }
+
+        /* Action Items on Arc Path */
+        .fab-action {
+            position: absolute;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(15, 23, 42, 0.92);
+            color: #94a3b8;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            outline: none;
+            pointer-events: none;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            offset-path: path('M 0 0 C 18 -75, 42 -170, 78 -275');
+            offset-rotate: 0deg;
+            offset-distance: 0%;
+            opacity: 0;
+            transform: scale(0.2);
+            transition: offset-distance 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+                        opacity 0.25s ease,
+                        transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+                        border-color 0.2s ease,
+                        box-shadow 0.2s ease,
+                        color 0.2s ease;
+        }
+
+        /* When FAB is Open */
+        .fab-container.is-open .fab-action {
+            opacity: 1;
+            pointer-events: auto;
+            transform: scale(1);
+        }
+
+        .fab-container.is-open #fab-action-projects {
+            offset-distance: 20%;
+            transition-delay: 0.03s;
+        }
+
+        .fab-container.is-open #fab-action-branches {
+            offset-distance: 44%;
+            transition-delay: 0.06s;
+        }
+
+        .fab-container.is-open #fab-action-analysis {
+            offset-distance: 68%;
+            transition-delay: 0.09s;
+        }
+
+        .fab-container.is-open #fab-action-warning {
+            offset-distance: 92%;
+            transition-delay: 0.12s;
+        }
+
+        /* Fallback translation for browsers without offset-path */
+        @supports not (offset-path: path('M 0 0')) {
+            .fab-action {
+                transform: translate(0, 0) scale(0.2);
+                transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
+            }
+            .fab-container.is-open #fab-action-projects {
+                transform: translate(8px, -54px) scale(1);
+            }
+            .fab-container.is-open #fab-action-branches {
+                transform: translate(20px, -108px) scale(1);
+            }
+            .fab-container.is-open #fab-action-analysis {
+                transform: translate(36px, -162px) scale(1);
+            }
+            .fab-container.is-open #fab-action-warning {
+                transform: translate(56px, -216px) scale(1);
+            }
+        }
+
+        .fab-action.active {
+            color: #ffffff;
+            border-color: var(--item-glow);
+            box-shadow: 0 0 16px var(--item-glow);
+        }
+
+        .fab-action:hover {
+            color: #ffffff;
+            border-color: var(--item-glow);
+            box-shadow: 0 0 20px var(--item-glow);
+            transform: scale(1.15) !important;
+        }
+
+        /* ==================================================== */
+        /* Executive Early Warning Markers (Clean & Static)     */
+        /* ==================================================== */
+        .leaflet-div-icon.custom-ew-icon,
+        .leaflet-div-icon.custom-radar-icon {
+            background: transparent !important;
+            border: none !important;
+        }
+
+        .ew-static-marker {
+            position: relative;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 900;
+            border: 2px solid #ffffff;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.65), 0 0 8px currentColor;
+            cursor: pointer;
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .ew-static-marker:hover {
+            transform: scale(1.3);
+            z-index: 9999 !important;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.85), 0 0 16px currentColor;
+        }
+
+        .ew-static-marker-num {
+            position: relative;
+            z-index: 2;
+            line-height: 1;
+            user-select: none;
+        }
+
+        /* ==================================================== */
+        /* Floating Right Sidebar for Early Warning Report      */
+        /* ==================================================== */
+        .early-warning-sidebar {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            left: auto;
+            width: 420px;
+            max-height: calc(100vh - 40px);
+            z-index: 1350;
+            background: rgba(10, 18, 30, 0.96);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1.5px solid rgba(239, 68, 68, 0.5);
+            border-radius: 16px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), 0 0 30px rgba(239, 68, 68, 0.25);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            font-family: Tajawal, sans-serif;
+            color: #f1f5f9;
+        }
+
+        .early-warning-sidebar.hidden {
+            display: none !important;
+        }
+
+        .early-warning-sidebar.is-minimized {
+            right: 20px;
+            left: auto;
+            width: auto;
+            max-width: 340px;
+            max-height: 48px;
+            border-radius: 24px;
+            padding: 6px 14px;
+            cursor: pointer;
+            background: rgba(15, 23, 42, 0.97);
+            border-color: #ef4444;
+            box-shadow: 0 0 18px rgba(239, 68, 68, 0.6);
+        }
+
+        .ew-full-report-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 11px;
+            border-radius: 6px;
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(59, 130, 246, 0.3));
+            border: 1px solid rgba(56, 189, 248, 0.55);
+            color: #38bdf8;
+            font-size: 11.5px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .ew-full-report-btn:hover {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.35), rgba(59, 130, 246, 0.5));
+            color: #ffffff;
+            border-color: #38bdf8;
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .early-warning-sidebar.is-minimized .ew-body {
+            display: none;
+        }
+
+        .early-warning-sidebar.is-minimized .ew-head {
+            padding: 0;
+            border-bottom: none;
+            background: transparent;
+        }
+
+        .early-warning-sidebar.is-minimized .ew-min-hide {
+            display: none;
+        }
+
+        .early-warning-sidebar.is-minimized .ew-expand-btn {
+            display: flex;
+        }
+
+        .ew-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 14px 18px;
+            background: rgba(239, 68, 68, 0.12);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .ew-title-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ew-title-box i {
+            font-size: 18px;
+            color: #ef4444;
+            animation: pulse-icon 1.5s ease infinite;
+        }
+
+        .ew-title {
+            font-size: 15px;
+            font-weight: 900;
+            color: #ffffff;
+        }
+
+        .ew-project-name {
+            font-size: 12px;
+            font-weight: 700;
+            color: #94a3b8;
+            max-width: 200px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .ew-actions {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ew-btn-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #cbd5e1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .ew-btn-icon:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            transform: scale(1.08);
+        }
+
+        .ew-expand-btn {
+            display: none;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 800;
+            color: #fca5a5;
+        }
+
+        .ew-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .ew-score-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 12px;
+        }
+
+        .ew-score-num {
+            font: 900 28px/1 Outfit, sans-serif;
+            letter-spacing: -0.02em;
+        }
+
+        .ew-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .ew-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .ew-group-title {
+            font-size: 13px;
+            font-weight: 900;
+            color: #d8b05a;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 4px;
+        }
+
+        .ew-item {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 8px 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 8px;
+            font-size: 12px;
+        }
+
+        .ew-item-q {
+            color: #cbd5e1;
+            font-weight: 700;
+            line-height: 1.35;
+        }
+
+        .ew-item-ans {
+            font-weight: 800;
+            font-size: 11.5px;
+            padding: 2px 7px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+
+        .ew-ans-pass { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid #10b981; }
+        .ew-ans-warn { background: rgba(245, 158, 11, 0.2); color: #fcd34d; border: 1px solid #f59e0b; }
+        .ew-ans-fail { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid #ef4444; }
+
+        @keyframes pulse-icon {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.15); }
+        }
+
+        /* Tooltip floating to the right */
+        .fab-tooltip {
+            position: absolute;
+            left: calc(100% + 14px);
+            white-space: nowrap;
+            background: rgba(15, 23, 42, 0.95);
+            color: #f8fafc;
+            font-family: Tajawal, sans-serif;
+            font-size: 0.82rem;
+            font-weight: 700;
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            opacity: 0;
+            transform: translateX(10px) scale(0.9);
+            transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .fab-container.is-open .fab-tooltip {
+            opacity: 1;
+            transform: translateX(0) scale(1);
+            transition-delay: 0.18s;
+        }
+
+        .fab-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            box-shadow: 0 0 8px currentColor;
+            flex-shrink: 0;
+        }
+
+        .fab-tooltip-state {
+            font-size: 0.72rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.08);
+            color: #94a3b8;
+        }
+
+        .fab-action.active .fab-tooltip-state {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+        }
+
+        .analysis-btn-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .analysis-icon {
+            font-size: 17px;
+            color: #60a5fa;
+            transition: color 0.2s ease, transform 0.2s ease;
+        }
+
+        .dropup-analysis-btn.active .analysis-icon {
+            color: #10b981;
+            transform: scale(1.15);
+        }
+
+        .analysis-text-group {
+            display: flex;
+            flex-direction: column;
+            text-align: right;
+        }
+
+        .analysis-title {
+            color: #f8fafc;
+            font: 800 13px Tajawal, sans-serif;
+        }
+
+        .analysis-subtitle {
+            color: #94a3b8;
+            font: 600 10.5px Tajawal, sans-serif;
+            margin-top: 1px;
+        }
+
+        .analysis-badge {
+            padding: 3px 8px;
+            border-radius: 6px;
+            font: 800 10px Tajawal, sans-serif;
+            background: rgba(148, 163, 184, 0.2);
+            color: #94a3b8;
+            transition: all 0.2s ease;
+        }
+
+        .dropup-analysis-btn.active .analysis-badge {
+            background: #10b981;
+            color: #ffffff;
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+        }
+
+        /* Pattern Detector Legend */
+        .analysis-pattern-legend {
+            margin-top: 8px;
+            padding: 10px;
+            border-radius: 9px;
+            background: rgba(11, 20, 34, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            animation: fadeInDropup 0.25s ease;
+        }
+
+        .pattern-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font: 700 11px Tajawal, sans-serif;
+            color: #cbd5e1;
+        }
+
+        .pattern-color-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+
+        .pattern-color-dot.green { background: #10b981; box-shadow: 0 0 7px rgba(16, 185, 129, 0.8); }
+        .pattern-color-dot.red { background: #ef4444; box-shadow: 0 0 7px rgba(239, 68, 68, 0.8); }
+        .pattern-color-dot.yellow { background: #facc15; box-shadow: 0 0 7px rgba(250, 204, 21, 0.8); }
+
+        @keyframes fadeInDropup {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Proportional Business Volume Bubbles */
+        .country-volume-bubble-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .country-volume-bubble-wrapper:hover {
+            transform: scale(1.18);
+            z-index: 1000 !important;
+        }
+
+        .country-volume-bubble-core {
+            position: relative;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 35%, #34d399 0%, #059669 65%, #064e3b 100%);
+            border: 2px solid #a7f3d0;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.65), 0 8px 24px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        .country-volume-bubble-pulse {
+            position: absolute;
+            inset: -8px;
+            border-radius: 50%;
+            background: rgba(16, 185, 129, 0.28);
+            animation: bubblePulse 2.4s infinite ease-out;
+            pointer-events: none;
+        }
+
+        @keyframes bubblePulse {
+            0% { transform: scale(0.92); opacity: 0.8; }
+            50% { transform: scale(1.35); opacity: 0.15; }
+            100% { transform: scale(1.6); opacity: 0; }
+        }
+
+        .bubble-flag {
+            font-size: 14px;
+            line-height: 1;
+            margin-bottom: 2px;
+        }
+
+        .bubble-value {
+            font: 900 11.5px Outfit, sans-serif;
+            color: #ffffff;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+            white-space: nowrap;
+            letter-spacing: -0.02em;
+        }
+
+        .bubble-count {
+            font: 700 9px Tajawal, sans-serif;
+            color: #d1fae5;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.7);
+            white-space: nowrap;
+        }
+
+        /* Light Theme Overrides for FAB Controls */
+        [data-theme="aegov"] .fab-main {
+            background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+            border-color: rgba(16, 185, 129, 0.6);
+            color: #059669;
+            box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.18), 0 0 15px 0 rgba(16, 185, 129, 0.2);
+        }
+
+        [data-theme="aegov"] .fab-action {
+            background: rgba(255, 255, 255, 0.95);
+            color: #475569;
+            border-color: rgba(203, 213, 225, 0.9);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+        }
+
+        [data-theme="aegov"] .fab-tooltip {
+            background: rgba(255, 255, 255, 0.98);
+            color: #0f172a;
+            border-color: rgba(203, 213, 225, 0.9);
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12);
+        }
+
+        [data-theme="aegov"] .item-text {
+            color: #1e293b;
+        }
+
+        [data-theme="aegov"] .dropup-analysis-btn {
+            background: rgba(239, 246, 255, 0.9);
+            border-color: rgba(191, 219, 254, 0.9);
+        }
+
+        [data-theme="aegov"] .analysis-title {
+            color: #0f172a;
+        }
+
+        [data-theme="aegov"] .analysis-pattern-legend {
+            background: rgba(248, 250, 252, 0.95);
+            border-color: rgba(226, 232, 240, 0.9);
+        }
+
+        [data-theme="aegov"] .pattern-item {
+            color: #334155;
+        }
+
+        /* ==================================================== */
+        /* Floating Dynamic Map Analysis Legend (Executive)     */
+        /* ==================================================== */
+        .map-floating-legend {
+            position: absolute;
+            bottom: 84px;
+            right: 24px;
+            z-index: 850;
+            pointer-events: auto;
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            animation: legendFadeIn 0.35s ease;
+        }
+
+        .map-floating-legend.hidden {
+            opacity: 0;
+            transform: translateY(12px) scale(0.96);
+            pointer-events: none;
+            display: none !important;
+        }
+
+        @keyframes legendFadeIn {
+            from { opacity: 0; transform: translateY(12px) scale(0.96); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .legend-card {
+            background: rgba(11, 20, 34, 0.94);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 14px;
+            padding: 12px 16px;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 20px rgba(0, 0, 0, 0.35);
+            direction: rtl;
+            min-width: 260px;
+            max-width: 320px;
+            color: #e2e8f0;
+        }
+
+        .legend-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 8px;
+            margin-bottom: 9px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .legend-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font: 900 13px 'Tajawal', sans-serif;
+            color: #f8fafc;
+        }
+
+        .legend-items {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .legend-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            font-size: 11.5px;
+            font-family: 'Tajawal', sans-serif;
+        }
+
+        .legend-swatch-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-swatch {
+            width: 13px;
+            height: 13px;
+            border-radius: 4px;
+            flex-shrink: 0;
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        .legend-label {
+            font-weight: 700;
+            color: #cbd5e1;
+        }
+
+        .legend-grade {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: 11px;
+            color: #94a3b8;
+            background: rgba(255, 255, 255, 0.07);
+            padding: 1px 7px;
+            border-radius: 4px;
+            direction: ltr;
+        }
+
+        /* Light Theme Overrides for Legend */
+        [data-theme="aegov"] .legend-card {
+            background: rgba(255, 255, 255, 0.96);
+            border-color: rgba(15, 23, 42, 0.14);
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+            color: #0f172a;
+        }
+
+        [data-theme="aegov"] .legend-title {
+            color: #0f172a;
+        }
+
+        [data-theme="aegov"] .legend-header {
+            border-bottom-color: rgba(15, 23, 42, 0.08);
+        }
+
+        [data-theme="aegov"] .legend-label {
+            color: #334155;
+        }
+
+        [data-theme="aegov"] .legend-grade {
+            color: #475569;
+            background: rgba(15, 23, 42, 0.06);
+        }
     </style>
 </head>
 <body>
@@ -125,22 +1540,72 @@
         <!-- Top Toolbar Header with Centered Logo -->
         <header class="map-page-header">
             <div class="header-side-right">
-                <a href="index.html" class="back-dashboard-btn" title="الرجوع للوحة المتابعة الرئيسية">
-                    <i class="fa-solid fa-arrow-right"></i>
-                    <span>الداشبورد الرئيسي</span>
-                </a>
+                <div class="minimal-stats-group">
+                    <!-- 1. الدول -->
+                    <div class="minimal-stat-item">
+                        <span class="minimal-stat-title">الدول</span>
+                        <div class="minimal-stat-value">
+                            <span class="stat-plus">+</span>
+                            <span class="stat-number" id="kpi-count-countries">0</span>
+                        </div>
+                    </div>
+
+                    <div class="minimal-stat-divider"></div>
+
+                    <!-- 2. الفروع -->
+                    <div class="minimal-stat-item">
+                        <span class="minimal-stat-title">الفروع</span>
+                        <div class="minimal-stat-value">
+                            <span class="stat-plus">+</span>
+                            <span class="stat-number" id="kpi-count-branches">0</span>
+                        </div>
+                    </div>
+
+                    <div class="minimal-stat-divider"></div>
+
+                    <!-- 3. المشاريع -->
+                    <div class="minimal-stat-item">
+                        <span class="minimal-stat-title">المشاريع</span>
+                        <div class="minimal-stat-value">
+                            <span class="stat-plus">+</span>
+                            <span class="stat-number" id="kpi-count-projects">0</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="map-header-logo-center">
                 <img src="arab_contractors_logo.png" alt="شعار المقاولون العرب">
             </div>
 
-            <div class="header-side-left"></div>
+            <div class="header-side-left">
+                <!-- Stock Market Live Projects Horizontal Ticker Tape -->
+                <div class="code-container header-stock-ticker" id="header-stock-ticker" title="شريط مؤشرات أداء المشروعات اللحظي - مرر الماوس للتوقف أو اضغط لفتح التقرير">
+                    <div class="stock-ticker-track" id="stock-ticker-track">
+                        <!-- Populated dynamically via renderHeaderStockTicker() in JS -->
+                    </div>
+                </div>
+
+                <button type="button" class="map-theme-switch" id="map-theme-switch" aria-pressed="false" aria-label="تبديل الثيم الداكن والفاتح">
+                    <span class="map-theme-track">
+                        <span class="map-theme-label-dark">Dark</span>
+                        <span class="map-theme-label-light">Light</span>
+                        <i class="tw-theme-thumb fa-solid fa-moon" aria-hidden="true"></i>
+                    </span>
+                </button>
+            </div>
         </header>
 
         <!-- Fullscreen Leaflet Map -->
         <main class="map-page-canvas-wrapper">
             <div id="standalone-executive-map"></div>
+
+            <!-- Floating Dynamic Analysis Legend (Auto-appears on Early Warning & Business Analysis) -->
+            <div class="map-floating-legend hidden" id="map-floating-legend">
+                <div class="legend-card" id="legend-card-content">
+                    <!-- Populated dynamically via updateFloatingMapLegend() in JS -->
+                </div>
+            </div>
 
             <!-- Floating Interactive Info Bar (Bottom-Right) -->
             <div class="map-overlay-country-info" id="map-hovered-country-bar">
@@ -148,23 +1613,129 @@
                 <span class="hover-hint">مرر الماوس فوق أي دولة أو مشروع أو فرع لعرض التفاصيل</span>
             </div>
 
-            <!-- Floating Legend Summary & Toggle (Bottom-Left) -->
-            <div class="map-overlay-legend">
-                <div class="legend-item clickable active" id="legend-toggle-branches" onclick="toggleMapLayer('branches')" title="اضغط لإظهار أو إخفاء المقرات والفروع">
-                    <span class="legend-marker-sample branch"></span>
-                    <span>المقرات والفروع</span>
+            <!-- Interactive Arc Motion FAB Controls (Bottom-Left) -->
+            <div class="fab-container" id="map-controls-container">
+                <!-- Path & Arc Action Buttons -->
+                <div class="fab-path-container">
+                    <!-- 1. Projects Action -->
+                    <button type="button" 
+                            class="fab-action active" 
+                            id="fab-action-projects" 
+                            style="--item-glow: #10B981;"
+                            onclick="toggleMapLayer('projects')"
+                            title="المشاريع">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 3h7v7H3V3zm11 0h7v7h-7V3zm0 11h7v7h-7v-7zm-11 0h7v7H3v-7z" />
+                        </svg>
+                        <span class="fab-tooltip">
+                            <span class="fab-dot" style="background-color: #10B981;"></span>
+                            <span class="fab-tooltip-label">المشاريع</span>
+                            <span class="fab-tooltip-state" id="fab-state-projects">نشط</span>
+                        </span>
+                    </button>
+
+                    <!-- 2. Branches Action -->
+                    <button type="button" 
+                            class="fab-action active" 
+                            id="fab-action-branches" 
+                            style="--item-glow: #06B6D4;"
+                            onclick="toggleMapLayer('branches')"
+                            title="الفروع والمقرات">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 6c0 1.66 3.58 3 8 3s8-1.34 8-3-3.58-3-8-3-8 1.34-8 3zm0 6c0 1.66 3.58 3 8 3s8-1.34 8-3M4 18c0 1.66 3.58 3 8 3s8-1.34 8-3" />
+                        </svg>
+                        <span class="fab-tooltip">
+                            <span class="fab-dot" style="background-color: #06B6D4;"></span>
+                            <span class="fab-tooltip-label">الفروع والمقرات</span>
+                            <span class="fab-tooltip-state" id="fab-state-branches">نشط</span>
+                        </span>
+                    </button>
+
+                    <!-- 3. Business Analysis / Heatmap Action -->
+                    <button type="button" 
+                            class="fab-action" 
+                            id="fab-action-analysis" 
+                            style="--item-glow: #8B5CF6;"
+                            onclick="toggleBusinessAnalysisMode()"
+                            title="تحليل الأعمال والأسواق">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 20V10M12 20V4M6 20v-6" />
+                        </svg>
+                        <span class="fab-tooltip">
+                            <span class="fab-dot" style="background-color: #8B5CF6;"></span>
+                            <span class="fab-tooltip-label">تحليل الأعمال والأسواق</span>
+                            <span class="fab-tooltip-state" id="fab-state-analysis">معطل</span>
+                        </span>
+                    </button>
+
+                    <!-- 4. Early Warning Mechanism Action -->
+                    <button type="button" 
+                            class="fab-action" 
+                            id="fab-action-warning" 
+                            style="--item-glow: #EF4444;"
+                            onclick="toggleEarlyWarningMode()"
+                            title="آلية الإنذار المبكر">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                        <span class="fab-tooltip">
+                            <span class="fab-dot" style="background-color: #EF4444;"></span>
+                            <span class="fab-tooltip-label">آلية الإنذار المبكر</span>
+                            <span class="fab-tooltip-state" id="fab-state-warning">معطل</span>
+                        </span>
+                    </button>
                 </div>
-                <div class="legend-item clickable active" id="legend-toggle-projects" onclick="toggleMapLayer('projects')" title="اضغط لإظهار أو إخفاء المشاريع الحية">
-                    <span class="legend-marker-sample project"></span>
-                    <span>المشاريع الحية</span>
-                </div>
-                <div class="legend-item info-count" id="map-quick-stats">
-                    <i class="fa-solid fa-layer-group"></i>
-                    <span>جاري تحميل المواقع...</span>
-                </div>
+
+                <!-- Main Trigger Button -->
+                <button type="button" 
+                        class="fab-main" 
+                        id="map-controls-trigger" 
+                        onclick="toggleMapControlsMenu(event)" 
+                        aria-label="Toggle Quick Map Controls" 
+                        aria-expanded="false"
+                        title="التحكم بالطبقات والتحليل">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                </button>
             </div>
         </main>
     </div>
+
+    <!-- Floating Early Warning Left Sidebar -->
+    <aside id="early-warning-sidebar" class="early-warning-sidebar hidden" onclick="handleEarlyWarningSidebarClick(event)">
+        <div class="ew-head">
+            <div class="ew-title-box">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <div class="ew-min-hide">
+                    <div class="ew-title">تقرير الإنذار المبكر والمخاطر</div>
+                    <div class="ew-project-name" id="ew-project-name">اسم المشروع</div>
+                </div>
+            </div>
+            <div class="ew-expand-btn">
+                <span id="ew-mini-badge">⚠️ إنذار مبكر:</span>
+                <i class="fa-solid fa-up-right-and-down-left-from-center"></i>
+            </div>
+            <div class="ew-actions ew-min-hide">
+                <button class="ew-full-report-btn" onclick="openFullReportFromSidebar(event)" title="فتح التقرير التفصيلي الكامل للدولة والمشروع">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>فتح التقرير كامل</span>
+                </button>
+                <button class="ew-btn-icon" onclick="toggleEarlyWarningSidebarMinimize(event)" title="تصغير السايد بار">
+                    <i class="fa-solid fa-minus"></i>
+                </button>
+                <button class="ew-btn-icon" onclick="closeEarlyWarningSidebar(event)" title="إغلاق">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        </div>
+        <div class="ew-body" id="ew-body">
+            <!-- Populated dynamically by evaluateProjectEarlyWarning() -->
+        </div>
+    </aside>
 
     <!-- Country Detail Side Drawer -->
     <div id="country-drawer-overlay" class="country-drawer-overlay hidden" onclick="closeCountryDrawer(event)">
@@ -248,265 +1819,19 @@
         </div>
     </div>
 
-    <!-- Comprehensive Project Detail Modal (Financials, Milestones, Stakeholders, Obstacles) -->
-    <div id="project-detail-modal" class="detail-modal-backdrop hidden" onclick="closeProjectDetailModal()">
-        <div class="detail-modal-card project-detail-card" onclick="event.stopPropagation()">
-            <!-- Modal Header -->
-            <div class="detail-modal-header">
-                <div class="detail-header-info">
-                    <div class="detail-icon-badge project">
-                        <i class="fa-solid fa-helmet-safety"></i>
-                    </div>
-                    <div>
-                        <div class="project-header-badges">
-                            <span class="detail-tag project" id="project-modal-country-badge">الدولة</span>
-                            <span class="detail-tag branch" id="project-modal-branch-badge">الفرع</span>
-                            <span class="detail-tag status" id="project-modal-schedule-badge">داخل المدة</span>
-                        </div>
-                        <h3 id="project-modal-name">اسم المشروع</h3>
-                    </div>
-                </div>
-                <div class="modal-header-actions">
-                    <a id="project-modal-map-link" href="#" target="_blank" class="project-map-link-btn hidden" title="فتح موقع المشروع على خرائط Google">
-                        <i class="fa-solid fa-map-location-dot"></i>
-                        <span>خرائط Google</span>
-                    </a>
-                    <button class="modal-close-btn" onclick="closeProjectDetailModal()" title="إغلاق">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
-                </div>
-            </div>
 
-            <!-- Modal Body & Executive Tabs -->
-            <div class="detail-modal-body">
-                <!-- Navigation Tabs -->
-                <div class="project-modal-tabs">
-                    <button class="proj-tab-btn active" onclick="switchProjModalTab('financials', this)">
-                        <i class="fa-solid fa-coins"></i>
-                        <span>البيانات المالية والإنجاز</span>
-                    </button>
-                    <button class="proj-tab-btn" onclick="switchProjModalTab('schedule', this)">
-                        <i class="fa-solid fa-calendar-days"></i>
-                        <span>البرنامج الزمني والتواريخ</span>
-                    </button>
-                    <button class="proj-tab-btn" onclick="switchProjModalTab('contract', this)">
-                        <i class="fa-solid fa-file-contract"></i>
-                        <span>أطراف المشروع والعقد</span>
-                    </button>
-                    <button class="proj-tab-btn" onclick="switchProjModalTab('obstacles', this)">
-                        <i class="fa-solid fa-triangle-exclamation"></i>
-                        <span>المعوقات والمطالبات</span>
-                    </button>
-                </div>
-
-                <!-- TAB 1: Financials & Execution Progress -->
-                <div class="proj-tab-content active" id="proj-tab-financials">
-                    <div class="proj-kpi-cards-grid">
-                        <div class="proj-metric-card primary">
-                            <span class="metric-label">القيمة التعاقدية (USD)</span>
-                            <span class="metric-val" id="pm-val-usd">-</span>
-                            <span class="metric-sub" id="pm-val-local">بالعملة المحلية: -</span>
-                        </div>
-                        <div class="proj-metric-card success">
-                            <span class="metric-label">نسبة الإنجاز المخططة</span>
-                            <span class="metric-val" id="pm-progress-percent">-</span>
-                            <span class="metric-sub" id="pm-executed-work-label">حجم المنفذ: -</span>
-                        </div>
-                        <div class="proj-metric-card accent">
-                            <span class="metric-label">السيولة المحصلة</span>
-                            <span class="metric-val" id="pm-collected-liquidity">-</span>
-                            <span class="metric-sub" id="pm-advance-sub">الدفعة المقدمة: -</span>
-                        </div>
-                        <div class="proj-metric-card warning">
-                            <span class="metric-label">المديونية المستحقة (المطالبات)</span>
-                            <span class="metric-val" id="pm-due-debt">-</span>
-                            <span class="metric-sub" id="pm-paid-sub">المسدد للمشروع: -</span>
-                        </div>
-                    </div>
-                    <div class="proj-details-grid">
-                        <div class="proj-data-row">
-                            <span class="data-key"><i class="fa-solid fa-pen-ruler"></i> القيمة التعاقدية المعدلة</span>
-                            <span class="data-val" id="pm-revised-val">-</span>
-                        </div>
-                        <div class="proj-data-row">
-                            <span class="data-key"><i class="fa-solid fa-money-bill-wave"></i> الدفعة المقدمة</span>
-                            <span class="data-val" id="pm-advance-val">-</span>
-                        </div>
-                        <div class="proj-data-row">
-                            <span class="data-key"><i class="fa-solid fa-circle-check"></i> الأعمال المنفذة المعتمدة</span>
-                            <span class="data-val" id="pm-executed-approved">-</span>
-                        </div>
-                        <div class="proj-data-row">
-                            <span class="data-key"><i class="fa-solid fa-cubes"></i> قيمة التشوينات المعتمدة</span>
-                            <span class="data-val" id="pm-materials-val">-</span>
-                        </div>
-                        <div class="proj-data-row">
-                            <span class="data-key"><i class="fa-solid fa-calculator"></i> المنفذ الإجمالي (شامل الداخلي)</span>
-                            <span class="data-val" id="pm-executed-total">-</span>
-                        </div>
-                        <div class="proj-data-row">
-                            <span class="data-key"><i class="fa-solid fa-hand-holding-dollar"></i> الأعمال المسددة</span>
-                            <span class="data-val" id="pm-paid-work">-</span>
-                        </div>
-                        <div class="proj-data-row">
-                            <span class="data-key"><i class="fa-solid fa-shield-halved"></i> خطابات الضمان المفتوحة</span>
-                            <span class="data-val" id="pm-lg-val">-</span>
-                        </div>
-                        <div class="proj-data-row">
-                            <span class="data-key"><i class="fa-solid fa-vault"></i> السيولة المحجوزة</span>
-                            <span class="data-val" id="pm-retained-liquidity">-</span>
-                        </div>
-                        <div class="proj-data-row">
-                            <span class="data-key"><i class="fa-solid fa-users-line"></i> مستحقات مقاولي الباطن</span>
-                            <span class="data-val" id="pm-subcontractors-due">-</span>
-                        </div>
-                        <div class="proj-data-row">
-                            <span class="data-key"><i class="fa-solid fa-chart-line"></i> الربح / الخسارة المحققة</span>
-                            <span class="data-val" id="pm-profit-loss">-</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- TAB 2: Project Schedule & Milestones -->
-                <div class="proj-tab-content" id="proj-tab-schedule">
-                    <div class="proj-timeline-grid">
-                        <div class="proj-date-card">
-                            <div class="date-icon"><i class="fa-solid fa-play"></i></div>
-                            <div>
-                                <span class="date-label">تاريخ بدء المشروع</span>
-                                <span class="date-val" id="pm-start-date">-</span>
-                            </div>
-                        </div>
-                        <div class="proj-date-card">
-                            <div class="date-icon"><i class="fa-solid fa-map-pin"></i></div>
-                            <div>
-                                <span class="date-label">تاريخ استلام الموقع</span>
-                                <span class="date-val" id="pm-handover-date">-</span>
-                            </div>
-                        </div>
-                        <div class="proj-date-card">
-                            <div class="date-icon"><i class="fa-solid fa-compass-drafting"></i></div>
-                            <div>
-                                <span class="date-label">تاريخ استلام اللوحات</span>
-                                <span class="date-val" id="pm-drawings-date">-</span>
-                            </div>
-                        </div>
-                        <div class="proj-date-card">
-                            <div class="date-icon"><i class="fa-solid fa-flag-checkered"></i></div>
-                            <div>
-                                <span class="date-label">تاريخ نهاية العقد</span>
-                                <span class="date-val" id="pm-end-date">-</span>
-                            </div>
-                        </div>
-                        <div class="proj-date-card highlight">
-                            <div class="date-icon"><i class="fa-solid fa-calendar-plus"></i></div>
-                            <div>
-                                <span class="date-label">تاريخ النهاية المعدل</span>
-                                <span class="date-val" id="pm-revised-end-date">-</span>
-                            </div>
-                        </div>
-                        <div class="proj-date-card highlight-gold">
-                            <div class="date-icon"><i class="fa-solid fa-hourglass-end"></i></div>
-                            <div>
-                                <span class="date-label">النهو المتوقع (رؤية الإشراف)</span>
-                                <span class="date-val" id="pm-expected-finish-date">-</span>
-                            </div>
-                        </div>
-                        <div class="proj-date-card">
-                            <div class="date-icon"><i class="fa-solid fa-file-invoice"></i></div>
-                            <div>
-                                <span class="date-label">تاريخ اعتماد آخر مستخلص</span>
-                                <span class="date-val" id="pm-last-invoice-date">-</span>
-                            </div>
-                        </div>
-                        <div class="proj-date-card">
-                            <div class="date-icon"><i class="fa-solid fa-receipt"></i></div>
-                            <div>
-                                <span class="date-label">تاريخ آخر تحصيل نقدي</span>
-                                <span class="date-val" id="pm-last-collection-date">-</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="proj-extension-box">
-                        <h4 class="box-subtitle"><i class="fa-solid fa-clock-rotate-left"></i> موقف المد الزمني وطلبات التمديد</h4>
-                        <div class="extension-details-grid">
-                            <div><strong>موقف الجدول:</strong> <span id="pm-schedule-status-txt">-</span></div>
-                            <div><strong>طلب مد المدة:</strong> <span id="pm-ext-requested-txt">-</span></div>
-                            <div><strong>فترة المد المطلوبة:</strong> <span id="pm-ext-period-txt">-</span></div>
-                            <div><strong>المد المعتمد:</strong> <span id="pm-ext-approved-txt">-</span></div>
-                            <div><strong>تاريخ القياس الميداني:</strong> <span id="pm-measurement-date-txt">-</span></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- TAB 3: Contract & Stakeholders -->
-                <div class="proj-tab-content" id="proj-tab-contract">
-                    <div class="proj-details-grid">
-                        <div class="proj-data-row">
-                            <span class="data-key"><i class="fa-solid fa-user-tie"></i> اسم العميل / المالك</span>
-                            <span class="data-val" id="pm-client-txt">-</span>
-                        </div>
-                        <div class="proj-data-row">
-                            <span class="data-key"><i class="fa-solid fa-building-columns"></i> الاستشاري المشرف</span>
-                            <span class="data-val" id="pm-consultant-txt">-</span>
-                        </div>
-                        <div class="proj-data-row">
-                            <span class="data-key"><i class="fa-solid fa-building"></i> الفرع / الشركة المسؤولة</span>
-                            <span class="data-val" id="pm-branch-txt">-</span>
-                        </div>
-                        <div class="proj-data-row">
-                            <span class="data-key"><i class="fa-solid fa-globe"></i> الدولة</span>
-                            <span class="data-val" id="pm-country-txt">-</span>
-                        </div>
-                        <div class="proj-data-row">
-                            <span class="data-key"><i class="fa-solid fa-briefcase"></i> مجال العمل والتخصص</span>
-                            <span class="data-val" id="pm-scope-txt">-</span>
-                        </div>
-                        <div class="proj-data-row">
-                            <span class="data-key"><i class="fa-solid fa-handshake"></i> نوع العقد</span>
-                            <span class="data-val" id="pm-contract-type-txt">-</span>
-                        </div>
-                        <div class="proj-data-row">
-                            <span class="data-key"><i class="fa-solid fa-landmark"></i> جهة تمويل المشروع</span>
-                            <span class="data-val" id="pm-funding-txt">-</span>
-                        </div>
-                        <div class="proj-data-row">
-                            <span class="data-key"><i class="fa-solid fa-dollar-sign"></i> العملة وسعر الصرف</span>
-                            <span class="data-val" id="pm-currency-rate-txt">-</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- TAB 4: Obstacles & Claims -->
-                <div class="proj-tab-content" id="proj-tab-obstacles">
-                    <div class="proj-obstacles-section">
-                        <h4 class="box-subtitle warning"><i class="fa-solid fa-triangle-exclamation"></i> معوقات المشروع المسجلة</h4>
-                        <p class="obstacle-text" id="pm-obstacles-txt">لا توجد معوقات مسجلة حالياً.</p>
-                        <h4 class="box-subtitle"><i class="fa-solid fa-scale-balanced"></i> المطالبات والتحكيم</h4>
-                        <div class="claims-row">
-                            <div><strong>موقف المطالبات:</strong> <span id="pm-claims-status-txt">لا يوجد</span></div>
-                            <div><strong>قيمة المطالبات:</strong> <span id="pm-claims-val-txt">-</span></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="proj-modal-footer-info">
-                    <span><i class="fa-solid fa-user-check"></i> الرافع: <strong id="pm-userstamp-txt">-</strong></span>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     
     <!-- GeoJSON boundaries (Direct memory load for 100% offline & local file reliability) -->
     <script src="mena_geojson.js"></script>
 
     <!-- High-Precision Geographic Coordinates Dictionary -->
-    <script src="geo_coords.js"></script>
+    <script src="geo_coords.js?v=7.0"></script>
     
     <!-- Dedicated Performance Map Application Logic -->
-    <script src="performance_map.js"></script>
+    <script src="performance_map.js?v=7.0"></script>
 </body>
 </html>
