@@ -1577,6 +1577,95 @@ function renderGeoJsonBoundaries() {
     geoJsonLayer.addTo(executiveMap);
 }
 
+function createBranch3DMarkerIcon(branchName, country) {
+    const iconHtml = `
+        <div class="branch-beacon-container" onclick="openBranchDetailModal('${escapeHtml(branchName)}', '${escapeHtml(country)}')">
+            <div class="branch-beacon-glow-outer"></div>
+            <div class="branch-3d-building">
+                <svg viewBox="0 0 64 64" width="28" height="28" class="branch-3d-svg" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="pTop" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#94A3B8"/>
+                            <stop offset="100%" stop-color="#64748B"/>
+                        </linearGradient>
+                        <linearGradient id="pLeft" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="#475569"/>
+                            <stop offset="100%" stop-color="#334155"/>
+                        </linearGradient>
+                        <linearGradient id="pRight" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="#334155"/>
+                            <stop offset="100%" stop-color="#1E293B"/>
+                        </linearGradient>
+                        <linearGradient id="fTop" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#FFFFFF"/>
+                            <stop offset="100%" stop-color="#E2E8F0"/>
+                        </linearGradient>
+                        <linearGradient id="fLeft" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="#FFFFFF"/>
+                            <stop offset="100%" stop-color="#CBD5E1"/>
+                        </linearGradient>
+                        <linearGradient id="fRight" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="#94A3B8"/>
+                            <stop offset="100%" stop-color="#64748B"/>
+                        </linearGradient>
+                        <linearGradient id="gLeft" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="#38BDF8"/>
+                            <stop offset="50%" stop-color="#0284C7"/>
+                            <stop offset="100%" stop-color="#0369A1"/>
+                        </linearGradient>
+                        <linearGradient id="gRight" x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stop-color="#0284C7"/>
+                            <stop offset="100%" stop-color="#0F172A"/>
+                        </linearGradient>
+                        <linearGradient id="rRecess" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#E2E8F0"/>
+                            <stop offset="100%" stop-color="#CBD5E1"/>
+                        </linearGradient>
+                    </defs>
+                    <ellipse cx="32" cy="56" rx="22" ry="7" fill="#0284C7" fill-opacity="0.4"/>
+                    <path d="M10 46 L32 58 L32 61 L10 49 Z" fill="url(#pLeft)"/>
+                    <path d="M32 58 L54 46 L54 49 L32 61 Z" fill="url(#pRight)"/>
+                    <path d="M32 34 L54 46 L32 58 L10 46 Z" fill="url(#pTop)"/>
+                    <path d="M32 52 L48 43 L40 38 L32 43 Z" fill="#1E293B" fill-opacity="0.45"/>
+                    <path d="M17 18 L32 26 L32 52 L17 44 Z" fill="url(#fLeft)"/>
+                    <path d="M32 26 L47 18 L47 44 L32 52 Z" fill="url(#fRight)"/>
+                    <path d="M32 10 L47 18 L32 26 L17 18 Z" fill="url(#fTop)"/>
+                    <path d="M32 13 L44 19.5 L32 24 L20 19.5 Z" fill="url(#rRecess)"/>
+                    <path d="M20 19.5 L32 24 L32 25 L18 20 Z" fill="#94A3B8" fill-opacity="0.6"/>
+                    <path d="M32 13 L32 14.5 L44 20.5 L44 19.5 Z" fill="#64748B" fill-opacity="0.5"/>
+                    <path d="M28 15.5 L33 18 L33 21 L28 18.5 Z" fill="#E2E8F0"/>
+                    <path d="M33 18 L38 15.5 L38 18.5 L33 21 Z" fill="#94A3B8"/>
+                    <path d="M33 13.5 L38 15.5 L33 18 L28 15.5 Z" fill="#FFFFFF"/>
+                    <path d="M33 21 L38 18.5 L41 20 L36 22 Z" fill="#64748B" fill-opacity="0.4"/>
+                    <path d="M18.5 20.5 L30.5 27 L30.5 50 L18.5 43.5 Z" fill="url(#gLeft)"/>
+                    <path d="M18.5 25 L30.5 31.5" stroke="#FFFFFF" stroke-width="0.8" stroke-linecap="round"/>
+                    <path d="M18.5 29.5 L30.5 36" stroke="#FFFFFF" stroke-width="0.8" stroke-linecap="round"/>
+                    <path d="M18.5 34 L30.5 40.5" stroke="#FFFFFF" stroke-width="0.8" stroke-linecap="round"/>
+                    <path d="M18.5 38.5 L30.5 45" stroke="#FFFFFF" stroke-width="0.8" stroke-linecap="round"/>
+                    <path d="M21.5 22.1 L21.5 45.1" stroke="#FFFFFF" stroke-width="0.8"/>
+                    <path d="M24.5 23.7 L24.5 46.7" stroke="#FFFFFF" stroke-width="0.8"/>
+                    <path d="M27.5 25.3 L27.5 48.3" stroke="#FFFFFF" stroke-width="0.8"/>
+                    <path d="M33.5 27 L45.5 20.5 L45.5 43.5 L33.5 50 Z" fill="url(#gRight)"/>
+                    <path d="M33.5 31.5 L45.5 25" stroke="#CBD5E1" stroke-width="0.8" stroke-linecap="round"/>
+                    <path d="M33.5 36 L45.5 29.5" stroke="#CBD5E1" stroke-width="0.8" stroke-linecap="round"/>
+                    <path d="M33.5 40.5 L45.5 34" stroke="#CBD5E1" stroke-width="0.8" stroke-linecap="round"/>
+                    <path d="M33.5 45 L45.5 38.5" stroke="#CBD5E1" stroke-width="0.8" stroke-linecap="round"/>
+                    <path d="M36.5 28.6 L36.5 48.3" stroke="#CBD5E1" stroke-width="0.8"/>
+                    <path d="M39.5 27.0 L39.5 46.7" stroke="#CBD5E1" stroke-width="0.8"/>
+                    <path d="M42.5 25.4 L42.5 45.1" stroke="#CBD5E1" stroke-width="0.8"/>
+                    <line x1="32" y1="26" x2="32" y2="52" stroke="#FFFFFF" stroke-width="1.2"/>
+                </svg>
+            </div>
+        </div>
+    `;
+    return L.divIcon({
+        html: iconHtml,
+        className: 'custom-branch-marker',
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+    });
+}
+
 function updateMapMarkers() {
     if (!executiveMap || !markersGroup) return;
 
@@ -1603,57 +1692,7 @@ function updateMapMarkers() {
             const submittalsCount = bReports.length;
             const isHQ = coords.isHQ;
 
-            const iconHtml = `
-                <div class="branch-beacon-container" onclick="openBranchDetailModal('${escapeHtml(branchName)}', '${escapeHtml(country)}')">
-                    <div class="branch-beacon-glow-outer"></div>
-                    <div class="branch-3d-building">
-                        <svg viewBox="0 0 32 32" width="26" height="26" class="branch-3d-svg" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <defs>
-                                <linearGradient id="bRoofGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" stop-color="#F0F9FF"/>
-                                    <stop offset="100%" stop-color="#7DD3FC"/>
-                                </linearGradient>
-                                <linearGradient id="bFrontGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                                    <stop offset="0%" stop-color="#38BDF8"/>
-                                    <stop offset="45%" stop-color="#2563EB"/>
-                                    <stop offset="100%" stop-color="#1E3A8A"/>
-                                </linearGradient>
-                                <linearGradient id="bSideGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                                    <stop offset="0%" stop-color="#1E40AF"/>
-                                    <stop offset="100%" stop-color="#0F172A"/>
-                                </linearGradient>
-                                <linearGradient id="bWingGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                                    <stop offset="0%" stop-color="#60A5FA"/>
-                                    <stop offset="100%" stop-color="#1D4ED8"/>
-                                </linearGradient>
-                            </defs>
-                            <ellipse cx="16" cy="28.5" rx="11" ry="3" fill="#1E40AF" fill-opacity="0.5"/>
-                            <polygon points="5,19 12,23 12,28 5,24" fill="url(#bWingGrad)" stroke="#1E40AF" stroke-width="0.5" stroke-linejoin="round"/>
-                            <polygon points="5,19 12,15 16,17.5 9,21.5" fill="url(#bRoofGrad)" stroke="#BFDBFE" stroke-width="0.5" stroke-linejoin="round"/>
-                            <polygon points="9,9 16,13 16,27 9,23" fill="url(#bFrontGrad)" stroke="#2563EB" stroke-width="0.5" stroke-linejoin="round"/>
-                            <polygon points="16,13 25,8 25,22 16,27" fill="url(#bSideGrad)" stroke="#1E3A8A" stroke-width="0.5" stroke-linejoin="round"/>
-                            <polygon points="9,9 18,4 25,8 16,13" fill="url(#bRoofGrad)" stroke="#FFFFFF" stroke-width="0.6" stroke-linejoin="round"/>
-                            <line x1="10.5" y1="12" x2="14.5" y2="14.3" stroke="#FFFFFF" stroke-width="0.9" stroke-linecap="round" stroke-opacity="0.95"/>
-                            <line x1="10.5" y1="15" x2="14.5" y2="17.3" stroke="#FFFFFF" stroke-width="0.9" stroke-linecap="round" stroke-opacity="0.95"/>
-                            <line x1="10.5" y1="18" x2="14.5" y2="20.3" stroke="#FFFFFF" stroke-width="0.9" stroke-linecap="round" stroke-opacity="0.95"/>
-                            <line x1="17.5" y1="14.5" x2="23" y2="11.4" stroke="#93C5FD" stroke-width="0.9" stroke-linecap="round" stroke-opacity="0.85"/>
-                            <line x1="17.5" y1="17.5" x2="23" y2="14.4" stroke="#93C5FD" stroke-width="0.9" stroke-linecap="round" stroke-opacity="0.85"/>
-                            <line x1="17.5" y1="20.5" x2="23" y2="17.4" stroke="#93C5FD" stroke-width="0.9" stroke-linecap="round" stroke-opacity="0.85"/>
-                            <line x1="16" y1="13" x2="16" y2="27" stroke="rgba(255,255,255,0.6)" stroke-width="0.75"/>
-                            <line x1="18" y1="4" x2="18" y2="1.2" stroke="#FFFFFF" stroke-width="1.2" stroke-linecap="round"/>
-                            <circle cx="18" cy="1.2" r="1.1" fill="#38BDF8" stroke="#FFFFFF" stroke-width="0.5"/>
-                        </svg>
-                    </div>
-                </div>
-            `;
-
-            const branchIcon = L.divIcon({
-                html: iconHtml,
-                className: 'custom-branch-marker',
-                iconSize: [26, 26],
-                iconAnchor: [13, 13]
-            });
-
+            const branchIcon = createBranch3DMarkerIcon(branchName, country);
             const marker = L.marker([coords.lat, coords.lng], { icon: branchIcon });
 
             const bFlagClass = getFlagIconClass(country);
@@ -2591,57 +2630,7 @@ function renderBranchMarkersOnly() {
         const coords = typeof getBranchCoordinates === 'function' ? getBranchCoordinates(branchName, country, bMapsLink) : { lat: 30.0444, lng: 31.2357, isHQ: false };
         const isHQ = coords.isHQ;
 
-        const iconHtml = `
-            <div class="branch-beacon-container" onclick="openBranchDetailModal('${escapeHtml(branchName)}', '${escapeHtml(country)}')">
-                <div class="branch-beacon-glow-outer"></div>
-                <div class="branch-3d-building">
-                    <svg viewBox="0 0 32 32" width="26" height="26" class="branch-3d-svg" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                            <linearGradient id="bRoofGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stop-color="#F0F9FF"/>
-                                <stop offset="100%" stop-color="#7DD3FC"/>
-                            </linearGradient>
-                            <linearGradient id="bFrontGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                                <stop offset="0%" stop-color="#38BDF8"/>
-                                <stop offset="45%" stop-color="#2563EB"/>
-                                <stop offset="100%" stop-color="#1E3A8A"/>
-                            </linearGradient>
-                            <linearGradient id="bSideGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                                <stop offset="0%" stop-color="#1E40AF"/>
-                                <stop offset="100%" stop-color="#0F172A"/>
-                            </linearGradient>
-                            <linearGradient id="bWingGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                                <stop offset="0%" stop-color="#60A5FA"/>
-                                <stop offset="100%" stop-color="#1D4ED8"/>
-                            </linearGradient>
-                        </defs>
-                        <ellipse cx="16" cy="28.5" rx="11" ry="3" fill="#1E40AF" fill-opacity="0.5"/>
-                        <polygon points="5,19 12,23 12,28 5,24" fill="url(#bWingGrad)" stroke="#1E40AF" stroke-width="0.5" stroke-linejoin="round"/>
-                        <polygon points="5,19 12,15 16,17.5 9,21.5" fill="url(#bRoofGrad)" stroke="#BFDBFE" stroke-width="0.5" stroke-linejoin="round"/>
-                        <polygon points="9,9 16,13 16,27 9,23" fill="url(#bFrontGrad)" stroke="#2563EB" stroke-width="0.5" stroke-linejoin="round"/>
-                        <polygon points="16,13 25,8 25,22 16,27" fill="url(#bSideGrad)" stroke="#1E3A8A" stroke-width="0.5" stroke-linejoin="round"/>
-                        <polygon points="9,9 18,4 25,8 16,13" fill="url(#bRoofGrad)" stroke="#FFFFFF" stroke-width="0.6" stroke-linejoin="round"/>
-                        <line x1="10.5" y1="12" x2="14.5" y2="14.3" stroke="#FFFFFF" stroke-width="0.9" stroke-linecap="round" stroke-opacity="0.95"/>
-                        <line x1="10.5" y1="15" x2="14.5" y2="17.3" stroke="#FFFFFF" stroke-width="0.9" stroke-linecap="round" stroke-opacity="0.95"/>
-                        <line x1="10.5" y1="18" x2="14.5" y2="20.3" stroke="#FFFFFF" stroke-width="0.9" stroke-linecap="round" stroke-opacity="0.95"/>
-                        <line x1="17.5" y1="14.5" x2="23" y2="11.4" stroke="#93C5FD" stroke-width="0.9" stroke-linecap="round" stroke-opacity="0.85"/>
-                        <line x1="17.5" y1="17.5" x2="23" y2="14.4" stroke="#93C5FD" stroke-width="0.9" stroke-linecap="round" stroke-opacity="0.85"/>
-                        <line x1="17.5" y1="20.5" x2="23" y2="17.4" stroke="#93C5FD" stroke-width="0.9" stroke-linecap="round" opacity="0.85"/>
-                        <line x1="16" y1="13" x2="16" y2="27" stroke="rgba(255,255,255,0.6)" stroke-width="0.75"/>
-                        <line x1="18" y1="4" x2="18" y2="1.2" stroke="#FFFFFF" stroke-width="1.2" stroke-linecap="round"/>
-                        <circle cx="18" cy="1.2" r="1.1" fill="#38BDF8" stroke="#FFFFFF" stroke-width="0.5"/>
-                    </svg>
-                </div>
-            </div>
-        `;
-
-        const branchIcon = L.divIcon({
-            html: iconHtml,
-            className: 'custom-branch-marker',
-            iconSize: [26, 26],
-            iconAnchor: [13, 13]
-        });
-
+        const branchIcon = createBranch3DMarkerIcon(branchName, country);
         const marker = L.marker([coords.lat, coords.lng], { icon: branchIcon });
         marker.on('click', () => openBranchDetailModal(branchName, country));
         markersGroup.addLayer(marker);
