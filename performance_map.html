@@ -177,7 +177,7 @@
             background: #0B132B;
         }
 
-        /* Natural Atlas-Grade Arabic Typography (100% Arabic World Map) */
+        /* Natural Atlas-Grade Typography (English World Map Labels) */
         .arabic-map-label {
             background: transparent !important;
             border: none !important;
@@ -185,29 +185,31 @@
         }
 
         .map-label-country {
-            font-family: 'Tajawal', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-weight: 700;
-            font-size: 11.5px;
-            letter-spacing: 0.3px;
+            font-size: 11px;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
             color: #94a3b8;
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
             white-space: nowrap;
             text-align: center;
             user-select: none;
-            opacity: 0.85;
+            opacity: 0.88;
             display: inline-block;
         }
         [data-theme="aegov"] .map-label-country {
-            color: #475569;
+            color: #334155;
             text-shadow: 0 1px 2px rgba(255, 255, 255, 0.95);
         }
 
         .map-label-water {
-            font-family: 'Tajawal', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-style: italic;
             font-weight: 600;
-            font-size: 11px;
-            letter-spacing: 0.5px;
+            font-size: 10.5px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
             color: #38bdf8;
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
             white-space: nowrap;
@@ -222,24 +224,25 @@
         }
 
         .map-label-city {
-            font-family: 'Tajawal', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             font-weight: 600;
-            font-size: 10px;
+            font-size: 9.5px;
             color: #cbd5e1;
             text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
             white-space: nowrap;
             user-select: none;
+            opacity: 0.7;
             display: inline-flex;
             align-items: center;
-            gap: 3px;
+            gap: 4px;
         }
         .map-city-bullet {
-            width: 3.5px;
-            height: 3.5px;
+            width: 4px;
+            height: 4px;
             border-radius: 50%;
-            background: #facc15;
+            background-color: #f59e0b;
+            box-shadow: 0 0 3px #f59e0b;
             display: inline-block;
-            box-shadow: 0 0 4px #facc15;
         }
         [data-theme="aegov"] .map-label-city {
             color: #334155;
