@@ -3246,14 +3246,6 @@ function openCountryBoard(countryGeo, countryName, initialProjectName = null) {
         });
     }
 
-    const clearSelectedProject = event => {
-        if (!selectedProjectKey || event.target.closest('.country-chart-canvas, .country-board-kpi, .country-kpi-projects, .country-kpi-project-item')) return;
-        const selectedProject = projects.find(project => projectKey(project) === selectedProjectKey);
-        if (selectedProject) selectProject(selectedProject);
-    };
-    dialog.addEventListener('pointerdown', clearSelectedProject);
-    dialog.addEventListener('click', clearSelectedProject);
-
     if (initialProjectName) {
         const initProj = projects.find(p => p.projectName === initialProjectName || (p.projectId && p.projectId === initialProjectName));
         if (initProj) {
