@@ -1607,34 +1607,41 @@ function updateMapMarkers() {
                 <div class="branch-beacon-container" onclick="openBranchDetailModal('${escapeHtml(branchName)}', '${escapeHtml(country)}')">
                     <div class="branch-beacon-glow-outer"></div>
                     <div class="branch-3d-building">
-                        <svg viewBox="0 0 24 24" width="22" height="22" class="branch-3d-svg" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <svg viewBox="0 0 32 32" width="26" height="26" class="branch-3d-svg" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <defs>
                                 <linearGradient id="bRoofGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" stop-color="#BAE6FD"/>
-                                    <stop offset="100%" stop-color="#60A5FA"/>
+                                    <stop offset="0%" stop-color="#F0F9FF"/>
+                                    <stop offset="100%" stop-color="#7DD3FC"/>
                                 </linearGradient>
-                                <linearGradient id="bLeftWall" x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" stop-color="#2563EB"/>
+                                <linearGradient id="bFrontGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" stop-color="#38BDF8"/>
+                                    <stop offset="45%" stop-color="#2563EB"/>
                                     <stop offset="100%" stop-color="#1E3A8A"/>
                                 </linearGradient>
-                                <linearGradient id="bRightWall" x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" stop-color="#3B82F6"/>
+                                <linearGradient id="bSideGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" stop-color="#1E40AF"/>
+                                    <stop offset="100%" stop-color="#0F172A"/>
+                                </linearGradient>
+                                <linearGradient id="bWingGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                    <stop offset="0%" stop-color="#60A5FA"/>
                                     <stop offset="100%" stop-color="#1D4ED8"/>
                                 </linearGradient>
                             </defs>
-                            <ellipse cx="12" cy="21.5" rx="7.5" ry="2.2" fill="rgba(37,99,235,0.4)"/>
-                            <polygon points="5,7 12,11 12,21 5,17" fill="url(#bLeftWall)" stroke="#1E40AF" stroke-width="0.5" stroke-linejoin="round"/>
-                            <polygon points="12,11 19,7 19,17 12,21" fill="url(#bRightWall)" stroke="#1E40AF" stroke-width="0.5" stroke-linejoin="round"/>
-                            <polygon points="12,3 19,7 12,11 5,7" fill="url(#bRoofGrad)" stroke="#BFDBFE" stroke-width="0.5" stroke-linejoin="round"/>
-                            <line x1="12" y1="11" x2="12" y2="21" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
-                            <line x1="6.8" y1="9.8" x2="10.2" y2="11.8" stroke="#93C5FD" stroke-width="0.9" stroke-linecap="round" opacity="0.85"/>
-                            <line x1="6.8" y1="12.5" x2="10.2" y2="14.5" stroke="#93C5FD" stroke-width="0.9" stroke-linecap="round" opacity="0.85"/>
-                            <line x1="6.8" y1="15.2" x2="10.2" y2="17.2" stroke="#93C5FD" stroke-width="0.9" stroke-linecap="round" opacity="0.85"/>
-                            <line x1="13.8" y1="11.8" x2="17.2" y2="9.8" stroke="#EFF6FF" stroke-width="0.9" stroke-linecap="round" opacity="0.95"/>
-                            <line x1="13.8" y1="14.5" x2="17.2" y2="12.5" stroke="#EFF6FF" stroke-width="0.9" stroke-linecap="round" opacity="0.95"/>
-                            <line x1="13.8" y1="17.2" x2="17.2" y2="15.2" stroke="#EFF6FF" stroke-width="0.9" stroke-linecap="round" opacity="0.95"/>
-                            <line x1="12" y1="3" x2="12" y2="0.8" stroke="#BFDBFE" stroke-width="1.2" stroke-linecap="round"/>
-                            <circle cx="12" cy="0.8" r="1.1" fill="#60A5FA" stroke="#FFFFFF" stroke-width="0.5"/>
+                            <ellipse cx="16" cy="28.5" rx="11" ry="3" fill="#1E40AF" fill-opacity="0.5"/>
+                            <polygon points="5,19 12,23 12,28 5,24" fill="url(#bWingGrad)" stroke="#1E40AF" stroke-width="0.5" stroke-linejoin="round"/>
+                            <polygon points="5,19 12,15 16,17.5 9,21.5" fill="url(#bRoofGrad)" stroke="#BFDBFE" stroke-width="0.5" stroke-linejoin="round"/>
+                            <polygon points="9,9 16,13 16,27 9,23" fill="url(#bFrontGrad)" stroke="#2563EB" stroke-width="0.5" stroke-linejoin="round"/>
+                            <polygon points="16,13 25,8 25,22 16,27" fill="url(#bSideGrad)" stroke="#1E3A8A" stroke-width="0.5" stroke-linejoin="round"/>
+                            <polygon points="9,9 18,4 25,8 16,13" fill="url(#bRoofGrad)" stroke="#FFFFFF" stroke-width="0.6" stroke-linejoin="round"/>
+                            <line x1="10.5" y1="12" x2="14.5" y2="14.3" stroke="#FFFFFF" stroke-width="0.9" stroke-linecap="round" stroke-opacity="0.95"/>
+                            <line x1="10.5" y1="15" x2="14.5" y2="17.3" stroke="#FFFFFF" stroke-width="0.9" stroke-linecap="round" stroke-opacity="0.95"/>
+                            <line x1="10.5" y1="18" x2="14.5" y2="20.3" stroke="#FFFFFF" stroke-width="0.9" stroke-linecap="round" stroke-opacity="0.95"/>
+                            <line x1="17.5" y1="14.5" x2="23" y2="11.4" stroke="#93C5FD" stroke-width="0.9" stroke-linecap="round" stroke-opacity="0.85"/>
+                            <line x1="17.5" y1="17.5" x2="23" y2="14.4" stroke="#93C5FD" stroke-width="0.9" stroke-linecap="round" stroke-opacity="0.85"/>
+                            <line x1="17.5" y1="20.5" x2="23" y2="17.4" stroke="#93C5FD" stroke-width="0.9" stroke-linecap="round" stroke-opacity="0.85"/>
+                            <line x1="16" y1="13" x2="16" y2="27" stroke="rgba(255,255,255,0.6)" stroke-width="0.75"/>
+                            <line x1="18" y1="4" x2="18" y2="1.2" stroke="#FFFFFF" stroke-width="1.2" stroke-linecap="round"/>
+                            <circle cx="18" cy="1.2" r="1.1" fill="#38BDF8" stroke="#FFFFFF" stroke-width="0.5"/>
                         </svg>
                     </div>
                 </div>
@@ -1643,8 +1650,8 @@ function updateMapMarkers() {
             const branchIcon = L.divIcon({
                 html: iconHtml,
                 className: 'custom-branch-marker',
-                iconSize: [24, 24],
-                iconAnchor: [12, 12]
+                iconSize: [26, 26],
+                iconAnchor: [13, 13]
             });
 
             const marker = L.marker([coords.lat, coords.lng], { icon: branchIcon });
@@ -2588,34 +2595,41 @@ function renderBranchMarkersOnly() {
             <div class="branch-beacon-container" onclick="openBranchDetailModal('${escapeHtml(branchName)}', '${escapeHtml(country)}')">
                 <div class="branch-beacon-glow-outer"></div>
                 <div class="branch-3d-building">
-                    <svg viewBox="0 0 24 24" width="22" height="22" class="branch-3d-svg" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg viewBox="0 0 32 32" width="26" height="26" class="branch-3d-svg" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <defs>
                             <linearGradient id="bRoofGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stop-color="#BAE6FD"/>
-                                <stop offset="100%" stop-color="#60A5FA"/>
+                                <stop offset="0%" stop-color="#F0F9FF"/>
+                                <stop offset="100%" stop-color="#7DD3FC"/>
                             </linearGradient>
-                            <linearGradient id="bLeftWall" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stop-color="#2563EB"/>
+                            <linearGradient id="bFrontGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#38BDF8"/>
+                                <stop offset="45%" stop-color="#2563EB"/>
                                 <stop offset="100%" stop-color="#1E3A8A"/>
                             </linearGradient>
-                            <linearGradient id="bRightWall" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stop-color="#3B82F6"/>
+                            <linearGradient id="bSideGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#1E40AF"/>
+                                <stop offset="100%" stop-color="#0F172A"/>
+                            </linearGradient>
+                            <linearGradient id="bWingGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#60A5FA"/>
                                 <stop offset="100%" stop-color="#1D4ED8"/>
                             </linearGradient>
                         </defs>
-                        <ellipse cx="12" cy="21.5" rx="7.5" ry="2.2" fill="rgba(37,99,235,0.4)"/>
-                        <polygon points="5,7 12,11 12,21 5,17" fill="url(#bLeftWall)" stroke="#1E40AF" stroke-width="0.5" stroke-linejoin="round"/>
-                        <polygon points="12,11 19,7 19,17 12,21" fill="url(#bRightWall)" stroke="#1E40AF" stroke-width="0.5" stroke-linejoin="round"/>
-                        <polygon points="12,3 19,7 12,11 5,7" fill="url(#bRoofGrad)" stroke="#BFDBFE" stroke-width="0.5" stroke-linejoin="round"/>
-                        <line x1="12" y1="11" x2="12" y2="21" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
-                        <line x1="6.8" y1="9.8" x2="10.2" y2="11.8" stroke="#93C5FD" stroke-width="0.9" stroke-linecap="round" opacity="0.85"/>
-                        <line x1="6.8" y1="12.5" x2="10.2" y2="14.5" stroke="#93C5FD" stroke-width="0.9" stroke-linecap="round" opacity="0.85"/>
-                        <line x1="6.8" y1="15.2" x2="10.2" y2="17.2" stroke="#93C5FD" stroke-width="0.9" stroke-linecap="round" opacity="0.85"/>
-                        <line x1="13.8" y1="11.8" x2="17.2" y2="9.8" stroke="#EFF6FF" stroke-width="0.9" stroke-linecap="round" opacity="0.95"/>
-                        <line x1="13.8" y1="14.5" x2="17.2" y2="12.5" stroke="#EFF6FF" stroke-width="0.9" stroke-linecap="round" opacity="0.95"/>
-                        <line x1="13.8" y1="17.2" x2="17.2" y2="15.2" stroke="#EFF6FF" stroke-width="0.9" stroke-linecap="round" opacity="0.95"/>
-                        <line x1="12" y1="3" x2="12" y2="0.8" stroke="#BFDBFE" stroke-width="1.2" stroke-linecap="round"/>
-                        <circle cx="12" cy="0.8" r="1.1" fill="#60A5FA" stroke="#FFFFFF" stroke-width="0.5"/>
+                        <ellipse cx="16" cy="28.5" rx="11" ry="3" fill="#1E40AF" fill-opacity="0.5"/>
+                        <polygon points="5,19 12,23 12,28 5,24" fill="url(#bWingGrad)" stroke="#1E40AF" stroke-width="0.5" stroke-linejoin="round"/>
+                        <polygon points="5,19 12,15 16,17.5 9,21.5" fill="url(#bRoofGrad)" stroke="#BFDBFE" stroke-width="0.5" stroke-linejoin="round"/>
+                        <polygon points="9,9 16,13 16,27 9,23" fill="url(#bFrontGrad)" stroke="#2563EB" stroke-width="0.5" stroke-linejoin="round"/>
+                        <polygon points="16,13 25,8 25,22 16,27" fill="url(#bSideGrad)" stroke="#1E3A8A" stroke-width="0.5" stroke-linejoin="round"/>
+                        <polygon points="9,9 18,4 25,8 16,13" fill="url(#bRoofGrad)" stroke="#FFFFFF" stroke-width="0.6" stroke-linejoin="round"/>
+                        <line x1="10.5" y1="12" x2="14.5" y2="14.3" stroke="#FFFFFF" stroke-width="0.9" stroke-linecap="round" stroke-opacity="0.95"/>
+                        <line x1="10.5" y1="15" x2="14.5" y2="17.3" stroke="#FFFFFF" stroke-width="0.9" stroke-linecap="round" stroke-opacity="0.95"/>
+                        <line x1="10.5" y1="18" x2="14.5" y2="20.3" stroke="#FFFFFF" stroke-width="0.9" stroke-linecap="round" stroke-opacity="0.95"/>
+                        <line x1="17.5" y1="14.5" x2="23" y2="11.4" stroke="#93C5FD" stroke-width="0.9" stroke-linecap="round" stroke-opacity="0.85"/>
+                        <line x1="17.5" y1="17.5" x2="23" y2="14.4" stroke="#93C5FD" stroke-width="0.9" stroke-linecap="round" stroke-opacity="0.85"/>
+                        <line x1="17.5" y1="20.5" x2="23" y2="17.4" stroke="#93C5FD" stroke-width="0.9" stroke-linecap="round" opacity="0.85"/>
+                        <line x1="16" y1="13" x2="16" y2="27" stroke="rgba(255,255,255,0.6)" stroke-width="0.75"/>
+                        <line x1="18" y1="4" x2="18" y2="1.2" stroke="#FFFFFF" stroke-width="1.2" stroke-linecap="round"/>
+                        <circle cx="18" cy="1.2" r="1.1" fill="#38BDF8" stroke="#FFFFFF" stroke-width="0.5"/>
                     </svg>
                 </div>
             </div>
@@ -2624,8 +2638,8 @@ function renderBranchMarkersOnly() {
         const branchIcon = L.divIcon({
             html: iconHtml,
             className: 'custom-branch-marker',
-            iconSize: [24, 24],
-            iconAnchor: [12, 12]
+            iconSize: [26, 26],
+            iconAnchor: [13, 13]
         });
 
         const marker = L.marker([coords.lat, coords.lng], { icon: branchIcon });
