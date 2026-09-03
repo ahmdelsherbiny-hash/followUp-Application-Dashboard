@@ -1606,8 +1606,37 @@ function updateMapMarkers() {
             const iconHtml = `
                 <div class="branch-beacon-container" onclick="openBranchDetailModal('${escapeHtml(branchName)}', '${escapeHtml(country)}')">
                     <div class="branch-beacon-glow-outer"></div>
-                    <div class="branch-beacon-glow-inner"></div>
-                    <div class="branch-beacon-core"></div>
+                    <div class="branch-3d-building">
+                        <svg viewBox="0 0 24 24" width="22" height="22" class="branch-3d-svg" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <linearGradient id="bRoofGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#BAE6FD"/>
+                                    <stop offset="100%" stop-color="#60A5FA"/>
+                                </linearGradient>
+                                <linearGradient id="bLeftWall" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#2563EB"/>
+                                    <stop offset="100%" stop-color="#1E3A8A"/>
+                                </linearGradient>
+                                <linearGradient id="bRightWall" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#3B82F6"/>
+                                    <stop offset="100%" stop-color="#1D4ED8"/>
+                                </linearGradient>
+                            </defs>
+                            <ellipse cx="12" cy="21.5" rx="7.5" ry="2.2" fill="rgba(37,99,235,0.4)"/>
+                            <polygon points="5,7 12,11 12,21 5,17" fill="url(#bLeftWall)" stroke="#1E40AF" stroke-width="0.5" stroke-linejoin="round"/>
+                            <polygon points="12,11 19,7 19,17 12,21" fill="url(#bRightWall)" stroke="#1E40AF" stroke-width="0.5" stroke-linejoin="round"/>
+                            <polygon points="12,3 19,7 12,11 5,7" fill="url(#bRoofGrad)" stroke="#BFDBFE" stroke-width="0.5" stroke-linejoin="round"/>
+                            <line x1="12" y1="11" x2="12" y2="21" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
+                            <line x1="6.8" y1="9.8" x2="10.2" y2="11.8" stroke="#93C5FD" stroke-width="0.9" stroke-linecap="round" opacity="0.85"/>
+                            <line x1="6.8" y1="12.5" x2="10.2" y2="14.5" stroke="#93C5FD" stroke-width="0.9" stroke-linecap="round" opacity="0.85"/>
+                            <line x1="6.8" y1="15.2" x2="10.2" y2="17.2" stroke="#93C5FD" stroke-width="0.9" stroke-linecap="round" opacity="0.85"/>
+                            <line x1="13.8" y1="11.8" x2="17.2" y2="9.8" stroke="#EFF6FF" stroke-width="0.9" stroke-linecap="round" opacity="0.95"/>
+                            <line x1="13.8" y1="14.5" x2="17.2" y2="12.5" stroke="#EFF6FF" stroke-width="0.9" stroke-linecap="round" opacity="0.95"/>
+                            <line x1="13.8" y1="17.2" x2="17.2" y2="15.2" stroke="#EFF6FF" stroke-width="0.9" stroke-linecap="round" opacity="0.95"/>
+                            <line x1="12" y1="3" x2="12" y2="0.8" stroke="#BFDBFE" stroke-width="1.2" stroke-linecap="round"/>
+                            <circle cx="12" cy="0.8" r="1.1" fill="#60A5FA" stroke="#FFFFFF" stroke-width="0.5"/>
+                        </svg>
+                    </div>
                 </div>
             `;
 
@@ -2558,8 +2587,37 @@ function renderBranchMarkersOnly() {
         const iconHtml = `
             <div class="branch-beacon-container" onclick="openBranchDetailModal('${escapeHtml(branchName)}', '${escapeHtml(country)}')">
                 <div class="branch-beacon-glow-outer"></div>
-                <div class="branch-beacon-glow-inner"></div>
-                <div class="branch-beacon-core"></div>
+                <div class="branch-3d-building">
+                    <svg viewBox="0 0 24 24" width="22" height="22" class="branch-3d-svg" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="bRoofGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#BAE6FD"/>
+                                <stop offset="100%" stop-color="#60A5FA"/>
+                            </linearGradient>
+                            <linearGradient id="bLeftWall" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#2563EB"/>
+                                <stop offset="100%" stop-color="#1E3A8A"/>
+                            </linearGradient>
+                            <linearGradient id="bRightWall" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#3B82F6"/>
+                                <stop offset="100%" stop-color="#1D4ED8"/>
+                            </linearGradient>
+                        </defs>
+                        <ellipse cx="12" cy="21.5" rx="7.5" ry="2.2" fill="rgba(37,99,235,0.4)"/>
+                        <polygon points="5,7 12,11 12,21 5,17" fill="url(#bLeftWall)" stroke="#1E40AF" stroke-width="0.5" stroke-linejoin="round"/>
+                        <polygon points="12,11 19,7 19,17 12,21" fill="url(#bRightWall)" stroke="#1E40AF" stroke-width="0.5" stroke-linejoin="round"/>
+                        <polygon points="12,3 19,7 12,11 5,7" fill="url(#bRoofGrad)" stroke="#BFDBFE" stroke-width="0.5" stroke-linejoin="round"/>
+                        <line x1="12" y1="11" x2="12" y2="21" stroke="rgba(255,255,255,0.35)" stroke-width="0.6"/>
+                        <line x1="6.8" y1="9.8" x2="10.2" y2="11.8" stroke="#93C5FD" stroke-width="0.9" stroke-linecap="round" opacity="0.85"/>
+                        <line x1="6.8" y1="12.5" x2="10.2" y2="14.5" stroke="#93C5FD" stroke-width="0.9" stroke-linecap="round" opacity="0.85"/>
+                        <line x1="6.8" y1="15.2" x2="10.2" y2="17.2" stroke="#93C5FD" stroke-width="0.9" stroke-linecap="round" opacity="0.85"/>
+                        <line x1="13.8" y1="11.8" x2="17.2" y2="9.8" stroke="#EFF6FF" stroke-width="0.9" stroke-linecap="round" opacity="0.95"/>
+                        <line x1="13.8" y1="14.5" x2="17.2" y2="12.5" stroke="#EFF6FF" stroke-width="0.9" stroke-linecap="round" opacity="0.95"/>
+                        <line x1="13.8" y1="17.2" x2="17.2" y2="15.2" stroke="#EFF6FF" stroke-width="0.9" stroke-linecap="round" opacity="0.95"/>
+                        <line x1="12" y1="3" x2="12" y2="0.8" stroke="#BFDBFE" stroke-width="1.2" stroke-linecap="round"/>
+                        <circle cx="12" cy="0.8" r="1.1" fill="#60A5FA" stroke="#FFFFFF" stroke-width="0.5"/>
+                    </svg>
+                </div>
             </div>
         `;
 
