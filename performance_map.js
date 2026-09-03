@@ -908,7 +908,6 @@ function initExecutiveMap() {
 
     markersGroup = L.layerGroup().addTo(executiveMap);
     businessBubblesGroup = L.layerGroup().addTo(executiveMap);
-    arabicMapLabelsGroup = L.layerGroup().addTo(executiveMap);
 
     executiveMap.on('mouseout', () => {
         if (currentHoveredCountryLayer && geoJsonLayer) {
@@ -922,133 +921,12 @@ function initExecutiveMap() {
         renderGeoJsonBoundaries();
     }
 
-    renderArabicMapLabels();
-
     setTimeout(() => {
         if (executiveMap) {
             executiveMap.invalidateSize();
             executiveMap.fitBounds(MENA_AFRICA_BOUNDS, { padding: [10, 10] });
         }
     }, 400);
-}
-
-const MAP_GEOGRAPHY = {
-    countries: [
-        { name: 'Egypt', lat: 26.8206, lng: 30.8025 },
-        { name: 'Saudi Arabia', lat: 23.8859, lng: 45.0792 },
-        { name: 'United Arab Emirates', lat: 23.4241, lng: 53.8478 },
-        { name: 'Oman', lat: 21.4735, lng: 55.9754 },
-        { name: 'Kuwait', lat: 29.3117, lng: 47.4818 },
-        { name: 'Qatar', lat: 25.3548, lng: 51.1839 },
-        { name: 'Bahrain', lat: 26.0667, lng: 50.5577 },
-        { name: 'Iraq', lat: 33.2232, lng: 43.6793 },
-        { name: 'Jordan', lat: 30.5852, lng: 36.2384 },
-        { name: 'Syria', lat: 34.8021, lng: 38.9968 },
-        { name: 'Lebanon', lat: 33.8547, lng: 35.8623 },
-        { name: 'Palestine', lat: 31.9522, lng: 35.2332 },
-        { name: 'Yemen', lat: 15.5527, lng: 48.5164 },
-        { name: 'Libya', lat: 26.3351, lng: 17.2283 },
-        { name: 'Tunisia', lat: 33.8869, lng: 9.5375 },
-        { name: 'Algeria', lat: 28.0339, lng: 1.6596 },
-        { name: 'Morocco', lat: 31.7917, lng: -7.0926 },
-        { name: 'Mauritania', lat: 21.0079, lng: -10.9408 },
-        { name: 'Sudan', lat: 14.8628, lng: 30.2176 },
-        { name: 'South Sudan', lat: 6.8770, lng: 31.3070 },
-        { name: 'Chad', lat: 15.4542, lng: 18.7322 },
-        { name: 'Niger', lat: 17.6078, lng: 8.0817 },
-        { name: 'Mali', lat: 17.5707, lng: -3.9962 },
-        { name: 'Nigeria', lat: 9.0820, lng: 8.6753 },
-        { name: 'Cameroon', lat: 6.0000, lng: 12.3547 },
-        { name: 'Equatorial Guinea', lat: 1.6508, lng: 10.2679 },
-        { name: 'Gabon', lat: -0.8037, lng: 11.6094 },
-        { name: 'Congo', lat: -0.2280, lng: 15.8277 },
-        { name: 'DR Congo', lat: -4.0383, lng: 21.7587 },
-        { name: 'Uganda', lat: 1.3733, lng: 32.2903 },
-        { name: 'Kenya', lat: -0.0236, lng: 37.9062 },
-        { name: 'Tanzania', lat: -6.3690, lng: 34.8888 },
-        { name: 'Zambia', lat: -13.1339, lng: 27.8493 },
-        { name: 'Angola', lat: -11.2027, lng: 17.8739 },
-        { name: 'Ghana', lat: 7.9465, lng: -1.0232 },
-        { name: 'Ivory Coast', lat: 7.5400, lng: -5.5471 },
-        { name: 'Benin', lat: 9.3077, lng: 2.3158 },
-        { name: 'Togo', lat: 8.6195, lng: 0.8248 },
-        { name: 'Ethiopia', lat: 9.1450, lng: 40.4897 },
-        { name: 'Somalia', lat: 5.1521, lng: 46.1996 },
-        { name: 'Comoros', lat: -11.8753, lng: 43.8722 }
-    ],
-    waters: [
-        { name: 'Mediterranean Sea', lat: 34.2, lng: 19.5 },
-        { name: 'Red Sea', lat: 21.5, lng: 38.0 },
-        { name: 'Arabian Gulf', lat: 26.5, lng: 52.0 },
-        { name: 'Arabian Sea', lat: 15.5, lng: 63.5 }
-    ],
-    cities: [
-        { name: 'Cairo', lat: 30.0444, lng: 31.2357 },
-        { name: 'Riyadh', lat: 24.7136, lng: 46.6753 },
-        { name: 'Jeddah', lat: 21.4858, lng: 39.1925 },
-        { name: 'Abu Dhabi', lat: 24.4539, lng: 54.3773 },
-        { name: 'Dubai', lat: 25.2048, lng: 55.2708 },
-        { name: 'Muscat', lat: 23.5880, lng: 58.3829 },
-        { name: 'Doha', lat: 25.2854, lng: 51.5310 },
-        { name: 'Kuwait City', lat: 29.3759, lng: 47.9774 },
-        { name: 'Baghdad', lat: 33.3152, lng: 44.3661 },
-        { name: 'Abuja', lat: 9.0765, lng: 7.3986 },
-        { name: 'Lagos', lat: 6.5244, lng: 3.3792 },
-        { name: 'Kampala', lat: 0.3476, lng: 32.5825 },
-        { name: 'N\'Djamena', lat: 12.1348, lng: 15.0557 },
-        { name: 'Yaounde', lat: 3.8480, lng: 11.5021 },
-        { name: 'Accra', lat: 5.6037, lng: -0.1870 },
-        { name: 'Abidjan', lat: 5.3600, lng: -4.0083 },
-        { name: 'Lusaka', lat: -15.3875, lng: 28.3228 },
-        { name: 'Dar es Salaam', lat: -6.7924, lng: 39.2083 },
-        { name: 'Khartoum', lat: 15.5007, lng: 32.5599 },
-        { name: 'Algiers', lat: 36.7538, lng: 3.0588 },
-        { name: 'Tunis', lat: 36.8065, lng: 10.1815 },
-        { name: 'Rabat', lat: 34.0209, lng: -6.8416 }
-    ]
-};
-
-const ARABIC_GEOGRAPHY = MAP_GEOGRAPHY;
-
-function renderArabicMapLabels() {
-    if (!executiveMap) return;
-    if (!arabicMapLabelsGroup) {
-        arabicMapLabelsGroup = L.layerGroup().addTo(executiveMap);
-    }
-    arabicMapLabelsGroup.clearLayers();
-
-    // 1. Waters
-    MAP_GEOGRAPHY.waters.forEach(w => {
-        const icon = L.divIcon({
-            html: `<span class="map-label-water">${escapeHtml(w.name)}</span>`,
-            className: 'arabic-map-label',
-            iconSize: [160, 20],
-            iconAnchor: [80, 10]
-        });
-        arabicMapLabelsGroup.addLayer(L.marker([w.lat, w.lng], { icon, interactive: false }));
-    });
-
-    // 2. Countries (English names)
-    MAP_GEOGRAPHY.countries.forEach(c => {
-        const icon = L.divIcon({
-            html: `<span class="map-label-country">${escapeHtml(c.name)}</span>`,
-            className: 'arabic-map-label',
-            iconSize: [180, 20],
-            iconAnchor: [90, 10]
-        });
-        arabicMapLabelsGroup.addLayer(L.marker([c.lat, c.lng], { icon, interactive: false }));
-    });
-
-    // 3. Cities (English names)
-    MAP_GEOGRAPHY.cities.forEach(city => {
-        const icon = L.divIcon({
-            html: `<span class="map-label-city"><span class="map-city-bullet"></span>${escapeHtml(city.name)}</span>`,
-            className: 'arabic-map-label',
-            iconSize: [110, 18],
-            iconAnchor: [3, 9]
-        });
-        arabicMapLabelsGroup.addLayer(L.marker([city.lat, city.lng], { icon, interactive: false }));
-    });
 }
 
 const precomputedCountryStats = new Map();
