@@ -2274,7 +2274,7 @@ function updateFloatingMapLegend() {
                 <div class="legend-row">
                     <div class="legend-swatch-group">
                         <span class="legend-swatch" style="background:#facc15; color:rgba(250,204,21,0.55);"></span>
-                        <span class="legend-label">أسواق مستهدفة</span>
+                        <span class="legend-label">أسواق جاري بحث فرص عمل بها</span>
                     </div>
                 </div>
             </div>
