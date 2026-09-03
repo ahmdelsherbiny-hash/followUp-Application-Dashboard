@@ -811,7 +811,7 @@ function renderHeaderStockTicker() {
                     <span class="ticker-proj-title">${escapeHtml(shortName)}</span>
                 </div>
                 <div class="ticker-row-metric">
-                    <span class="ticker-metric-label">% انقضاء المدة :</span>
+                    <span class="ticker-metric-label">نسبة انقضاء المدة الزمنية :</span>
                     <span class="ticker-metric-val elapsed"><bdi dir="ltr">${p.latestElapsed.toFixed(1)}%</bdi></span>
                     ${elapsedDeltaTag}
                 </div>
