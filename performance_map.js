@@ -240,6 +240,10 @@ function parseDashboardMapReports(table) {
         financialApprovalDays: indexOf('لم يتم اعتماد مالى'),
         collectionDays: indexOf('لم يتم صرف مستخلصات'),
         wagesCost: indexOf('أجور', 'اجور', 'تكلفة اجور', 'تكلفة أجور', 'العمالة', 'رواتب'),
+        totalDurationDays: indexOf('اجمالى المدة الزمنية المعتمدة', 'إجمالي المدة الزمنية', 'اجمالي المدة الزمنية', 'اجمالى المدة الزمنية'),
+        elapsedDays: indexOf('المدة المنقضبة', 'المدة المنقضية', 'المدة المنقضيه', 'مدة منقضية', 'المدة المنقضية (يوم)'),
+        remainingDurationDays: indexOf('المدة المتبقية طبقا للبرنامج الزمنى', 'المدة المتبقية'),
+        timeElapsedPercentCol: indexOf('نسبة انقضاء المدة', '% انقضاء المدة', '%انقضاء المدة', 'نسبة انقضاء المدة الزمنية', 'انقضاء المدة الزمنية', 'نسبة المدة المنقضية', 'انقضاء المدة'),
         country: (indexOf('الدولة', 'country', 'Country') !== -1) ? indexOf('الدولة', 'country', 'Country') : 53
     };
 
@@ -261,6 +265,22 @@ function parseDashboardMapReports(table) {
         const reportDate = date(row, i.date);
         const projectName = String(value(row, i.projectName) || '').trim();
         if (!projectName) return null;
+
+        const totalDays = number(row, i.totalDurationDays);
+        const elapsedDays = number(row, i.elapsedDays);
+        let timeElapsedPct = number(row, i.timeElapsedPercentCol);
+        if (!timeElapsedPct && totalDays > 0 && elapsedDays > 0) {
+            timeElapsedPct = Math.round(((elapsedDays / totalDays) * 100) * 10) / 10;
+        }
+        if (!timeElapsedPct && date(row, i.contractStart) && (date(row, i.revisedEnd) || date(row, i.contractEnd)) && reportDate) {
+            const s = date(row, i.contractStart).getTime();
+            const e = (date(row, i.revisedEnd) || date(row, i.contractEnd)).getTime();
+            const r = reportDate.getTime();
+            if (e > s && r >= s) {
+                timeElapsedPct = Math.round(((r - s) / (e - s) * 100) * 10) / 10;
+            }
+        }
+
         return {
             timestamp: reportDate ? reportDate.toISOString() : '',
             reportDate,
@@ -278,6 +298,9 @@ function parseDashboardMapReports(table) {
             paidWork: number(row, i.paidWork), dueDebt: number(row, i.dueDebt),
             uncollectibleWork: number(row, i.uncollectibleWork), collectedLiquidity: number(row, i.collectedLiquidity),
             plannedProgressPercent: number(row, i.progress), profitLoss: number(row, i.profitLoss),
+            timeElapsedPercent: timeElapsedPct || 0,
+            totalDurationDays: totalDays,
+            elapsedDays: elapsedDays,
             claimsStatus: value(row, i.claimsStatus) || 'لا يوجد', claimsValue: number(row, i.claimsValue),
             retainedLiquidity: number(row, i.retainedLiquidity), lettersOfGuaranteeValue: number(row, i.lettersOfGuarantee),
             subcontractorsDue: number(row, i.subcontractorsDue), wagesCost: number(row, i.wagesCost),
@@ -676,6 +699,29 @@ function getShortProjectName(fullName) {
     return name;
 }
 
+function getProjectTimeElapsedPercent(report) {
+    if (!report) return 0;
+    if (typeof report.timeElapsedPercent === 'number' && !isNaN(report.timeElapsedPercent) && report.timeElapsedPercent > 0) {
+        return report.timeElapsedPercent;
+    }
+    const totalDays = Number(report.totalDurationDays) || 0;
+    const elapsedDays = Number(report.elapsedDays) || 0;
+    if (totalDays > 0 && elapsedDays > 0) {
+        return Math.round(((elapsedDays / totalDays) * 100) * 10) / 10;
+    }
+    const start = report.rawStartDate || (report.contractStartDate && report.contractStartDate !== '-' ? robustParseDate(report.contractStartDate) : null);
+    const end = report.rawEndDate || (report.revisedEndDate && report.revisedEndDate !== '-' ? robustParseDate(report.revisedEndDate) : null) || (report.contractEndDate && report.contractEndDate !== '-' ? robustParseDate(report.contractEndDate) : null);
+    const repDate = report.reportDate || (report.timestamp ? new Date(report.timestamp) : null);
+    if (start && end && repDate) {
+        const totalMs = end.getTime() - start.getTime();
+        const elapsedMs = repDate.getTime() - start.getTime();
+        if (totalMs > 0 && elapsedMs > 0) {
+            return Math.round(((elapsedMs / totalMs) * 100) * 10) / 10;
+        }
+    }
+    return 0;
+}
+
 function renderHeaderStockTicker() {
     const track = document.getElementById('stock-ticker-track');
     if (!track) return;
@@ -693,7 +739,7 @@ function renderHeaderStockTicker() {
     (expectedProjects || new Set()).forEach(pName => {
         if (!projectMap.has(pName)) {
             const country = projectToCountryMap[pName] || '';
-            projectMap.set(pName, [{ projectName: pName, country, plannedProgressPercent: 0, profitLoss: 0 }]);
+            projectMap.set(pName, [{ projectName: pName, country, plannedProgressPercent: 0, timeElapsedPercent: 0 }]);
         }
     });
 
@@ -705,17 +751,15 @@ function renderHeaderStockTicker() {
         const previous = repList.length > 1 ? repList[1] : null;
         const country = latest.country || projectToCountryMap[pName] || (latest.branchName && branchToCountryMap[latest.branchName]) || 'GLOBAL';
 
-        const latestPl = reportUsd(latest, 'profitLoss');
-        const prevPl = previous ? reportUsd(previous, 'profitLoss') : null;
+        const latestElapsed = getProjectTimeElapsedPercent(latest);
+        const prevElapsed = previous ? getProjectTimeElapsedPercent(previous) : null;
         const latestProg = Number(latest.plannedProgressPercent) || 0;
         const prevProg = previous ? (Number(previous.plannedProgressPercent) || 0) : null;
 
-        // Profit MoM Delta (%)
-        let plDeltaPercent = 0;
-        if (prevPl !== null && Math.abs(prevPl) > 0) {
-            plDeltaPercent = ((latestPl - prevPl) / Math.abs(prevPl)) * 100;
-        } else if (prevPl !== null && prevPl === 0) {
-            plDeltaPercent = latestPl !== 0 ? (latestPl > 0 ? 100 : -100) : 0;
+        // % Time Elapsed MoM Delta (% difference between current month % and previous month %)
+        let elapsedDelta = 0;
+        if (prevElapsed !== null) {
+            elapsedDelta = latestElapsed - prevElapsed;
         }
 
         // Progress MoM Delta (% points)
@@ -727,8 +771,8 @@ function renderHeaderStockTicker() {
         projectList.push({
             projectName: pName,
             country,
-            latestPl,
-            plDeltaPercent,
+            latestElapsed,
+            elapsedDelta,
             latestProg,
             progDelta,
             report: latest
@@ -741,18 +785,13 @@ function renderHeaderStockTicker() {
     }
 
     const generateItemHtml = (p) => {
-        const absPl = Math.abs(p.latestPl);
-        const plFormatted = formatCurrencyUSD(absPl);
-        const plSign = p.latestPl > 0 ? '+' : (p.latestPl < 0 ? '-' : '');
-        const plClass = p.latestPl > 0 ? 'profit' : (p.latestPl < 0 ? 'loss' : 'neutral');
-
-        let plDeltaTag = '';
-        if (p.plDeltaPercent > 0) {
-            plDeltaTag = `<span class="ticker-delta-val up"><bdi dir="ltr">(▲ +${p.plDeltaPercent.toFixed(1)}%)</bdi></span>`;
-        } else if (p.plDeltaPercent < 0) {
-            plDeltaTag = `<span class="ticker-delta-val down"><bdi dir="ltr">(▼ ${Math.abs(p.plDeltaPercent).toFixed(1)}%)</bdi></span>`;
+        let elapsedDeltaTag = '';
+        if (p.elapsedDelta > 0) {
+            elapsedDeltaTag = `<span class="ticker-delta-val up"><bdi dir="ltr">(▲ +${p.elapsedDelta.toFixed(1)}%)</bdi></span>`;
+        } else if (p.elapsedDelta < 0) {
+            elapsedDeltaTag = `<span class="ticker-delta-val down"><bdi dir="ltr">(▼ ${Math.abs(p.elapsedDelta).toFixed(1)}%)</bdi></span>`;
         } else {
-            plDeltaTag = `<span class="ticker-delta-val neutral"><bdi dir="ltr">(0.0%)</bdi></span>`;
+            elapsedDeltaTag = `<span class="ticker-delta-val neutral"><bdi dir="ltr">(0.0%)</bdi></span>`;
         }
 
         let progDeltaTag = '';
@@ -772,9 +811,9 @@ function renderHeaderStockTicker() {
                     <span class="ticker-proj-title">${escapeHtml(shortName)}</span>
                 </div>
                 <div class="ticker-row-metric">
-                    <span class="ticker-metric-label">الربحية :</span>
-                    <span class="ticker-metric-val ${plClass}"><bdi dir="ltr">${plSign}${plFormatted}</bdi></span>
-                    ${plDeltaTag}
+                    <span class="ticker-metric-label">% انقضاء المدة :</span>
+                    <span class="ticker-metric-val elapsed"><bdi dir="ltr">${p.latestElapsed.toFixed(1)}%</bdi></span>
+                    ${elapsedDeltaTag}
                 </div>
                 <div class="ticker-row-metric">
                     <span class="ticker-metric-label">إنجاز :</span>
