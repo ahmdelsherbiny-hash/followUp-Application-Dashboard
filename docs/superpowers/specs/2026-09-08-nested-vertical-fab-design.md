@@ -39,8 +39,9 @@ The completion slicer remains UI-only because that is its current behavior.
 
 ## Visual Design
 
-- Primary and secondary controls use circular 46-48px buttons with clear icons. Existing selects and switches are represented as discrete buttons so the interaction stays consistent.
-- Short tooltips identify controls without permanently consuming map space.
+- The main trigger remains circular. Visible primary and secondary controls use labeled pills with a clear icon and permanently visible text; understanding an action never depends on hover.
+- Primary pills are 118px wide and secondary pills are 172px wide on desktop. At widths up to 760px they tighten to 104px and 156px while keeping every label fully visible inside the viewport.
+- Existing selects and switches are represented as discrete labeled pill buttons so the interaction stays consistent.
 - Active toggles retain their individual semantic glow colors.
 - The active primary category receives an accent ring and a directional cue toward its secondary column.
 - Dark and light theme variants reuse the project's existing palette.
@@ -72,6 +73,7 @@ The completion slicer remains UI-only because that is its current behavior.
 ## Verification
 
 - Verify initial position is unchanged in desktop dark and light themes.
+- Verify every visible primary and secondary action shows its label without hover or keyboard focus.
 - Verify opening and closing order, submenu switching, outside click, and Escape.
 - Verify all four map toggles and their restored states.
 - Verify ticker sort controls, theme selection, and completion switch.
