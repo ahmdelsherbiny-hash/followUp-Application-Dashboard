@@ -44,6 +44,7 @@ The completion slicer remains UI-only because that is its current behavior.
 - Existing selects and switches are represented as discrete labeled pill buttons so the interaction stays consistent.
 - Active toggles retain their individual semantic glow colors.
 - The active primary category receives an accent ring and a directional cue toward its secondary column.
+- The secondary column starts 10px farther right than the original pill layout: 140px from the FAB anchor on desktop and 122px on mobile, leaving the directional arrow unobstructed.
 - Dark and light theme variants reuse the project's existing palette.
 - On narrow screens, the submenu remains inside the viewport and may tighten spacing or reduce button size without changing the two-column model.
 - Reduced-motion users receive immediate state changes without stagger or spring movement.
