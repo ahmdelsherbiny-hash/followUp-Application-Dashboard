@@ -1809,6 +1809,7 @@ function normalizeEarlyWarningText(answerValue) {
         .replace(/ى/g, 'ي')
         .replace(/ؤ/g, 'و')
         .replace(/ئ/g, 'ي')
+        .replace(/[\u061C\u200B-\u200F\u202A-\u202E]/g, '')
         .toLowerCase()
         .replace(/[\s\-_/.,،:;؛؟!?()[\]{}]+/g, '');
 }
@@ -1844,7 +1845,9 @@ function isEarlyWarningYesAnswer(answerValue) {
 }
 
 function isNoStartupProblemAnswer(answerValue) {
-    return earlyWarningAnswerIncludes(answerValue, [
+    const normalized = normalizeEarlyWarningText(answerValue);
+    if (!normalized) return false;
+    if (earlyWarningAnswerIncludes(answerValue, [
         'لا يوجد مشاكل في القدرة',
         'لا توجد مشاكل في القدرة',
         'لا يوجد مشاكل تخص القدرة على البدء',
@@ -1854,7 +1857,11 @@ function isNoStartupProblemAnswer(answerValue) {
         'لا يوجد معوقات',
         'لا توجد معوقات',
         'لا ينطبق'
-    ]);
+    ])) return true;
+
+    // Accept equivalent wording even when the sheet contains hidden marks or extra words.
+    const hasNoProblem = normalized.includes('لايوجد') || normalized.includes('لاتوجد');
+    return hasNoProblem && normalized.includes('قدرة') && normalized.includes('بدء');
 }
 
 function makeEarlyWarningItem(question, answer, points, maxPoints) {
