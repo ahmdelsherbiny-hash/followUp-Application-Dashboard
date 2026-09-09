@@ -1847,6 +1847,8 @@ function isNoStartupProblemAnswer(answerValue) {
     return earlyWarningAnswerIncludes(answerValue, [
         'لا يوجد مشاكل في القدرة',
         'لا توجد مشاكل في القدرة',
+        'لا يوجد مشاكل تخص القدرة على البدء',
+        'لا توجد مشاكل تخص القدرة على البدء',
         'لا يوجد مشاكل في البدء',
         'لا توجد مشاكل في البدء',
         'لا يوجد معوقات',
