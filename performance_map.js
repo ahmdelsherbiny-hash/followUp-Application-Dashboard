@@ -1850,6 +1850,8 @@ function isNoStartupProblemAnswer(answerValue) {
     if (earlyWarningAnswerIncludes(answerValue, [
         'لا يوجد مشاكل في القدرة',
         'لا توجد مشاكل في القدرة',
+        'لا يوجد مشاكل في القدره',
+        'لا توجد مشاكل في القدره',
         'لا يوجد مشاكل تخص القدرة على البدء',
         'لا توجد مشاكل تخص القدرة على البدء',
         'لا يوجد مشاكل في البدء',
@@ -1861,7 +1863,7 @@ function isNoStartupProblemAnswer(answerValue) {
 
     // Accept equivalent wording even when the sheet contains hidden marks or extra words.
     const hasNoProblem = normalized.includes('لايوجد') || normalized.includes('لاتوجد');
-    return hasNoProblem && normalized.includes('قدرة') && normalized.includes('بدء');
+    return hasNoProblem && normalized.includes('قدر') && normalized.includes('بدء');
 }
 
 function makeEarlyWarningItem(question, answer, points, maxPoints) {
