@@ -1,7 +1,10 @@
 // Dedicated Interactive Performance Map Logic for Arab Contractors
 
 const SHEET_ID = '1eRp9k1JWjvyFO8IymyEUAu7Sd6woqgu4Oe0D26xY5k4';
-const MAP_DATA_SHEET = 'Dashboard Map';
+const MAIN_DATA_GID = '1034068003';
+const EARLY_ALERT_GID = '310448800';
+const MAP_REGISTRY_GID = '375973192';
+const ENTITY_TYPES = new Set(['BRANCH', 'COMPANY']);
 
 let executiveMap = null;
 let markersGroup = null;
@@ -18,11 +21,51 @@ let maxCountryValueUsd = 1;
 
 let reportsData = [];
 let globalRawReports = [];
-let expectedProjects = new Set();
-let expectedBranches = new Set();
+let registeredEntities = [];
 let branchToCountryMap = {};
 let projectToBranchMap = {};
 let projectToCountryMap = {};
+
+const MAP_CONTROL_STATE_KEY = 'mapControlCenterStateV1';
+const MAP_CONTROL_TABS = new Set(['map', 'ticker', 'settings']);
+const TICKER_SORT_CRITERIA = new Set(['projectCount', 'healthScore', 'progressAverage']);
+let mapControlState = normalizeMapControlState(null, 'corporate');
+let activeMapControlMenu = null;
+
+function normalizeMapControlState(storedStateCandidate, legacyTheme) {
+    const storedState = storedStateCandidate && typeof storedStateCandidate === 'object' ? storedStateCandidate : {};
+    const theme = storedState.theme === 'aegov' || storedState.theme === 'corporate'
+        ? storedState.theme
+        : (legacyTheme === 'aegov' ? 'aegov' : 'corporate');
+    const businessAnalysis = storedState.businessAnalysis === true;
+    return {
+        version: 1,
+        showProjects: storedState.showProjects !== false,
+        showBranches: storedState.showBranches !== false,
+        businessAnalysis,
+        earlyWarning: businessAnalysis ? false : storedState.earlyWarning === true,
+        theme,
+        tickerCriterion: TICKER_SORT_CRITERIA.has(storedState.tickerCriterion) ? storedState.tickerCriterion : 'projectCount',
+        tickerDirection: storedState.tickerDirection === 'asc' ? 'asc' : 'desc',
+        completionSlicerEnabled: storedState.completionSlicerEnabled === true
+    };
+}
+
+function loadMapControlState() {
+    const legacyTheme = localStorage.getItem('appTheme') || 'corporate';
+    const serializedState = localStorage.getItem(MAP_CONTROL_STATE_KEY);
+    if (!serializedState) return normalizeMapControlState(null, legacyTheme);
+    try {
+        return normalizeMapControlState(JSON.parse(serializedState), legacyTheme);
+    } catch (error) {
+        if (!(error instanceof SyntaxError)) throw error;
+        return normalizeMapControlState(null, legacyTheme);
+    }
+}
+
+function saveMapControlState() {
+    localStorage.setItem(MAP_CONTROL_STATE_KEY, JSON.stringify(mapControlState));
+}
 
 const MENA_AFRICA_BOUNDS = [
     [-22.0, -22.0], // South-West (below Zambia & West of Guinea / Atlantic)
@@ -34,7 +77,7 @@ const ALLOWED_NAV_BOUNDS = [
     [62.0, 105.0]   // Fully covers Middle East, Gulf, Asia & Indian Ocean without edge collisions
 ];
 
-let currentHoveredCountryLayer = null;
+let currentHoveredCountryLayers = [];
 
 function getMapBaseTileUrl() {
     if (currentTileStyle === 'satellite') {
@@ -50,19 +93,10 @@ function setMapTheme(themeName) {
     const theme = themeName === 'aegov' ? 'aegov' : 'corporate';
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('appTheme', theme);
-    const switchButton = document.getElementById('map-theme-switch');
-    if (switchButton) {
-        const isLightTheme = theme === 'aegov';
-        switchButton.setAttribute('aria-pressed', String(isLightTheme));
-        const icon = switchButton.querySelector('.tw-theme-thumb');
-        if (icon) icon.className = `tw-theme-thumb fa-solid ${isLightTheme ? 'fa-sun' : 'fa-moon'}`;
-    }
+    mapControlState.theme = theme;
+    saveMapControlState();
+    syncMapControlCenterUI();
     if (currentTileLayer && executiveMap && currentTileStyle !== 'satellite') currentTileLayer.setUrl(getMapBaseTileUrl());
-}
-
-function toggleMapTheme() {
-    const currentTheme = document.documentElement.getAttribute('data-theme') || 'corporate';
-    setMapTheme(currentTheme === 'aegov' ? 'corporate' : 'aegov');
 }
 
 // Get high-fidelity vector flag icon class based on country name
@@ -132,23 +166,22 @@ function countriesMatch(first, second) {
     const b = String(second).trim();
     const geoA = typeof findCountryGeo === 'function' ? findCountryGeo(a) : null;
     const geoB = typeof findCountryGeo === 'function' ? findCountryGeo(b) : null;
-    if (geoA && geoB && geoA.id === geoB.id) return true;
+    if (geoA && geoB) return geoA.id === geoB.id;
     const normalize = value => String(value).toLowerCase().replace(/[\s\-_،,]/g, '');
     const normalizedA = normalize(a);
     const normalizedB = normalize(b);
     return normalizedA.includes(normalizedB) || normalizedB.includes(normalizedA);
 }
 
-function fetchSheetJSONP(sheetName) {
+function fetchGvizJSONP(queryParameter, sourceLabel) {
     return new Promise((resolve, reject) => {
         const callbackName = 'gvizCallback_map_' + Math.random().toString(36).substring(2, 10);
         const script = document.createElement('script');
-        const encodedSheet = encodeURIComponent(sheetName);
-        script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=responseHandler:${callbackName}&sheet=${encodedSheet}&_nocache=${Date.now()}`;
+        script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=responseHandler:${callbackName}&${queryParameter}&_nocache=${Date.now()}`;
         
         const timeout = setTimeout(() => {
             cleanup();
-            reject(new Error(`Timeout loading sheet: ${sheetName}`));
+            reject(new Error(`Timeout loading sheet: ${sourceLabel}`));
         }, 15000);
 
         function cleanup() {
@@ -162,13 +195,13 @@ function fetchSheetJSONP(sheetName) {
             if (response && (response.table || response.status === 'ok')) {
                 resolve(response.table);
             } else {
-                reject(new Error(`Invalid response for sheet: ${sheetName}`));
+                reject(new Error(`Invalid response for sheet: ${sourceLabel}`));
             }
         };
 
         script.onerror = function() {
             cleanup();
-            reject(new Error(`Network error loading sheet: ${sheetName}`));
+            reject(new Error(`Network error loading sheet: ${sourceLabel}`));
         };
 
         document.head.appendChild(script);
@@ -197,355 +230,200 @@ function robustParseDate(val, fmt) {
     return null;
 }
 
-function parseDashboardMapReports(table) {
-    if (!table || !table.cols || !table.rows) return [];
-
-    const indexOf = (...terms) => table.cols.findIndex(col => {
-        const label = String(col.label || '').trim();
-        return terms.some(term => label.includes(term));
-    });
-    const i = {
-        projectId: indexOf('PROJECT ID'),
-        date: indexOf('تاريخ تحديث البيان'),
-        projectName: indexOf('اسم المشروع'),
-        scope: indexOf('مجال العمل'),
-        client: indexOf('اسم العميل'),
-        consultant: indexOf('اسم الاستشار'),
-        mapsLink: indexOf('GOOGLE MAP'),
-        currency: indexOf('اسم العملة فى العقد'),
-        exchangeRate: indexOf('سعر صرف الدولار'),
-        contractValue: indexOf('القيمة التعاقدية للمشروع'),
-        revisedValue: indexOf('القيمة المعدلة للمشروع'),
-        advancePayment: indexOf('الدفعة المقدمة'),
-        executedApproved: indexOf('حجم الاعمال المنفذة من بداية'),
-        approvedMaterials: indexOf('قيمة التشوينات المدرجة'),
-        executedTotal: indexOf('حجم الاعمال المنفذه شامل'),
-        paidWork: indexOf('حجم الاعمال المسدده'),
-        dueDebt: indexOf('مديونية لم تسدد بعد'),
-        uncollectibleWork: indexOf('غير القابلة للصرف'),
-        collectedLiquidity: indexOf('اجمالى السيولة المحصله'),
-        progress: indexOf('نسبة الانجاز المخططة'),
-        profitLoss: indexOf('قيمة الربح او الخسارة'),
-        claimsStatus: indexOf('موقف المطالبات'),
-        claimsValue: indexOf('حجم المطالبات'),
-        retainedLiquidity: indexOf('السيولة النقدية المحجوزة'),
-        lettersOfGuarantee: indexOf('خطابات الضمان الاجمالية'),
-        contractStart: indexOf('تاريخ بدء المشروع'),
-        contractEnd: indexOf('تاريخ نهو المشروع التعاقدى'),
-        extensionRequested: indexOf('هل يوجد مد مده'),
-        revisedEnd: indexOf('تاريخ نهو المشروع المعدل'),
-        expectedFinish: indexOf('تاريخ نهو المشروع المتوقع'),
-        subcontractorsDue: indexOf('مستحقات مقاولى الباطن'),
-        obstacles: indexOf('معوقات المشروع'),
-        financialApprovalDays: indexOf('لم يتم اعتماد مالى'),
-        collectionDays: indexOf('لم يتم صرف مستخلصات'),
-        wagesCost: indexOf('أجور', 'اجور', 'تكلفة اجور', 'تكلفة أجور', 'العمالة', 'رواتب'),
-        totalDurationDays: indexOf('اجمالى المدة الزمنية المعتمدة', 'إجمالي المدة الزمنية', 'اجمالي المدة الزمنية', 'اجمالى المدة الزمنية'),
-        elapsedDays: indexOf('المدة المنقضبة', 'المدة المنقضية', 'المدة المنقضيه', 'مدة منقضية', 'المدة المنقضية (يوم)'),
-        remainingDurationDays: indexOf('المدة المتبقية طبقا للبرنامج الزمنى', 'المدة المتبقية'),
-        timeElapsedPercentCol: indexOf('نسبة انقضاء المدة', '% انقضاء المدة', '%انقضاء المدة', 'نسبة انقضاء المدة الزمنية', 'انقضاء المدة الزمنية', 'نسبة المدة المنقضية', 'انقضاء المدة'),
-        country: (indexOf('الدولة', 'country', 'Country') !== -1) ? indexOf('الدولة', 'country', 'Country') : 53
-    };
-
-    const value = (row, idx) => idx < 0 || !row.c[idx] ? null : row.c[idx].v;
-    const formatted = (row, idx) => idx < 0 || !row.c[idx] ? '' : (row.c[idx].f || String(row.c[idx].v || ''));
-    const number = (row, idx) => Number(value(row, idx)) || 0;
-    const date = (row, idx) => {
-        const parsed = robustParseDate(value(row, idx), formatted(row, idx));
-        return parsed && !isNaN(parsed) ? parsed : null;
-    };
-    const dateText = (row, idx) => {
-        const parsed = date(row, idx);
-        return parsed ? parsed.toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' }) : '-';
-    };
-
-    return table.rows.map(row => {
-        if (!row || !row.c) return null;
-        const rate = number(row, i.exchangeRate) || 1;
-        const reportDate = date(row, i.date);
-        const projectName = String(value(row, i.projectName) || '').trim();
-        if (!projectName) return null;
-
-        const totalDays = number(row, i.totalDurationDays);
-        const elapsedDays = number(row, i.elapsedDays);
-        let timeElapsedPct = number(row, i.timeElapsedPercentCol);
-        if (!timeElapsedPct && totalDays > 0 && elapsedDays > 0) {
-            timeElapsedPct = Math.round(((elapsedDays / totalDays) * 100) * 10) / 10;
-        }
-        if (!timeElapsedPct && date(row, i.contractStart) && (date(row, i.revisedEnd) || date(row, i.contractEnd)) && reportDate) {
-            const s = date(row, i.contractStart).getTime();
-            const e = (date(row, i.revisedEnd) || date(row, i.contractEnd)).getTime();
-            const r = reportDate.getTime();
-            if (e > s && r >= s) {
-                timeElapsedPct = Math.round(((r - s) / (e - s) * 100) * 10) / 10;
-            }
-        }
-
-        return {
-            timestamp: reportDate ? reportDate.toISOString() : '',
-            reportDate,
-            projectId: String(value(row, i.projectId) || '').trim(),
-            projectName,
-            country: String(value(row, i.country) || '').trim(),
-            branchName: String(value(row, i.country) || '').trim(),
-            clientName: value(row, i.client) || '', consultantName: value(row, i.consultant) || '',
-            scopeOfWork: value(row, i.scope) || '', mapsLink: value(row, i.mapsLink) || '',
-            currency: value(row, i.currency) || '', exchangeRate: rate,
-            contractValue: number(row, i.contractValue), revisedContractValue: number(row, i.revisedValue),
-            valueUsd: (number(row, i.revisedValue) || number(row, i.contractValue)) / rate,
-            advancePayment: number(row, i.advancePayment), executedWorkApproved: number(row, i.executedApproved),
-            approvedMaterials: number(row, i.approvedMaterials), executedWorkTotal: number(row, i.executedTotal),
-            paidWork: number(row, i.paidWork), dueDebt: number(row, i.dueDebt),
-            uncollectibleWork: number(row, i.uncollectibleWork), collectedLiquidity: number(row, i.collectedLiquidity),
-            plannedProgressPercent: number(row, i.progress), profitLoss: number(row, i.profitLoss),
-            timeElapsedPercent: timeElapsedPct || 0,
-            totalDurationDays: totalDays,
-            elapsedDays: elapsedDays,
-            claimsStatus: value(row, i.claimsStatus) || 'لا يوجد', claimsValue: number(row, i.claimsValue),
-            retainedLiquidity: number(row, i.retainedLiquidity), lettersOfGuaranteeValue: number(row, i.lettersOfGuarantee),
-            subcontractorsDue: number(row, i.subcontractorsDue), wagesCost: number(row, i.wagesCost),
-            projectObstacles: value(row, i.obstacles) || 'لا توجد معوقات مسجلة',
-            contractStartDate: dateText(row, i.contractStart), contractEndDate: dateText(row, i.contractEnd),
-            revisedEndDate: dateText(row, i.revisedEnd), expectedFinishDate: dateText(row, i.expectedFinish),
-            rawStartDate: date(row, i.contractStart),
-            rawEndDate: date(row, i.revisedEnd) || date(row, i.contractEnd) || date(row, i.expectedFinish),
-            extensionRequested: value(row, i.extensionRequested) || 'لا', measurementDate: dateText(row, i.date),
-            financialApprovalDays: number(row, i.financialApprovalDays), collectionDays: number(row, i.collectionDays),
-            hasBillOfQuantities: value(row, indexOf('هل يوجد مقايسة', 'مقايسة للمشروع', 'وجود مقايسة')) || '',
-            boqAccuracy: value(row, indexOf('دقة مقايسة', 'دقة المقايسة')) || '',
-            lgIssued: value(row, indexOf('خطاب ضمان الدفعة', 'خطابات ضمان', 'وثيقة التأمين')) || '',
-            advanceDisbursed: value(row, indexOf('صرف الدفعة المقدمة', 'صرف الدفعه')) || '',
-            meetingClient15Days: value(row, indexOf('الاجتماع مع العميل', '15 يوم', 'خلال 15')) || '',
-            formalLetterSent: value(row, indexOf('خطاب رسمي', 'خطاب رسمى', 'عدم القدرة علي البدء', 'رئيس الهيئة')) || '',
-            supplySchedulePrepared: value(row, indexOf('برنامج توريدات', 'توريدات (خامات', 'اعداد برنامج توريدات')) || '',
-            mepApproved: value(row, indexOf('مهام الكهروميكانيك', 'الكهروميكانيك', 'كهروميكانيك')) || '',
-            scheduleStatus: value(row, indexOf('الموقف التنفيذى', 'موقف تاريخ نهاية', 'الموقف التنفيذي')) || '',
-            extensionResubmitted: value(row, indexOf('تقديم مد مدة للعميل (مجددا)', 'مجدداً', 'مجددا')) || '',
-            extensionClaimDate: dateText(row, indexOf('تاريخ المطالبة بمد المدة', 'تاريخ المطالبة')),
-            extensionPeriodSubmitted: value(row, indexOf('المدة الاضافية المقدمة', 'المدة الإضافية', 'المدة الاضافية')) || '',
-            extensionApprovalStatus: value(row, indexOf('موقف اعتماد العميل للمدة', 'موقف اعتماد العميل')) || '',
-            isProjectReport: true
-        };
-    }).filter(Boolean);
+function gvizCellValue(row, columnIndex) {
+    const cell = row && row.c ? row.c[columnIndex] : null;
+    return cell ? cell.v : null;
 }
 
-function parseGvizReports(table) {
-    if (!table || !table.cols || !table.rows || table.rows.length === 0) return [];
-    
-    const cols = table.cols;
-    const firstRowCells = table.rows[0].c;
-    const firstRowValues = firstRowCells ? firstRowCells.map(cell => cell ? String(cell.v).toLowerCase().trim() : '') : [];
-    const isFirstRowHeader = firstRowValues.includes('timestamp') && firstRowValues.includes('branch id');
-    
-    const getIndex = (key) => {
-        const k = key.toLowerCase().trim();
-        if (isFirstRowHeader) return firstRowValues.indexOf(k);
-        return cols.findIndex(col => {
-            const label = col.label.toLowerCase().trim();
-            if (label === k) return true;
-            if (label.includes(k)) {
-                const idx = label.indexOf(k);
-                const before = idx > 0 ? label[idx - 1] : ' ';
-                const after = idx + k.length < label.length ? label[idx + k.length] : ' ';
-                const isBoundary = (char) => /[\s\(\)\[\]_.,-]/.test(char);
-                return isBoundary(before) && isBoundary(after);
-            }
-            return false;
-        });
-    };
-    
-    const tsIndex = getIndex('timestamp');
-    const branchIdIdx = getIndex('branch id');
-    const projIdIdx = getIndex('project id');
-    const userstampIdx = getIndex('userstamp');
-    const countryIdx = getIndex('q1win1');
-    const branchNameIdx = getIndex('q2win1');
-    const projNameIdx = getIndex('q1');
-    const dateIdx = getIndex('q2');
-    const clientIdx = getIndex('q3');
-    const consultantIdx = getIndex('q4');
-    const scopeIdx = getIndex('q5');
-    const contractTypeIdx = getIndex('q6');
-    const fundingSourceIdx = getIndex('q7');
-    const mapsLinkIdx = getIndex('q8');
-    
-    const contractStartDateIdx = getIndex('q9');
-    const siteHandoverDateIdx = getIndex('q10');
-    const drawingsDateIdx = getIndex('q11');
-    const contractEndDateIdx = getIndex('q12');
-    const revisedEndDateIdx = getIndex('q13');
-    
-    const valIdx = getIndex('q14');
-    const revisedContractValIdx = getIndex('q15');
-    const curIdx = getIndex('q16');
-    const exchangeRateIdx = getIndex('q17');
-    const valUsdIdx = getIndex('q18');
-    
-    const advancePaymentIdx = getIndex('q19');
-    const executedWorkApprovedIdx = getIndex('q20');
-    const approvedMaterialsIdx = getIndex('q21');
-    const executedWorkTotalIdx = getIndex('q22');
-    const totalMaterialsIdx = getIndex('q23');
-    const plannedProgressIdx = getIndex('q24');
-    const paidWorkIdx = getIndex('q25');
-    const dueDebtIdx = getIndex('q26');
-    const uncollectibleWorkIdx = getIndex('q27');
-    const collectedLiquidityIdx = getIndex('q28');
-    const lastInvoiceApprovalDateIdx = getIndex('q29');
-    const lastCollectionDateIdx = getIndex('q30');
-    const laborCostIdx = getIndex('q31');
-    const profitLossIdx = getIndex('q32');
-    const claimsStatusIdx = getIndex('q33');
-    const claimsValueIdx = getIndex('q34');
-    const retainedLiquidityIdx = getIndex('q35');
-    const lettersOfGuaranteeIdx = getIndex('q36');
-    const expectedFinishDateIdx = getIndex('q37');
-    const scheduleStatusIdx = getIndex('q38');
-    const extensionRequestedIdx = getIndex('q39');
-    const extensionReasonNoClaimIdx = getIndex('q40');
-    const extensionClaimDateIdx = getIndex('q41');
-    const extensionPeriodIdx = getIndex('q42');
-    const extensionApprovalStatusIdx = getIndex('q43');
-    const extensionApprovedPeriodIdx = getIndex('q45');
-    const revisedEndDateUnderApprovalIdx = getIndex('q46');
-    
-    const subcontractorsDueIdx = getIndex('q57');
-    const openLGTotalIdx = getIndex('q59');
-    const projectObstaclesIdx = getIndex('q66');
-    
-    const results = [];
-    const startIndex = isFirstRowHeader ? 1 : 0;
-    
-    table.rows.slice(startIndex).forEach(row => {
-        if (!row || !row.c) return;
-        
-        const cellVal = (idx) => (idx === -1 || idx === undefined || idx >= row.c.length) ? null : (row.c[idx] ? row.c[idx].v : null);
-        const cellFmt = (idx) => (idx === -1 || idx === undefined || idx >= row.c.length) ? '' : (row.c[idx] ? (row.c[idx].f || String(row.c[idx].v || '')) : '');
-        
-        const tsVal = cellVal(tsIndex);
-        if (tsVal && String(tsVal).trim().toLowerCase() === 'timestamp') return;
-        
-        const pId = cellVal(projIdIdx) ? String(cellVal(projIdIdx)).trim() : '';
-        const pName = cellVal(projNameIdx) ? String(cellVal(projNameIdx)).trim() : '';
-        
-        const formatNum = (idx) => {
-            const raw = cellVal(idx);
-            if (raw === null || raw === undefined || raw === '') return 0;
-            const n = parseFloat(String(raw).replace(/,/g, ''));
-            return isNaN(n) ? 0 : n;
-        };
-
-        const formatDate = (idx) => {
-            const rawVal = cellVal(idx);
-            const fmtVal = cellFmt(idx);
-            if (!rawVal && !fmtVal) return '-';
-            const parsed = robustParseDate(rawVal, fmtVal);
-            if (parsed && !isNaN(parsed.getTime())) {
-                return parsed.toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' });
-            }
-            return fmtVal || String(rawVal);
-        };
-        
-        results.push({
-            timestamp: cellVal(tsIndex) || '',
-            branchId: cellVal(branchIdIdx) || '',
-            projectId: pId,
-            userstamp: cellVal(userstampIdx) || '',
-            country: cellVal(countryIdx) || '',
-            branchName: cellVal(branchNameIdx) || '',
-            projectName: pName,
-            measurementDate: formatDate(dateIdx),
-            clientName: cellVal(clientIdx) || '',
-            consultantName: cellVal(consultantIdx) || '',
-            scopeOfWork: cellVal(scopeIdx) || '',
-            contractType: cellVal(contractTypeIdx) || '',
-            fundingSource: cellVal(fundingSourceIdx) || '',
-            mapsLink: cellVal(mapsLinkIdx) || '',
-            
-            contractStartDate: formatDate(contractStartDateIdx),
-            siteHandoverDate: formatDate(siteHandoverDateIdx),
-            drawingsDate: formatDate(drawingsDateIdx),
-            contractEndDate: formatDate(contractEndDateIdx),
-            revisedEndDate: formatDate(revisedEndDateIdx),
-            
-            contractValue: formatNum(valIdx),
-            revisedContractValue: formatNum(revisedContractValIdx),
-            currency: cellVal(curIdx) || '',
-            exchangeRate: formatNum(exchangeRateIdx),
-            valueUsd: formatNum(valUsdIdx),
-            
-            advancePayment: formatNum(advancePaymentIdx),
-            executedWorkApproved: formatNum(executedWorkApprovedIdx),
-            approvedMaterials: formatNum(approvedMaterialsIdx),
-            executedWorkTotal: formatNum(executedWorkTotalIdx),
-            totalMaterials: formatNum(totalMaterialsIdx),
-            plannedProgressPercent: formatNum(plannedProgressIdx),
-            paidWork: formatNum(paidWorkIdx),
-            dueDebt: formatNum(dueDebtIdx),
-            uncollectibleWork: formatNum(uncollectibleWorkIdx),
-            collectedLiquidity: formatNum(collectedLiquidityIdx),
-            lastInvoiceApprovalDate: formatDate(lastInvoiceApprovalDateIdx),
-            lastCollectionDate: formatDate(lastCollectionDateIdx),
-            laborCost: formatNum(laborCostIdx),
-            profitLoss: formatNum(profitLossIdx),
-            claimsStatus: cellVal(claimsStatusIdx) || 'لا يوجد',
-            claimsValue: formatNum(claimsValueIdx),
-            retainedLiquidity: formatNum(retainedLiquidityIdx),
-            lettersOfGuaranteeValue: formatNum(lettersOfGuaranteeIdx),
-            expectedFinishDate: formatDate(expectedFinishDateIdx),
-            scheduleStatus: cellVal(scheduleStatusIdx) || 'داخل المدة',
-            extensionRequested: cellVal(extensionRequestedIdx) || 'لا',
-            extensionPeriod: cellVal(extensionPeriodIdx) || '-',
-            extensionApprovedPeriod: cellVal(extensionApprovedPeriodIdx) || '-',
-            revisedEndDateUnderApproval: formatDate(revisedEndDateUnderApprovalIdx),
-            
-            subcontractorsDue: formatNum(subcontractorsDueIdx),
-            openLGTotal: formatNum(openLGTotalIdx),
-            projectObstacles: cellVal(projectObstaclesIdx) || 'لا توجد معوقات مسجلة',
-            
-            isProjectReport: !!(pId || pName)
-        });
-    });
-    
-    return results;
+function gvizCellText(row, columnIndex) {
+    const cell = row && row.c ? row.c[columnIndex] : null;
+    if (!cell) return '';
+    return String(cell.f ?? cell.v ?? '').trim();
 }
 
-function parseDropdownRegistry(table) {
-    if (!table || !table.cols || !table.rows) return;
-    
-    expectedProjects.clear();
-    expectedBranches.clear();
+function gvizCellNumber(row, columnIndex) {
+    const rawValue = gvizCellValue(row, columnIndex);
+    const numericValue = Number(String(rawValue ?? '').replace(/,/g, ''));
+    return Number.isFinite(numericValue) ? numericValue : 0;
+}
+
+function gvizCellPercent(row, columnIndex) {
+    const percentage = gvizCellNumber(row, columnIndex);
+    return percentage > 0 && percentage <= 1 ? percentage * 100 : percentage;
+}
+
+function gvizCellDate(row, columnIndex) {
+    const cell = row && row.c ? row.c[columnIndex] : null;
+    return cell ? robustParseDate(cell.v, cell.f) : null;
+}
+
+function mainFinancialFields(row) {
+    const contractValue = gvizCellNumber(row, 7);
+    const executedWorkTotal = gvizCellNumber(row, 8);
+    return {
+        contractValue,
+        valueUsd: contractValue,
+        executedWorkTotal,
+        executionProgressPercent: gvizCellPercent(row, 9) || (contractValue > 0 ? executedWorkTotal / contractValue * 100 : 0),
+        executedWorkApproved: gvizCellNumber(row, 10),
+        approvedExecutionPercent: gvizCellPercent(row, 11),
+        paidWork: gvizCellNumber(row, 12),
+        paidToApprovedPercent: gvizCellPercent(row, 13),
+        collectedLiquidity: gvizCellNumber(row, 14),
+        collectedToApprovedPercent: gvizCellPercent(row, 15),
+        dueDebt: gvizCellNumber(row, 16),
+        payableToExecutedPercent: gvizCellPercent(row, 17),
+        uncollectibleWork: gvizCellNumber(row, 18),
+        unpayableToApprovedPercent: gvizCellPercent(row, 19),
+        profitLoss: gvizCellNumber(row, 20),
+        profitabilityPercent: gvizCellPercent(row, 21),
+        wagesCost: gvizCellNumber(row, 22),
+        wagesToApprovedPercent: gvizCellPercent(row, 23)
+    };
+}
+
+function mainScheduleFields(row) {
+    const totalDurationDays = gvizCellNumber(row, 26);
+    const elapsedDays = gvizCellNumber(row, 27);
+    return {
+        contractStartDate: gvizCellText(row, 24),
+        revisedEndDate: gvizCellText(row, 25),
+        rawStartDate: gvizCellDate(row, 24),
+        rawEndDate: gvizCellDate(row, 25),
+        totalDurationDays,
+        elapsedDays,
+        timeElapsedPercent: gvizCellPercent(row, 28) || (totalDurationDays > 0 ? elapsedDays / totalDurationDays * 100 : 0)
+    };
+}
+
+function parseFinalMainRow(row) {
+    const projectId = gvizCellText(row, 2);
+    const projectName = gvizCellText(row, 5);
+    if (!projectId || !projectName) return null;
+    const reportDate = gvizCellDate(row, 4);
+    return {
+        branchName: gvizCellText(row, 0),
+        entityId: gvizCellText(row, 1),
+        projectId,
+        country: gvizCellText(row, 3),
+        timestamp: reportDate ? reportDate.toISOString() : '',
+        reportDate,
+        projectName,
+        mapsLink: gvizCellText(row, 6),
+        ...mainFinancialFields(row),
+        ...mainScheduleFields(row),
+        isProjectReport: true
+    };
+}
+
+function parseFinalMainReports(table) {
+    return table && Array.isArray(table.rows) ? table.rows.map(parseFinalMainRow).filter(Boolean) : [];
+}
+
+function earlyAlertAnswers(row) {
+    return {
+        claimsStatus: gvizCellText(row, 3),
+        hasBillOfQuantities: gvizCellText(row, 4),
+        boqAccuracy: gvizCellText(row, 5),
+        lgIssued: gvizCellText(row, 6),
+        meetingClient15Days: gvizCellText(row, 7),
+        formalLetterSent: gvizCellText(row, 8),
+        supplySchedulePrepared: gvizCellText(row, 9),
+        mepApproved: gvizCellText(row, 10),
+        cashFlowPlanPrepared: gvizCellText(row, 11),
+        negativeCashFlow: gvizCellText(row, 12),
+        subcontractorsDueAnswer: gvizCellText(row, 13),
+        subcontractorsDue: gvizCellNumber(row, 13)
+    };
+}
+
+function parseFinalEarlyAlertRow(row) {
+    const projectId = gvizCellText(row, 0);
+    if (!projectId) return null;
+    const reportDate = gvizCellDate(row, 1);
+    return {
+        projectId,
+        projectName: gvizCellText(row, 2),
+        timestamp: reportDate ? reportDate.toISOString() : '',
+        reportDate,
+        answers: earlyAlertAnswers(row)
+    };
+}
+
+function parseFinalEarlyAlerts(table) {
+    return table && Array.isArray(table.rows) ? table.rows.map(parseFinalEarlyAlertRow).filter(Boolean) : [];
+}
+
+function mergeEarlyAlertAnswers(mainReports, earlyAlerts) {
+    const latestAlerts = latestReportsByProject(earlyAlerts);
+    return mainReports.map(report => {
+        const earlyAlert = latestAlerts.get(report.projectId);
+        return earlyAlert ? { ...report, ...earlyAlert.answers } : report;
+    });
+}
+
+function parseMapRegistryRow(row, rowIndex) {
+    const entityId = gvizCellText(row, 1);
+    const entityType = gvizCellText(row, 2).toUpperCase();
+    const country = gvizCellText(row, 4);
+    if (!entityId || !country || !ENTITY_TYPES.has(entityType)) {
+        console.warn(`Map Registry row ${rowIndex + 2} excluded: invalid Entity ID, Entity Type, or Country.`);
+        return null;
+    }
+    return {
+        entityName: gvizCellText(row, 0) || entityId,
+        entityId,
+        entityType,
+        mapsLink: gvizCellText(row, 3),
+        country
+    };
+}
+
+function parseMapRegistry(table) {
+    if (!table || !Array.isArray(table.rows)) return [];
+    return table.rows.map(parseMapRegistryRow).filter(Boolean);
+}
+
+function buildMapRegistryIndex(entities) {
+    const registryIndex = new Map();
+    entities.forEach(entity => {
+        if (registryIndex.has(entity.entityId)) {
+            console.warn(`Duplicate Map Registry Entity ID ${entity.entityId}; using the last valid row.`);
+        }
+        registryIndex.set(entity.entityId, entity);
+    });
+    return registryIndex;
+}
+
+function joinMainReportsWithRegistry(mainReports, registryIndex) {
+    return mainReports.flatMap(report => {
+        const entity = registryIndex.get(report.entityId);
+        if (!entity) {
+            console.warn(`Main project ${report.projectId} excluded: Entity ID ${report.entityId || '(blank)'} is not in Map Registry.`);
+            return [];
+        }
+        return [{
+            ...report,
+            branchName: entity.entityName,
+            country: entity.country,
+            entityType: entity.entityType,
+            entityMapsLink: entity.mapsLink
+        }];
+    });
+}
+
+function filterCountryProjectsByEntityType(projects, activeEntityTypes) {
+    return projects.filter(project => activeEntityTypes.has(project.entityType));
+}
+
+function applyMapRegistry(entities) {
+    registeredEntities = entities;
     branchToCountryMap = {};
     projectToBranchMap = {};
     projectToCountryMap = {};
-
-    table.rows.forEach(row => {
-        if (!row || !row.c) return;
-        const cell = (idx) => (idx < row.c.length && row.c[idx] && row.c[idx].v) ? String(row.c[idx].v).trim() : '';
-        
-        const cBranch = cell(2) || cell(0);
-        const b = cell(3);
-        const bProj = cell(5);
-        const p = cell(6);
-
-        if (b) {
-            expectedBranches.add(b);
-            if (cBranch) branchToCountryMap[b] = cBranch;
-        }
-        if (p) {
-            expectedProjects.add(p);
-            if (bProj) {
-                projectToBranchMap[p] = bProj;
-            }
-        }
+    entities.forEach(entity => {
+        branchToCountryMap[entity.entityName] = entity.country;
     });
-
-    for (const proj of expectedProjects) {
-        const bName = projectToBranchMap[proj];
-        if (bName && branchToCountryMap[bName]) {
-            projectToCountryMap[proj] = branchToCountryMap[bName];
-        }
-    }
 }
 
 function formatCurrencyUSD(value) {
@@ -577,20 +455,15 @@ let boardCompositionRevealObserver = null;
 let countryCharts = [];
 let countryChartObserver = null;
 let countryChartAnimationFrame = null;
+let activeCountryEntityTypes = new Set(ENTITY_TYPES);
+let activeCountryBoardContext = null;
 
 function reportUsd(report, field) {
-    return (Number(report[field]) || 0) / (Number(report.exchangeRate) || 1);
+    return Number(report[field]) || 0;
 }
 
 function latestProjectReports() {
-    const latest = new Map();
-    reportsData.forEach(report => {
-        const key = report.projectId || report.projectName;
-        if (!key) return;
-        const existing = latest.get(key);
-        if (!existing || (report.reportDate && (!existing.reportDate || report.reportDate > existing.reportDate))) latest.set(key, report);
-    });
-    return [...latest.values()];
+    return [...latestReportsByProject(reportsData).values()];
 }
 
 function renderBoardBriefing() {
@@ -689,147 +562,128 @@ function renderBoardBriefing() {
     renderHeaderStockTicker();
 }
 
-function getShortProjectName(fullName) {
-    if (!fullName) return '';
-    let name = String(fullName).trim();
-    name = name.replace(/^(مشروع|عملية|مشروعات|تنفيذ|إنشاء|انشاء)\s+/i, '').trim();
-    if (name.length > 24) {
-        return name.substring(0, 22) + '...';
-    }
-    return name;
+function resolveTickerCountryName(report) {
+    if (!report) return '';
+    return report.country
+        || projectToCountryMap[report.projectName]
+        || (report.branchName && branchToCountryMap[report.branchName])
+        || '';
 }
 
-function getProjectTimeElapsedPercent(report) {
-    if (!report) return 0;
-    if (typeof report.timeElapsedPercent === 'number' && !isNaN(report.timeElapsedPercent) && report.timeElapsedPercent > 0) {
-        return report.timeElapsedPercent;
+function getCountryTickerIdentity(countryName) {
+    const cleanName = String(countryName || '').trim();
+    const geo = cleanName && typeof findCountryGeo === 'function' ? findCountryGeo(cleanName) : null;
+    const displayName = geo ? (geo.nameAr || geo.nameEn || cleanName) : cleanName;
+    return {
+        key: geo && geo.id ? geo.id : cleanName.toLowerCase(),
+        isoCode: geo && geo.id ? geo.id : null,
+        countryName: displayName,
+        flagClass: getFlagIconClass(displayName)
+    };
+}
+
+function summarizeCountryTickerGroup(countryGroup) {
+    const countryWarning = evaluateCountryEarlyWarning(countryGroup.countryName, countryGroup.isoCode);
+    const progressTotal = countryGroup.reports.reduce((sum, report) => sum + (Number(report.executionProgressPercent) || 0), 0);
+    return {
+        countryName: countryGroup.countryName,
+        isoCode: countryGroup.isoCode,
+        flagClass: countryGroup.flagClass,
+        projectCount: countryGroup.reports.length,
+        healthScore: Number.isFinite(Number(countryWarning.score)) ? Number(countryWarning.score) : 0,
+        healthColor: countryWarning.color || '#64748b',
+        progressAverage: Math.round((progressTotal / countryGroup.reports.length) * 10) / 10
+    };
+}
+
+function buildCountryTickerItems() {
+    const countryGroups = new Map();
+    latestProjectReports().forEach(report => {
+        const countryName = resolveTickerCountryName(report);
+        if (!countryName) return;
+        const countryIdentity = getCountryTickerIdentity(countryName);
+        if (!countryGroups.has(countryIdentity.key)) countryGroups.set(countryIdentity.key, { ...countryIdentity, reports: [] });
+        countryGroups.get(countryIdentity.key).reports.push(report);
+    });
+
+    return [...countryGroups.values()].map(summarizeCountryTickerGroup);
+}
+
+function sortCountryTickerItems(countryItems, criterion, direction) {
+    const sortCriterion = TICKER_SORT_CRITERIA.has(criterion) ? criterion : 'projectCount';
+    const directionFactor = direction === 'asc' ? 1 : -1;
+    return [...countryItems].sort((countryA, countryB) => {
+        const metricDifference = (Number(countryA[sortCriterion]) || 0) - (Number(countryB[sortCriterion]) || 0);
+        if (metricDifference !== 0) return metricDifference * directionFactor;
+        return countryA.countryName.localeCompare(countryB.countryName, 'ar');
+    });
+}
+
+function fetchSheetByGidJSONP(gid, sourceLabel) {
+    return fetchGvizJSONP(`gid=${encodeURIComponent(gid)}`, sourceLabel);
+}
+
+function validateGvizTable(table, minimumColumnCount, sourceLabel) {
+    const hasRows = table && Array.isArray(table.rows);
+    const hasColumns = table && Array.isArray(table.cols) && table.cols.length >= minimumColumnCount;
+    if (!hasRows || !hasColumns) {
+        throw new Error(`${sourceLabel} schema mismatch: expected at least ${minimumColumnCount} columns.`);
     }
-    const totalDays = Number(report.totalDurationDays) || 0;
-    const elapsedDays = Number(report.elapsedDays) || 0;
-    if (totalDays > 0 && elapsedDays > 0) {
-        return Math.round(((elapsedDays / totalDays) * 100) * 10) / 10;
-    }
-    const start = report.rawStartDate || (report.contractStartDate && report.contractStartDate !== '-' ? robustParseDate(report.contractStartDate) : null);
-    const end = report.rawEndDate || (report.revisedEndDate && report.revisedEndDate !== '-' ? robustParseDate(report.revisedEndDate) : null) || (report.contractEndDate && report.contractEndDate !== '-' ? robustParseDate(report.contractEndDate) : null);
-    const repDate = report.reportDate || (report.timestamp ? new Date(report.timestamp) : null);
-    if (start && end && repDate) {
-        const totalMs = end.getTime() - start.getTime();
-        const elapsedMs = repDate.getTime() - start.getTime();
-        if (totalMs > 0 && elapsedMs > 0) {
-            return Math.round(((elapsedMs / totalMs) * 100) * 10) / 10;
-        }
-    }
-    return 0;
+}
+
+function generateCountryTickerItemHtml(country) {
+    const safeCountryName = escapeHtml(country.countryName);
+    return `
+        <div class="stock-ticker-item" role="button" tabindex="0" data-country="${safeCountryName}" title="${safeCountryName} - اضغط لعرض الدولة">
+            <div class="ticker-row-title">
+                <span class="fi ${country.flagClass}" aria-hidden="true" style="margin-left:6px"></span>
+                <span class="ticker-proj-title">${safeCountryName}</span>
+            </div>
+            <div class="ticker-row-metric">
+                <span class="ticker-metric-label">عدد المشروعات :</span>
+                <span class="ticker-metric-val neutral"><bdi dir="ltr">${country.projectCount}</bdi></span>
+            </div>
+            <div class="ticker-row-metric">
+                <span class="ticker-metric-label">مؤشر صحة المشروعات :</span>
+                <span class="ticker-metric-val" style="color:${country.healthColor}"><bdi dir="ltr">${country.healthScore.toFixed(1)}%</bdi></span>
+            </div>
+            <div class="ticker-row-metric">
+                <span class="ticker-metric-label">نسبة إنجاز المشروعات :</span>
+                <span class="ticker-metric-val prog"><bdi dir="ltr">${country.progressAverage.toFixed(1)}%</bdi></span>
+            </div>
+        </div>
+        <span class="stock-ticker-separator">•</span>
+    `;
+}
+
+function bindCountryTickerInteractions(track) {
+    track.querySelectorAll('.stock-ticker-item').forEach(tickerElement => {
+        const openCountry = () => openCountryFromTicker(tickerElement.dataset.country);
+        tickerElement.addEventListener('click', openCountry);
+        tickerElement.addEventListener('keydown', event => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+            openCountry();
+        });
+    });
 }
 
 function renderHeaderStockTicker() {
     const track = document.getElementById('stock-ticker-track');
     if (!track) return;
-
-    const projectMap = new Map();
-
-    // Group all reports by project name
-    (reportsData || []).forEach(r => {
-        if (!r || !r.projectName) return;
-        if (!projectMap.has(r.projectName)) projectMap.set(r.projectName, []);
-        projectMap.get(r.projectName).push(r);
-    });
-
-    // Also include projects from expectedProjects if missing in reportsData
-    (expectedProjects || new Set()).forEach(pName => {
-        if (!projectMap.has(pName)) {
-            const country = projectToCountryMap[pName] || '';
-            projectMap.set(pName, [{ projectName: pName, country, plannedProgressPercent: 0, timeElapsedPercent: 0 }]);
-        }
-    });
-
-    const projectList = [];
-    projectMap.forEach((repList, pName) => {
-        // Sort reports descending by date/timestamp
-        repList.sort((a, b) => new Date(b.timestamp || b.reportDate || 0) - new Date(a.timestamp || a.reportDate || 0));
-        const latest = repList[0];
-        const previous = repList.length > 1 ? repList[1] : null;
-        const country = latest.country || projectToCountryMap[pName] || (latest.branchName && branchToCountryMap[latest.branchName]) || 'GLOBAL';
-
-        const latestElapsed = getProjectTimeElapsedPercent(latest);
-        const prevElapsed = previous ? getProjectTimeElapsedPercent(previous) : null;
-        const latestProg = Number(latest.plannedProgressPercent) || 0;
-        const prevProg = previous ? (Number(previous.plannedProgressPercent) || 0) : null;
-
-        // % Time Elapsed MoM Delta (% difference between current month % and previous month %)
-        let elapsedDelta = 0;
-        if (prevElapsed !== null) {
-            elapsedDelta = latestElapsed - prevElapsed;
-        }
-
-        // Progress MoM Delta (% points)
-        let progDelta = 0;
-        if (prevProg !== null) {
-            progDelta = latestProg - prevProg;
-        }
-
-        projectList.push({
-            projectName: pName,
-            country,
-            latestElapsed,
-            elapsedDelta,
-            latestProg,
-            progDelta,
-            report: latest
-        });
-    });
-
-    if (projectList.length === 0) {
-        track.innerHTML = '<span style="color:#94a3b8; font-size:11px; padding:0 12px;">جاري تحميل مؤشرات المشروعات...</span>';
+    const countryList = sortCountryTickerItems(
+        buildCountryTickerItems(),
+        mapControlState.tickerCriterion,
+        mapControlState.tickerDirection
+    );
+    if (countryList.length === 0) {
+        track.innerHTML = '<span style="color:#94a3b8; font-size:11px; padding:0 12px;">جاري تحميل مؤشرات الدول...</span>';
         return;
     }
 
-    const generateItemHtml = (p) => {
-        let elapsedDeltaTag = '';
-        if (p.elapsedDelta > 0) {
-            elapsedDeltaTag = `<span class="ticker-delta-val up"><bdi dir="ltr">(▲ +${p.elapsedDelta.toFixed(1)}%)</bdi></span>`;
-        } else if (p.elapsedDelta < 0) {
-            elapsedDeltaTag = `<span class="ticker-delta-val down"><bdi dir="ltr">(▼ ${Math.abs(p.elapsedDelta).toFixed(1)}%)</bdi></span>`;
-        } else {
-            elapsedDeltaTag = `<span class="ticker-delta-val neutral"><bdi dir="ltr">(0.0%)</bdi></span>`;
-        }
-
-        let progDeltaTag = '';
-        if (p.progDelta > 0) {
-            progDeltaTag = `<span class="ticker-delta-val up"><bdi dir="ltr">(▲ +${p.progDelta.toFixed(1)}%)</bdi></span>`;
-        } else if (p.progDelta < 0) {
-            progDeltaTag = `<span class="ticker-delta-val down"><bdi dir="ltr">(▼ ${Math.abs(p.progDelta).toFixed(1)}%)</bdi></span>`;
-        } else {
-            progDeltaTag = `<span class="ticker-delta-val neutral"><bdi dir="ltr">(0.0%)</bdi></span>`;
-        }
-
-        const shortName = getShortProjectName(p.projectName);
-
-        return `
-            <div class="stock-ticker-item" onclick="openProjectFromTicker('${escapeHtml(p.projectName)}', '${escapeHtml(p.country)}')" title="${escapeHtml(p.projectName)} (${escapeHtml(p.country)}) - اضغط لعرض التقرير">
-                <div class="ticker-row-title">
-                    <span class="ticker-proj-title">${escapeHtml(shortName)}</span>
-                </div>
-                <div class="ticker-row-metric">
-                    <span class="ticker-metric-label">نسبة انقضاء المدة الزمنية :</span>
-                    <span class="ticker-metric-val elapsed"><bdi dir="ltr">${p.latestElapsed.toFixed(1)}%</bdi></span>
-                    ${elapsedDeltaTag}
-                </div>
-                <div class="ticker-row-metric">
-                    <span class="ticker-metric-label">إنجاز :</span>
-                    <span class="ticker-metric-val prog"><bdi dir="ltr">${p.latestProg}%</bdi></span>
-                    ${progDeltaTag}
-                </div>
-            </div>
-            <span class="stock-ticker-separator">•</span>
-        `;
-    };
-
-    const itemsHtml = projectList.map(generateItemHtml).join('');
-    // Duplicate twice to achieve seamless infinite scroll
+    const itemsHtml = countryList.map(generateCountryTickerItemHtml).join('');
     track.innerHTML = itemsHtml + itemsHtml;
-
-    // Initialize Wheel & Drag & RAF Auto-scroll Engine
+    bindCountryTickerInteractions(track);
     initStockTickerScroll();
 }
 
@@ -905,9 +759,9 @@ function initStockTickerScroll() {
     tickerRafId = requestAnimationFrame(loop);
 }
 
-function openProjectFromTicker(projectName, countryName) {
-    if (!projectName) return;
-    openCountryDrawer(countryName || 'all', projectName);
+function openCountryFromTicker(countryName) {
+    if (!countryName) return;
+    openCountryDrawer(countryName);
 }
 
 // Initialize Leaflet Map
@@ -930,6 +784,7 @@ function initExecutiveMap() {
         doubleClickZoom: true,
         boxZoom: true,
         keyboard: true,
+        preferCanvas: true,
         zoomControl: true,
         attributionControl: false
     });
@@ -942,17 +797,16 @@ function initExecutiveMap() {
 
     currentTileLayer = L.tileLayer(getMapBaseTileUrl(), {
         subdomains: 'abcd',
-        maxZoom: 19
+        maxZoom: 19,
+        updateWhenZooming: false,
+        updateWhenIdle: true
     }).addTo(executiveMap);
 
     markersGroup = L.layerGroup().addTo(executiveMap);
     businessBubblesGroup = L.layerGroup().addTo(executiveMap);
 
     executiveMap.on('mouseout', () => {
-        if (currentHoveredCountryLayer && geoJsonLayer) {
-            geoJsonLayer.resetStyle(currentHoveredCountryLayer);
-            currentHoveredCountryLayer = null;
-        }
+        resetHoveredCountryLayers();
     });
 
     if (typeof MENA_GEOJSON !== 'undefined' && MENA_GEOJSON) {
@@ -968,8 +822,103 @@ function initExecutiveMap() {
     }, 400);
 }
 
+function reportTimestamp(report) {
+    if (report.reportDate && typeof report.reportDate.getTime === 'function') {
+        return report.reportDate.getTime();
+    }
+    return Date.parse(report.timestamp || '');
+}
+
+function isNewerReport(candidate, current) {
+    const candidateTimestamp = reportTimestamp(candidate);
+    if (!Number.isFinite(candidateTimestamp)) return false;
+    const currentTimestamp = reportTimestamp(current);
+    return !Number.isFinite(currentTimestamp) || candidateTimestamp > currentTimestamp;
+}
+
+function latestReportsByProject(reports) {
+    const latestReports = new Map();
+    reports.forEach(report => {
+        const projectKey = report.projectId || report.projectName;
+        if (!projectKey) return;
+        const currentReport = latestReports.get(projectKey);
+        if (!currentReport || isNewerReport(report, currentReport)) {
+            latestReports.set(projectKey, report);
+        }
+    });
+    return latestReports;
+}
+
+function reportContractValueUsd(report) {
+    return Number(report.contractValue) || 0;
+}
+
+function reportExecutedWorkUsd(report) {
+    return Number(report.executedWorkTotal) || 0;
+}
+
+function countryExecutionRatioPercent(reports) {
+    const contractTotalUsd = reports.reduce((sum, report) => sum + reportContractValueUsd(report), 0);
+    if (contractTotalUsd <= 0) return 0;
+    const executedTotalUsd = reports.reduce((sum, report) => sum + reportExecutedWorkUsd(report), 0);
+    return (executedTotalUsd / contractTotalUsd) * 100;
+}
+
+function marketStateForCountry(counts) {
+    if (counts.projectsCount === 0) return counts.branchesCount > 0 ? 'presence' : 'absent';
+    if (counts.executionRatioPercent >= 100) return 'ended';
+    return counts.executionRatioPercent > 95 ? 'closeToEnding' : 'active';
+}
+
+const MARKET_STATE_COLORS = {
+    active: '#10b981',
+    closeToEnding: '#fca5a5',
+    ended: '#991b1b',
+    presence: '#facc15',
+    absent: '#64748b'
+};
+
+const MARKET_HIGHLIGHT_COUNTRY_GROUPS = [
+    ['SD', 'SS'],
+    ['CG', 'CD']
+];
+
 const precomputedCountryStats = new Map();
 const precomputedEarlyWarningStats = new Map();
+const precomputedMarketHighlightStats = new Map();
+
+function combinedMarketHighlightStats(countryIds, countryIndexes) {
+    const projects = new Set();
+    const branches = new Set();
+    const reports = [];
+    countryIds.forEach(countryId => {
+        (countryIndexes.projects.get(countryId) || new Set()).forEach(project => projects.add(project));
+        (countryIndexes.branches.get(countryId) || new Set()).forEach(branch => branches.add(branch));
+        reports.push(...(countryIndexes.reports.get(countryId) || []));
+    });
+    const latestReports = [...latestReportsByProject(reports).values()];
+    const stats = {
+        projectsCount: projects.size,
+        branchesCount: branches.size,
+        reportsCount: reports.length,
+        totalValueUsd: reports.reduce((sum, report) => sum + (Number(report.valueUsd) || 0), 0),
+        executionRatioPercent: countryExecutionRatioPercent(latestReports),
+        hasData: projects.size > 0 || branches.size > 0 || reports.length > 0
+    };
+    stats.marketState = marketStateForCountry(stats);
+    return stats;
+}
+
+function cacheCombinedMarketHighlights(countryIndexes, getKeysForCountry) {
+    precomputedMarketHighlightStats.clear();
+    MARKET_HIGHLIGHT_COUNTRY_GROUPS.forEach(countryIds => {
+        const combinedStats = combinedMarketHighlightStats(countryIds, countryIndexes);
+        countryIds.flatMap(getKeysForCountry).forEach(alias => {
+            precomputedMarketHighlightStats.set(alias, combinedStats);
+            precomputedMarketHighlightStats.set(alias.toLowerCase(), combinedStats);
+        });
+    });
+}
 
 function rebuildCountryStatsCache() {
     precomputedCountryStats.clear();
@@ -1010,26 +959,12 @@ function rebuildCountryStatsCache() {
         }
     });
 
-    // 2. Index expectedProjects
-    (expectedProjects || new Set()).forEach(proj => {
-        const pCountry = projectToCountryMap[proj] || (projectToBranchMap[proj] && branchToCountryMap[projectToBranchMap[proj]]) || '';
-        if (!pCountry) return;
-        const geo = typeof findCountryGeo === 'function' ? findCountryGeo(pCountry) : null;
-        const canKey = geo ? geo.id : String(pCountry).trim();
-
-        if (!countryProjects.has(canKey)) countryProjects.set(canKey, new Set());
-        countryProjects.get(canKey).add(proj);
-    });
-
-    // 3. Index expectedBranches
-    (expectedBranches || new Set()).forEach(b => {
-        const bCountry = branchToCountryMap[b] || '';
-        if (!bCountry) return;
-        const geo = typeof findCountryGeo === 'function' ? findCountryGeo(bCountry) : null;
-        const canKey = geo ? geo.id : String(bCountry).trim();
+    registeredEntities.forEach(entity => {
+        const geo = typeof findCountryGeo === 'function' ? findCountryGeo(entity.country) : null;
+        const canKey = geo ? geo.id : String(entity.country).trim();
 
         if (!countryBranches.has(canKey)) countryBranches.set(canKey, new Set());
-        countryBranches.get(canKey).add(b);
+        countryBranches.get(canKey).add(entity.entityId);
     });
 
     precomputedEarlyWarningStats.clear();
@@ -1041,13 +976,17 @@ function rebuildCountryStatsCache() {
         const bSet = countryBranches.get(canKey) || new Set();
         const rList = countryReports.get(canKey) || [];
         const totalValueUsd = rList.reduce((sum, r) => sum + (Number(r.valueUsd) || 0), 0);
+        const latestReports = latestReportsByProject(rList);
+        const executionRatioPercent = countryExecutionRatioPercent([...latestReports.values()]);
         const stats = {
             projectsCount: pSet.size,
             branchesCount: bSet.size,
             reportsCount: rList.length,
             totalValueUsd,
+            executionRatioPercent,
             hasData: pSet.size > 0 || bSet.size > 0 || rList.length > 0
         };
+        stats.marketState = marketStateForCountry(stats);
 
         // Compute Early Warning Stats for this country
         const pList = [];
@@ -1059,45 +998,7 @@ function rebuildCountryStatsCache() {
             }
         });
 
-        let totalScore = 0;
-        let dangerCount = 0;
-        let mediumCount = 0;
-        let safeCount = 0;
-
-        pList.forEach(p => {
-            const ew = evaluateProjectEarlyWarning(p);
-            totalScore += ew.score;
-            if (ew.level === 'danger') dangerCount++;
-            else if (ew.level === 'medium') mediumCount++;
-            else safeCount++;
-        });
-
-        const totalProjects = pList.length;
-        let avgScore = totalProjects > 0 ? Math.round(totalScore / totalProjects) : 75;
-        let ewColor = getEarlyWarningColor(avgScore, dangerCount, totalProjects);
-        let ewLevel = 'safe';
-        let ewLevelLabel = 'مستقر وآمن';
-
-        if (avgScore < 50 || dangerCount >= Math.max(1, Math.ceil(totalProjects * 0.35))) {
-            ewLevel = 'danger';
-            ewLevelLabel = 'إنذار حرج';
-            ewColor = '#ef4444';
-        } else if (avgScore < 75 || dangerCount > 0) {
-            ewLevel = 'medium';
-            ewLevelLabel = 'ملاحظة ومتابعة';
-            ewColor = '#f59e0b';
-        }
-
-        const ewStats = {
-            score: avgScore,
-            color: ewColor,
-            level: ewLevel,
-            levelLabel: ewLevelLabel,
-            dangerCount,
-            mediumCount,
-            safeCount,
-            totalProjects
-        };
+        const ewStats = summarizeCountryEarlyWarning(pList);
 
         const allAliases = getKeysForCountry(canKey);
         allAliases.forEach(aliasKey => {
@@ -1131,10 +1032,19 @@ function rebuildCountryStatsCache() {
         }
     });
 
+    cacheCombinedMarketHighlights({
+        projects: countryProjects,
+        branches: countryBranches,
+        reports: countryReports
+    }, getKeysForCountry);
+
     // Compute max value for heatmap normalization
     maxCountryValueUsd = 1;
     precomputedCountryStats.forEach(s => {
         if (s.totalValueUsd > maxCountryValueUsd) maxCountryValueUsd = s.totalValueUsd;
+    });
+    precomputedMarketHighlightStats.forEach(stats => {
+        if (stats.totalValueUsd > maxCountryValueUsd) maxCountryValueUsd = stats.totalValueUsd;
     });
 }
 
@@ -1144,7 +1054,7 @@ function getCountryDataCounts(countryName, isoCode) {
         if (precomputedCountryStats.has(isoCode)) return precomputedCountryStats.get(isoCode);
         if (precomputedCountryStats.has(isoCode.toLowerCase())) return precomputedCountryStats.get(isoCode.toLowerCase());
     }
-    if (!countryName) return { projectsCount: 0, branchesCount: 0, reportsCount: 0, hasData: false };
+    if (!countryName) return { projectsCount: 0, branchesCount: 0, reportsCount: 0, executionRatioPercent: 0, marketState: 'absent', hasData: false };
 
     const clean = String(countryName).trim();
     if (precomputedCountryStats.has(clean)) return precomputedCountryStats.get(clean);
@@ -1156,7 +1066,17 @@ function getCountryDataCounts(countryName, isoCode) {
         if (precomputedCountryStats.has(geo.id.toLowerCase())) return precomputedCountryStats.get(geo.id.toLowerCase());
     }
 
-    return { projectsCount: 0, branchesCount: 0, reportsCount: 0, hasData: false };
+    return { projectsCount: 0, branchesCount: 0, reportsCount: 0, executionRatioPercent: 0, marketState: 'absent', hasData: false };
+}
+
+function getMarketHighlightCounts(countryName, isoCode) {
+    const lookupKeys = [isoCode, countryName].filter(Boolean);
+    for (const lookupKey of lookupKeys) {
+        const groupedStats = precomputedMarketHighlightStats.get(lookupKey)
+            || precomputedMarketHighlightStats.get(String(lookupKey).toLowerCase());
+        if (groupedStats) return groupedStats;
+    }
+    return getCountryDataCounts(countryName, isoCode);
 }
 
 function getCountryBoundaryStyle(feature) {
@@ -1183,7 +1103,7 @@ function getCountryBoundaryStyle(feature) {
         : (props['name'] || props['NAME'] || props['ADMIN'] || '');
 
     // --- Lookup stats: first try by ISO code directly, then by name ---
-    let counts = { projectsCount: 0, branchesCount: 0, reportsCount: 0, hasData: false };
+    let counts = { projectsCount: 0, branchesCount: 0, reportsCount: 0, executionRatioPercent: 0, marketState: 'absent', hasData: false };
     if (isoCode) {
         const direct = precomputedCountryStats.get(isoCode) || precomputedCountryStats.get(isoCode.toLowerCase());
         if (direct) counts = direct;
@@ -1230,39 +1150,46 @@ function getCountryBoundaryStyle(feature) {
     }
 
     if (isBusinessAnalysisMode) {
-        if (counts.projectsCount > 0 || counts.reportsCount > 0) {
-            // 🟢 Heatmap green: intensity ∝ totalValueUsd / maxCountryValueUsd
+        counts = getMarketHighlightCounts(countryName, isoCode);
+        if (counts.marketState === 'active') {
             const ratio = counts.totalValueUsd > 0
                 ? Math.sqrt(counts.totalValueUsd / maxCountryValueUsd)
                 : 0.15;
-            const fillOpacity = 0.10 + ratio * 0.55;  // range: 0.10 → 0.65
-            const borderOpacity = 0.6 + ratio * 0.4;   // range: 0.60 → 1.00
+            const fillOpacity = 0.10 + ratio * 0.55;
+            const borderOpacity = 0.6 + ratio * 0.4;
             return {
-                color: '#10b981',
+                color: MARKET_STATE_COLORS.active,
                 weight: 2.5,
                 opacity: borderOpacity,
-                fillColor: '#10b981',
+                fillColor: MARKET_STATE_COLORS.active,
                 fillOpacity
             };
-        } else if (counts.branchesCount > 0) {
-            // 🔴 Red: branches but no projects
+        } else if (counts.marketState === 'ended' || counts.marketState === 'closeToEnding') {
+            const stateColor = MARKET_STATE_COLORS[counts.marketState];
             return {
-                color: '#ef4444',
+                color: stateColor,
                 weight: 2.5,
                 opacity: 1,
-                fillColor: '#ef4444',
-                fillOpacity: 0.18
+                fillColor: stateColor,
+                fillOpacity: counts.marketState === 'ended' ? 0.24 : 0.2
             };
-        } else {
-            // 🟡 Yellow: no branches at all
+        } else if (counts.marketState === 'presence') {
             return {
-                color: '#facc15',
+                color: MARKET_STATE_COLORS.presence,
                 weight: 2,
                 opacity: 0.9,
-                fillColor: '#facc15',
-                fillOpacity: 0.12
+                fillColor: MARKET_STATE_COLORS.presence,
+                fillOpacity: 0.16
             };
         }
+        return {
+            color: 'rgba(148, 163, 184, 0.05)',
+            weight: 0.5,
+            opacity: 0.1,
+            fillColor: 'transparent',
+            fillOpacity: 0,
+            className: 'country-inactive-feature outline-none focus:outline-none select-none'
+        };
     }
 
     if (counts.hasData) {
@@ -1284,6 +1211,30 @@ function getCountryBoundaryStyle(feature) {
             className: 'country-inactive-feature outline-none focus:outline-none select-none'
         };
     }
+}
+
+function countryIsoCodeFromLayer(countryLayer) {
+    const properties = countryLayer && countryLayer.feature ? countryLayer.feature.properties || {} : {};
+    return properties['ISO3166-1-Alpha-2'] || properties['ISO_A2'] || properties['iso_a2'] || null;
+}
+
+function hoveredCountryLayers(countryLayer, isoCode) {
+    if (!geoJsonLayer || !isoCode) return [countryLayer];
+    const countryGroup = MARKET_HIGHLIGHT_COUNTRY_GROUPS.find(countryIds => countryIds.includes(isoCode));
+    if (!countryGroup) return [countryLayer];
+
+    const groupedLayers = [];
+    geoJsonLayer.eachLayer(candidateLayer => {
+        if (countryGroup.includes(countryIsoCodeFromLayer(candidateLayer))) groupedLayers.push(candidateLayer);
+    });
+    return groupedLayers.length > 0 ? groupedLayers : [countryLayer];
+}
+
+function resetHoveredCountryLayers() {
+    if (geoJsonLayer) {
+        currentHoveredCountryLayers.forEach(countryLayer => geoJsonLayer.resetStyle(countryLayer));
+    }
+    currentHoveredCountryLayers = [];
 }
 
 function renderGeoJsonBoundaries() {
@@ -1308,13 +1259,8 @@ function renderGeoJsonBoundaries() {
                 ? (countryGeo.nameAr || countryGeo.nameEn || props['name'] || '')
                 : (props['name'] || props['NAME'] || props['ADMIN'] || '');
 
-            const flagClass = getFlagIconClass(countryName);
-            const flagHtml = flagClass && flagClass !== 'fi-xx'
-                ? `<span class="fi ${flagClass}" style="border-radius:2px; font-size:14px;"></span>`
-                : (countryGeo && countryGeo.flag ? countryGeo.flag : '🌐');
-
             // Robust counts lookup (same logic as getCountryBoundaryStyle)
-            let counts = { projectsCount: 0, branchesCount: 0, reportsCount: 0, hasData: false };
+            let counts = { projectsCount: 0, branchesCount: 0, reportsCount: 0, executionRatioPercent: 0, marketState: 'absent', hasData: false };
             if (isoCode) {
                 const d = precomputedCountryStats.get(isoCode) || precomputedCountryStats.get(isoCode.toLowerCase());
                 if (d) counts = d;
@@ -1325,146 +1271,68 @@ function renderGeoJsonBoundaries() {
             }
             if (!counts.hasData && countryName) counts = getCountryDataCounts(countryName, isoCode);
 
+            const groupedMarketCounts = getMarketHighlightCounts(countryName, isoCode);
+            if (!counts.hasData && !groupedMarketCounts.hasData) return;
 
-            // Countries WITHOUT projects or branches
-            if (!counts.hasData) {
-                layer.on('mouseover', () => {
-                    const bar = document.getElementById('map-hovered-country-bar');
-                    if (bar && countryName) {
-                        if (isBusinessAnalysisMode) {
-                            bar.innerHTML = `
-                                ${flagHtml}
-                                <span class="hover-country-name" style="color:#facc15;">${countryName}</span>
-                                <span class="hover-divider"></span>
-                                <span class="hover-stat" style="color:#facc15; font-weight:800;">🟡 سوق غير مستغل (لا يوجد فرع أو مشاريع)</span>
-                            `;
-                        } else {
-                            bar.innerHTML = `
-                                ${flagHtml}
-                                <span class="hover-country-name" style="color:#94a3b8;">${countryName}</span>
-                                <span class="hover-divider"></span>
-                                <span class="hover-stat" style="color:#64748b; font-size:11px;">لا توجد مشاريع أو فروع حالية مسجلة</span>
-                            `;
-                        }
-                    }
-                });
-
-                layer.on('mouseout', () => {
-                    const bar = document.getElementById('map-hovered-country-bar');
-                    if (bar) {
-                        bar.innerHTML = `
-                            <span class="hover-flag">🌐</span>
-                            <span class="hover-hint">مرر الماوس فوق أي دولة أو مشروع أو فرع لعرض التفاصيل</span>
-                        `;
-                    }
-                });
-
-                return;
-            }
+            layer.bindTooltip('', {
+                sticky: true,
+                direction: 'top',
+                className: 'market-hover-tooltip',
+                opacity: 0.9
+            });
 
             // Countries WITH projects or branches: Glow on hover and enable interactive drawer
             layer.on('mouseover', () => {
-                if (currentHoveredCountryLayer && currentHoveredCountryLayer !== layer) {
-                    geoJsonLayer.resetStyle(currentHoveredCountryLayer);
+                if (!counts.hasData && !isBusinessAnalysisMode) return;
+                resetHoveredCountryLayers();
+                currentHoveredCountryLayers = hoveredCountryLayers(layer, isoCode);
+                const hoverCounts = isBusinessAnalysisMode
+                    ? getMarketHighlightCounts(countryName, isoCode)
+                    : counts;
+                if (isBusinessAnalysisMode) {
+                    const executionRatio = Number(hoverCounts.executionRatioPercent) || 0;
+                    layer.setTooltipContent(`${countryName}: نسبة الإنجاز ${executionRatio.toFixed(1)}%`);
+                    layer.openTooltip();
                 }
-                currentHoveredCountryLayer = layer;
+                let hoverStyle;
                 
                 if (isEarlyWarningMode) {
                     const ewData = evaluateCountryEarlyWarning(countryName);
-                    layer.setStyle({
+                    hoverStyle = {
                         color: ewData.color,
                         weight: 3.5,
                         opacity: 1.0,
                         fillColor: ewData.color,
                         fillOpacity: 0.5
-                    });
+                    };
                 } else if (isBusinessAnalysisMode) {
-                    const strokeColor = counts.projectsCount > 0 ? '#10b981' : '#ef4444';
-                    layer.setStyle({
+                    const strokeColor = MARKET_STATE_COLORS[hoverCounts.marketState];
+                    hoverStyle = {
                         color: strokeColor,
                         weight: 3.2,
                         opacity: 1.0,
                         fillColor: strokeColor,
                         fillOpacity: 0.18
-                    });
+                    };
                 } else {
-                    layer.setStyle({
+                    hoverStyle = {
                         color: '#FACC15',
                         weight: 2.2,
                         opacity: 0.95,
                         fillColor: '#F59E0B',
                         fillOpacity: 0.14
-                    });
+                    };
                 }
-
-                // Update bottom country hover bar
-                const bar = document.getElementById('map-hovered-country-bar');
-                if (bar && countryName) {
-                    if (isEarlyWarningMode) {
-                        const ewData = evaluateCountryEarlyWarning(countryName);
-                        bar.innerHTML = `
-                            ${flagHtml}
-                            <span class="hover-country-name" style="color:${ewData.color};">${countryName}</span>
-                            <span class="hover-divider"></span>
-                            <span class="hover-stat" style="color:${ewData.color}; font-weight:900;">🚨 مؤشر الإنذار المبكر: ${ewData.score}% (${ewData.levelLabel})</span>
-                            <span class="hover-divider"></span>
-                            <span class="hover-stat">🔴 ${ewData.dangerCount} حرج</span>
-                            <span class="hover-stat">🟡 ${ewData.mediumCount} متوسط</span>
-                            <span class="hover-stat">🟢 ${ewData.safeCount} آمن</span>
-                            <span class="hover-divider"></span>
-                            <span style="color:var(--theme-accent); font-size:11px; font-weight:700;">اضغط للتقريب وفحص المشاريع ❯</span>
-                        `;
-                    } else if (isBusinessAnalysisMode) {
-                        if (counts.projectsCount > 0) {
-                            bar.innerHTML = `
-                                ${flagHtml}
-                                <span class="hover-country-name" style="color:#10b981;">${countryName}</span>
-                                <span class="hover-divider"></span>
-                                <span class="hover-stat" style="color:#10b981; font-weight:800;">🟢 دولة بها مشاريع نشطة (${counts.projectsCount} مشاريع)</span>
-                                <span class="hover-divider"></span>
-                                <span class="hover-stat">🏢 ${counts.branchesCount} فروع ومقرات</span>
-                                <span class="hover-divider"></span>
-                                <span style="color:var(--theme-accent); font-size:11px; font-weight:700;">اضغط لتفاصيل الدولة ❯</span>
-                            `;
-                        } else {
-                            bar.innerHTML = `
-                                ${flagHtml}
-                                <span class="hover-country-name" style="color:#ef4444;">${countryName}</span>
-                                <span class="hover-divider"></span>
-                                <span class="hover-stat" style="color:#ef4444; font-weight:800;">🔴 فرع/مقر مسجل بدون مشاريع جارية (${counts.branchesCount} فروع)</span>
-                                <span class="hover-divider"></span>
-                                <span style="color:var(--theme-accent); font-size:11px; font-weight:700;">اضغط لتفاصيل الفرع ❯</span>
-                            `;
-                        }
-                    } else {
-                        bar.innerHTML = `
-                            ${flagHtml}
-                            <span class="hover-country-name">${countryName}</span>
-                            <span class="hover-divider"></span>
-                            <span class="hover-stat">🏢 ${counts.branchesCount} فرع وشركة</span>
-                            <span class="hover-stat">🏗️ ${counts.projectsCount} مشروع</span>
-                            <span class="hover-divider"></span>
-                            <span style="color:var(--theme-accent); font-size:11px; font-weight:700;">اضغط للعرض ❯</span>
-                        `;
-                    }
-                }
+                currentHoveredCountryLayers.forEach(countryLayer => countryLayer.setStyle(hoverStyle));
             });
 
             layer.on('mouseout', () => {
-                geoJsonLayer.resetStyle(layer);
-                if (currentHoveredCountryLayer === layer) {
-                    currentHoveredCountryLayer = null;
-                }
-                const bar = document.getElementById('map-hovered-country-bar');
-                if (bar) {
-                    bar.innerHTML = `
-                        <span class="hover-flag">🌐</span>
-                        <span class="hover-hint">مرر الماوس فوق أي دولة أو مشروع أو فرع لعرض التفاصيل</span>
-                    `;
-                }
+                resetHoveredCountryLayers();
+                layer.closeTooltip();
             });
 
             layer.on('click', (e) => {
+                if (!counts.hasData) return;
                 if (e && e.originalEvent && e.originalEvent.target && typeof e.originalEvent.target.blur === 'function') {
                     e.originalEvent.target.blur();
                 }
@@ -1496,9 +1364,9 @@ function renderGeoJsonBoundaries() {
     geoJsonLayer.addTo(executiveMap);
 }
 
-function createBranch3DMarkerIcon(branchName, country) {
+function createEntity3DMarkerIcon() {
     const iconHtml = `
-        <div class="branch-beacon-container" onclick="openBranchDetailModal('${escapeHtml(branchName)}', '${escapeHtml(country)}')">
+        <div class="branch-beacon-container" aria-hidden="true">
             <div class="branch-beacon-glow-outer"></div>
             <div class="branch-3d-building">
                 <svg viewBox="0 0 64 64" width="28" height="28" class="branch-3d-svg" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1585,83 +1453,46 @@ function createBranch3DMarkerIcon(branchName, country) {
     });
 }
 
+function hasValidEntityMapLocation(mapsLink) {
+    return /^https?:\/\//i.test(String(mapsLink || '').trim());
+}
+
+function addEntityMarkers(targetGroup) {
+    registeredEntities.forEach(entity => {
+        if (!hasValidEntityMapLocation(entity.mapsLink)) return;
+        const coords = typeof getBranchCoordinates === 'function'
+            ? getBranchCoordinates(entity.entityName, entity.country, entity.mapsLink)
+            : null;
+        if (!coords || !Number.isFinite(coords.lat) || !Number.isFinite(coords.lng)) return;
+        const marker = L.marker([coords.lat, coords.lng], {
+            icon: createEntity3DMarkerIcon(),
+            interactive: false,
+            keyboard: false
+        });
+        targetGroup.addLayer(marker);
+    });
+}
+
 function updateMapMarkers() {
     if (!executiveMap || !markersGroup) return;
 
     markersGroup.clearLayers();
 
-    const branchesToRender = new Set(expectedBranches);
-    const projectsToRender = new Set(expectedProjects);
+    const projectsToRender = latestProjectReports();
 
-    reportsData.forEach(r => {
-        if (r.branchName) branchesToRender.add(r.branchName);
-        if (r.isProjectReport && r.projectName) projectsToRender.add(r.projectName);
-    });
+    // 1. Render Blue Glowing Branch Markers
+    if (showBranches) addEntityMarkers(markersGroup);
 
-    // 1. Render Blue Glowing Branch Markers (No popup tooltip, info in bottom bar)
-    if (showBranches) {
-        branchesToRender.forEach(branchName => {
-            if (!branchName) return;
-            const country = branchToCountryMap[branchName] || '';
-            const bReports = reportsData.filter(r => r.branchName === branchName);
-            const bMapsLink = bReports.find(r => r.mapsLink)?.mapsLink || null;
-            const coords = typeof getBranchCoordinates === 'function' ? getBranchCoordinates(branchName, country, bMapsLink) : { lat: 30.0444, lng: 31.2357, isHQ: false };
-            
-            const subProjectsCount = Array.from(projectsToRender).filter(p => projectToBranchMap[p] === branchName).length;
-            const submittalsCount = bReports.length;
-            const isHQ = coords.isHQ;
-
-            const branchIcon = createBranch3DMarkerIcon(branchName, country);
-            const marker = L.marker([coords.lat, coords.lng], { icon: branchIcon });
-
-            const bFlagClass = getFlagIconClass(country);
-            const bFlagHtml = bFlagClass && bFlagClass !== 'fi-xx' 
-                ? `<span class="fi ${bFlagClass}" style="border-radius:2px; font-size:14px;"></span>` 
-                : '🏢';
-
-            marker.on('mouseover', () => {
-                const bar = document.getElementById('map-hovered-country-bar');
-                if (bar) {
-                    bar.innerHTML = `
-                        ${bFlagHtml}
-                        <span class="hover-country-name">${escapeHtml(country || '-')}</span>
-                        <span class="hover-divider"></span>
-                        <span class="hover-stat" style="color:#60A5FA; font-weight:700;">🏢 ${escapeHtml(branchName)} ${isHQ ? '(المقر الرئيسي)' : ''}</span>
-                        <span class="hover-divider"></span>
-                        <span class="hover-stat">📁 <strong>${subProjectsCount}</strong> مشاريع</span>
-                        <span class="hover-divider"></span>
-                        <span class="hover-stat">📝 <strong>${submittalsCount}</strong> تقارير</span>
-                        <span class="hover-divider"></span>
-                        <span style="color:var(--theme-accent); font-size:11px; font-weight:700;">اضغط لتفاصيل الفرع ❯</span>
-                    `;
-                }
-            });
-
-            marker.on('mouseout', () => {
-                const bar = document.getElementById('map-hovered-country-bar');
-                if (bar) {
-                    bar.innerHTML = `
-                        <span class="hover-flag">🌐</span>
-                        <span class="hover-hint">مرر الماوس فوق أي دولة أو مشروع أو فرع لعرض التفاصيل</span>
-                    `;
-                }
-            });
-
-            marker.on('click', () => openBranchDetailModal(branchName, country));
-            markersGroup.addLayer(marker);
-        });
-    }
-
-    // 2. Render Glowing Yellow Live Project Beacons (No popup tooltip, info in bottom bar)
+    // 2. Render Glowing Yellow Live Project Beacons
     if (showProjects) {
         const projBuckets = new Map();
-        projectsToRender.forEach(projectName => {
-            if (!projectName) return;
-            const branchName = projectToBranchMap[projectName] || '';
-            const countryName = projectToCountryMap[projectName] || branchToCountryMap[branchName] || '';
-            const projReports = reportsData.filter(r => r.projectName === projectName || (r.isProjectReport && r.projectName && r.projectName.includes(projectName)));
-            const pMapsLink = projReports.find(r => r.mapsLink)?.mapsLink || null;
-            const rawCoords = typeof getProjectCoordinates === 'function' ? getProjectCoordinates(projectName, branchName, countryName, pMapsLink) : { lat: 30.0444, lng: 31.2357 };
+        projectsToRender.forEach(project => {
+            const projectName = project.projectName;
+            const branchName = project.branchName || '';
+            const countryName = project.country || '';
+            const rawCoords = typeof getProjectCoordinates === 'function'
+                ? getProjectCoordinates(projectName, branchName, countryName, project.mapsLink)
+                : { lat: 30.0444, lng: 31.2357 };
             const key = `${rawCoords.lat.toFixed(2)}_${rawCoords.lng.toFixed(2)}`;
             if (!projBuckets.has(key)) {
                 projBuckets.set(key, { baseLat: rawCoords.lat, baseLng: rawCoords.lng, list: [] });
@@ -1680,7 +1511,8 @@ function updateMapMarkers() {
                 let finalLng = rawCoords.lng;
                 if (count > 1) {
                     const angle = (idx / count) * 2 * Math.PI - (Math.PI / 2);
-                    const radius = 0.14 + (count > 6 ? 0.06 : 0);
+                    // Keep collision offsets local so clustered projects stay near their real site.
+                    const radius = Math.min(0.018, 0.008 + count * 0.001);
                     finalLat = bucket.baseLat + Math.sin(angle) * radius;
                     finalLng = bucket.baseLng + Math.cos(angle) * radius * 1.2;
                 }
@@ -1702,37 +1534,6 @@ function updateMapMarkers() {
 
                 const marker = L.marker([finalLat, finalLng], { icon: projIcon });
 
-                const pFlagClass = getFlagIconClass(countryName);
-                const pFlagHtml = pFlagClass && pFlagClass !== 'fi-xx' 
-                    ? `<span class="fi ${pFlagClass}" style="border-radius:2px; font-size:14px;"></span>` 
-                    : '🏗️';
-
-                marker.on('mouseover', () => {
-                    const bar = document.getElementById('map-hovered-country-bar');
-                    if (bar) {
-                        bar.innerHTML = `
-                            ${pFlagHtml}
-                            <span class="hover-country-name">${escapeHtml(countryName || '-')}</span>
-                            <span class="hover-divider"></span>
-                            <span class="hover-stat" style="color:#60A5FA;">🏢 ${escapeHtml(branchName || '-')}</span>
-                            <span class="hover-divider"></span>
-                            <span class="hover-stat" style="color:${projectColor}; font-weight:700;">🏗️ ${escapeHtml(projectName)}</span>
-                            <span class="hover-divider"></span>
-                            <span style="color:var(--theme-accent); font-size:11px; font-weight:700;">اضغط للبيانات المالية ❯</span>
-                        `;
-                    }
-                });
-
-                marker.on('mouseout', () => {
-                    const bar = document.getElementById('map-hovered-country-bar');
-                    if (bar) {
-                        bar.innerHTML = `
-                            <span class="hover-flag">🌐</span>
-                            <span class="hover-hint">مرر الماوس فوق أي دولة أو مشروع أو فرع لعرض التفاصيل</span>
-                        `;
-                    }
-                });
-
                 marker.on('click', () => openProjectDetailModal(projectName, branchName, countryName));
                 markersGroup.addLayer(marker);
             });
@@ -1741,7 +1542,8 @@ function updateMapMarkers() {
 
     const statsEl = document.getElementById('map-quick-stats');
     if (statsEl) {
-        statsEl.innerHTML = `<i class="fa-solid fa-layer-group"></i> <span>${branchesToRender.size} فرع</span> • <span>${projectsToRender.size} مشروع</span> • <span>${reportsData.length} تقرير</span>`;
+        const branchCount = registeredEntities.filter(entity => entity.entityType === 'BRANCH').length;
+        statsEl.innerHTML = `<i class="fa-solid fa-layer-group"></i> <span>${branchCount} فرع</span> • <span>${projectsToRender.length} مشروع</span> • <span>${reportsData.length} تقرير</span>`;
     }
 }
 
@@ -1766,6 +1568,134 @@ function filterMapRegion(region) {
     }
 }
 
+function setControlToggleState(buttonId, stateId, isActive) {
+    const controlButton = document.getElementById(buttonId);
+    const stateLabel = document.getElementById(stateId);
+    if (controlButton) {
+        controlButton.classList.toggle('active', isActive);
+        controlButton.setAttribute('aria-pressed', String(isActive));
+    }
+    if (stateLabel) stateLabel.textContent = isActive ? 'نشط' : 'معطل';
+}
+
+function syncControlCenterTabs() {
+    const container = document.getElementById('map-controls-container');
+    const primaryMenu = document.getElementById('fab-primary-menu');
+    const isRootOpen = container?.classList.contains('is-open') === true;
+    if (primaryMenu) primaryMenu.setAttribute('aria-hidden', String(!isRootOpen));
+    document.querySelectorAll('[data-control-tab]').forEach(tabButton => {
+        const isActive = isRootOpen && tabButton.dataset.controlTab === activeMapControlMenu;
+        tabButton.classList.toggle('is-active', isActive);
+        tabButton.setAttribute('aria-expanded', String(isActive));
+    });
+    document.querySelectorAll('[data-control-panel]').forEach(tabPanel => {
+        const isActive = isRootOpen && tabPanel.dataset.controlPanel === activeMapControlMenu;
+        tabPanel.classList.toggle('is-open', isActive);
+        tabPanel.setAttribute('aria-hidden', String(!isActive));
+    });
+    if (container) container.classList.toggle('has-submenu', isRootOpen && activeMapControlMenu !== null);
+}
+
+function syncTickerControlUI() {
+    document.querySelectorAll('[data-ticker-criterion]').forEach(criterionButton => {
+        const isActive = criterionButton.dataset.tickerCriterion === mapControlState.tickerCriterion;
+        criterionButton.classList.toggle('active', isActive);
+        criterionButton.setAttribute('aria-pressed', String(isActive));
+    });
+    document.querySelectorAll('[data-ticker-direction]').forEach(directionButton => {
+        const isActive = directionButton.dataset.tickerDirection === mapControlState.tickerDirection;
+        directionButton.classList.toggle('active', isActive);
+        directionButton.setAttribute('aria-pressed', String(isActive));
+    });
+}
+
+function syncSettingsControlUI() {
+    document.querySelectorAll('[data-map-theme]').forEach(themeButton => {
+        const isActive = themeButton.dataset.mapTheme === mapControlState.theme;
+        themeButton.classList.toggle('active', isActive);
+        themeButton.setAttribute('aria-pressed', String(isActive));
+    });
+    const slicer = document.getElementById('completion-slicer-toggle');
+    if (slicer) {
+        slicer.classList.toggle('active', mapControlState.completionSlicerEnabled);
+        slicer.setAttribute('aria-pressed', String(mapControlState.completionSlicerEnabled));
+    }
+}
+
+function syncMapControlCenterUI() {
+    syncControlCenterTabs();
+    setControlToggleState('fab-action-projects', 'fab-state-projects', showProjects);
+    setControlToggleState('fab-action-branches', 'fab-state-branches', showBranches);
+    setControlToggleState('fab-action-analysis', 'fab-state-analysis', isBusinessAnalysisMode);
+    setControlToggleState('fab-action-warning', 'fab-state-warning', isEarlyWarningMode);
+    syncTickerControlUI();
+    syncSettingsControlUI();
+}
+
+function selectMapControlTab(tabName) {
+    if (!MAP_CONTROL_TABS.has(tabName)) return;
+    activeMapControlMenu = activeMapControlMenu === tabName ? null : tabName;
+    syncMapControlCenterUI();
+}
+
+function setTickerSortCriterion(criterion) {
+    if (!TICKER_SORT_CRITERIA.has(criterion)) return;
+    mapControlState.tickerCriterion = criterion;
+    saveMapControlState();
+    syncMapControlCenterUI();
+    renderHeaderStockTicker();
+}
+
+function setTickerSortDirection(direction) {
+    if (direction !== 'asc' && direction !== 'desc') return;
+    mapControlState.tickerDirection = direction;
+    saveMapControlState();
+    syncMapControlCenterUI();
+    renderHeaderStockTicker();
+}
+
+function setCompletionSlicerEnabled(isEnabled) {
+    mapControlState.completionSlicerEnabled = isEnabled === true;
+    saveMapControlState();
+    syncMapControlCenterUI();
+}
+
+function toggleCompletionSlicerEnabled() {
+    setCompletionSlicerEnabled(!mapControlState.completionSlicerEnabled);
+}
+
+function persistMapModeState() {
+    mapControlState.showProjects = showProjects;
+    mapControlState.showBranches = showBranches;
+    mapControlState.businessAnalysis = isBusinessAnalysisMode;
+    mapControlState.earlyWarning = isEarlyWarningMode;
+    saveMapControlState();
+    syncMapControlCenterUI();
+}
+
+function restoreMapControlState() {
+    mapControlState = loadMapControlState();
+    showProjects = mapControlState.showProjects;
+    showBranches = mapControlState.showBranches;
+    isBusinessAnalysisMode = mapControlState.businessAnalysis;
+    isEarlyWarningMode = mapControlState.earlyWarning;
+    setMapTheme(mapControlState.theme);
+}
+
+function applyRestoredMapDisplayMode() {
+    if (geoJsonLayer) geoJsonLayer.setStyle(getCountryBoundaryStyle);
+    if (isEarlyWarningMode) {
+        if (markersGroup) markersGroup.clearLayers();
+        renderAllEarlyWarningMarkers();
+    } else if (isBusinessAnalysisMode) {
+        if (markersGroup) markersGroup.clearLayers();
+        if (showBranches) renderBranchMarkersOnly();
+    } else {
+        updateMapMarkers();
+    }
+    updateFloatingMapLegend();
+}
+
 function toggleMapControlsMenu(event) {
     if (event) event.stopPropagation();
     const container = document.getElementById('map-controls-container');
@@ -1773,11 +1703,11 @@ function toggleMapControlsMenu(event) {
     if (!container || !btn) return;
     const isOpen = container.classList.contains('is-open');
     if (isOpen) {
-        container.classList.remove('is-open');
-        btn.setAttribute('aria-expanded', 'false');
+        closeMapControlsMenu();
     } else {
         container.classList.add('is-open');
         btn.setAttribute('aria-expanded', 'true');
+        syncControlCenterTabs();
     }
 }
 
@@ -1786,6 +1716,8 @@ function closeMapControlsMenu() {
     const btn = document.getElementById('map-controls-trigger');
     if (container) container.classList.remove('is-open');
     if (btn) btn.setAttribute('aria-expanded', 'false');
+    activeMapControlMenu = null;
+    syncControlCenterTabs();
 }
 
 // Auto-close menu when clicking outside
@@ -1793,6 +1725,15 @@ document.addEventListener('click', (e) => {
     const container = document.getElementById('map-controls-container');
     if (container && !container.contains(e.target)) {
         closeMapControlsMenu();
+    }
+});
+
+document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+        const btn = document.getElementById('map-controls-trigger');
+        const wasOpen = document.getElementById('map-controls-container')?.classList.contains('is-open');
+        closeMapControlsMenu();
+        if (wasOpen && btn) btn.focus();
     }
 });
 
@@ -1820,6 +1761,7 @@ function toggleMapLayer(layer) {
     } else {
         updateMapMarkers();
     }
+    persistMapModeState();
 }
 
 function toggleBusinessAnalysisMode() {
@@ -1835,6 +1777,9 @@ function toggleBusinessAnalysisMode() {
 
     // Re-apply boundary colors (heatmap green / red / yellow)
     if (geoJsonLayer) {
+        geoJsonLayer.eachLayer(countryLayer => {
+            if (typeof countryLayer.closeTooltip === 'function') countryLayer.closeTooltip();
+        });
         geoJsonLayer.setStyle(getCountryBoundaryStyle);
     }
 
@@ -1845,6 +1790,7 @@ function toggleBusinessAnalysisMode() {
         updateMapMarkers();
     }
     updateFloatingMapLegend();
+    persistMapModeState();
 }
 
 /* ==================================================== */
@@ -1853,10 +1799,244 @@ function toggleBusinessAnalysisMode() {
 let isEarlyWarningMode = false;
 let earlyWarningMarkersGroup = null;
 
+const EARLY_WARNING_MAX_SCORE = 100;
+
+function normalizeEarlyWarningText(answerValue) {
+    return String(answerValue === null || answerValue === undefined ? '' : answerValue)
+        .normalize('NFKC')
+        .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
+        .replace(/[إأآٱ]/g, 'ا')
+        .replace(/ى/g, 'ي')
+        .replace(/ؤ/g, 'و')
+        .replace(/ئ/g, 'ي')
+        .toLowerCase()
+        .replace(/[\s\-_/.,،:;؛؟!?()[\]{}]+/g, '');
+}
+
+function earlyWarningAnswerIncludes(answerValue, candidates) {
+    const normalized = normalizeEarlyWarningText(answerValue);
+    return normalized !== '' && candidates.some(candidate => normalized.includes(normalizeEarlyWarningText(candidate)));
+}
+
+function isEarlyWarningNoAnswer(answerValue) {
+    const normalized = normalizeEarlyWarningText(answerValue);
+    if (!normalized) return false;
+    return normalized === 'لا'
+        || normalized === 'no'
+        || normalized === 'كلا'
+        || normalized.startsWith('لايوجد')
+        || normalized.startsWith('لاتوجد')
+        || normalized.startsWith('لميتم')
+        || normalized.startsWith('غيرموجود')
+        || normalized.startsWith('غيرمتوفر');
+}
+
+function isEarlyWarningYesAnswer(answerValue) {
+    const normalized = normalizeEarlyWarningText(answerValue);
+    if (!normalized || isEarlyWarningNoAnswer(answerValue)) return false;
+    return normalized === 'نعم'
+        || normalized === 'yes'
+        || normalized.startsWith('تم')
+        || normalized.includes('يوجد')
+        || normalized.includes('موجود')
+        || normalized.includes('متوفر')
+        || normalized.includes('معتمد');
+}
+
+function isNoStartupProblemAnswer(answerValue) {
+    return earlyWarningAnswerIncludes(answerValue, [
+        'لا يوجد مشاكل في القدرة',
+        'لا توجد مشاكل في القدرة',
+        'لا يوجد مشاكل في البدء',
+        'لا توجد مشاكل في البدء',
+        'لا يوجد معوقات',
+        'لا توجد معوقات',
+        'لا ينطبق'
+    ]);
+}
+
+function makeEarlyWarningItem(question, answer, points, maxPoints) {
+    const cleanAnswer = String(answer === null || answer === undefined ? '' : answer).trim();
+    return {
+        q: question,
+        ans: cleanAnswer || 'بيانات غير مكتملة',
+        points,
+        maxPoints,
+        status: points === maxPoints ? 'pass' : (points > 0 ? 'warn' : 'fail')
+    };
+}
+
+function boqAccuracyRatio(answer) {
+    if (!normalizeEarlyWarningText(answer)) return 0;
+    if (earlyWarningAnswerIncludes(answer, ['غير دقيقة', 'غير دقيق'])) return 0;
+    if (earlyWarningAnswerIncludes(answer, ['دقيقة للغاية', 'دقيق للغاية', 'دقيقة جدا', 'دقيق جدا', 'ممتاز'])) return 1;
+    if (earlyWarningAnswerIncludes(answer, ['فوق المتوسطة', 'فوق المتوسط', 'اعلى من المتوسط'])) return 0.75;
+    if (earlyWarningAnswerIncludes(answer, ['متوسطة', 'متوسط'])) return 0.5;
+    if (earlyWarningAnswerIncludes(answer, ['دقيقة', 'دقيق'])) return 1;
+    return 0;
+}
+
+function noOutstandingValueRatio(rawAnswer, numericValue) {
+    const hasRawAnswer = rawAnswer !== null
+        && rawAnswer !== undefined
+        && String(rawAnswer).trim() !== '';
+    if (!hasRawAnswer) return 0;
+
+    const numericAnswer = typeof rawAnswer === 'number'
+        ? rawAnswer
+        : Number(String(rawAnswer).replace(/,/g, '').trim());
+
+    if (Number.isFinite(numericAnswer)) return numericAnswer === 0 ? 1 : 0;
+    if (earlyWarningAnswerIncludes(rawAnswer, ['صفر', 'zero']) || isEarlyWarningNoAnswer(rawAnswer)) return 1;
+    if (Number(numericValue) > 0) return 0;
+    return 0;
+}
+
+function getEarlyWarningLevel(score) {
+    // Boundary contract: 75 is green, 50 is yellow, and every lower score is red.
+    if (score >= 75) {
+        return {
+            level: 'safe',
+            levelLabel: 'مستقر وآمن',
+            color: '#10b981',
+            pulseClass: 'radar-pulse-slow'
+        };
+    }
+    if (score >= 50) {
+        return {
+            level: 'medium',
+            levelLabel: 'تحت المتابعة والملاحظة',
+            color: '#f59e0b',
+            pulseClass: 'radar-pulse-medium'
+        };
+    }
+    return {
+        level: 'danger',
+        levelLabel: 'إنذار مبكر حرج',
+        color: '#ef4444',
+        pulseClass: 'radar-pulse-fast'
+    };
+}
+
+const EARLY_WARNING_GROUPS = [
+    { key: 'contract', title: 'الموقف التعاقدي والمقايسة', icon: 'fa-file-contract' },
+    { key: 'startup', title: 'إجراءات بدء المشروع والتواصل', icon: 'fa-handshake' },
+    { key: 'delivery', title: 'التوريدات والسيولة والمستحقات', icon: 'fa-chart-line' }
+];
+
+const EARLY_WARNING_QUESTIONS = [
+    {
+        groupKey: 'contract',
+        question: 'موقف المطالبات والتحكيم',
+        maxPoints: 14,
+        readAnswer: report => report.claimsStatus,
+        scoreRatio: answer => isEarlyWarningNoAnswer(answer) ? 1 : 0
+    },
+    {
+        groupKey: 'contract',
+        question: 'هل يوجد مقايسة للمشروع (BOQ)؟',
+        maxPoints: 5,
+        readAnswer: report => report.hasBillOfQuantities,
+        scoreRatio: answer => isEarlyWarningYesAnswer(answer) ? 1 : 0
+    },
+    {
+        groupKey: 'contract',
+        question: 'ما مدى دقة مقايسة المشروع؟',
+        maxPoints: 6,
+        readAnswer: report => report.boqAccuracy,
+        scoreRatio: boqAccuracyRatio
+    },
+    {
+        groupKey: 'contract',
+        question: 'هل تم إصدار الضمانات ووثيقة التأمين في بداية المشروع؟',
+        maxPoints: 5,
+        readAnswer: report => report.lgIssued,
+        scoreRatio: answer => isEarlyWarningYesAnswer(answer) ? 1 : 0
+    },
+    {
+        groupKey: 'startup',
+        question: 'هل تم الاجتماع مع العميل خلال 15 يوما عند تعذر البدء؟',
+        maxPoints: 5,
+        readAnswer: report => report.meetingClient15Days,
+        scoreRatio: answer => (isNoStartupProblemAnswer(answer) || isEarlyWarningYesAnswer(answer)) ? 1 : 0
+    },
+    {
+        groupKey: 'startup',
+        question: 'هل تم إرسال خطاب رسمي للعميل موضحا معوقات البدء؟',
+        maxPoints: 5,
+        readAnswer: report => report.formalLetterSent,
+        scoreRatio: answer => (isNoStartupProblemAnswer(answer) || isEarlyWarningYesAnswer(answer)) ? 1 : 0
+    },
+    {
+        groupKey: 'delivery',
+        question: 'هل تم إعداد برنامج توريدات مستوف لجميع مراحل الشراء؟',
+        maxPoints: 10,
+        readAnswer: report => report.supplySchedulePrepared,
+        scoreRatio: answer => isEarlyWarningYesAnswer(answer) ? 1 : 0
+    },
+    {
+        groupKey: 'delivery',
+        question: 'هل تم اعتماد جميع مهمات الكهروميكانيك؟',
+        maxPoints: 12,
+        readAnswer: report => report.mepApproved,
+        scoreRatio: answer => isEarlyWarningYesAnswer(answer) ? 1 : 0
+    },
+    {
+        groupKey: 'delivery',
+        question: 'هل تم إعداد ومراجعة برنامج التدفقات النقدية؟',
+        maxPoints: 13,
+        readAnswer: report => report.cashFlowPlanPrepared,
+        scoreRatio: answer => isEarlyWarningYesAnswer(answer) ? 1 : 0
+    },
+    {
+        groupKey: 'delivery',
+        question: 'هل يوجد تدفق نقدي سالب؟',
+        maxPoints: 15,
+        readAnswer: report => report.negativeCashFlow,
+        scoreRatio: answer => isEarlyWarningNoAnswer(answer) ? 1 : 0
+    },
+    {
+        groupKey: 'delivery',
+        question: 'إجمالي قيمة مستحقات مقاولي الباطن',
+        maxPoints: 10,
+        readAnswer: report => report.subcontractorsDueAnswer,
+        scoreRatio: (answer, report) => noOutstandingValueRatio(answer, report.subcontractorsDue)
+    }
+];
+
+function evaluateEarlyWarningQuestions(report) {
+    return EARLY_WARNING_QUESTIONS.map(questionDefinition => {
+        const answer = questionDefinition.readAnswer(report);
+        const points = questionDefinition.maxPoints * questionDefinition.scoreRatio(answer, report);
+        return { ...questionDefinition, answer, points };
+    });
+}
+
+function groupEarlyWarningQuestions(questionResults) {
+    return EARLY_WARNING_GROUPS.map(groupDefinition => ({
+        title: groupDefinition.title,
+        icon: groupDefinition.icon,
+        items: questionResults
+            .filter(questionResult => questionResult.groupKey === groupDefinition.key)
+            .map(questionResult => makeEarlyWarningItem(
+                questionResult.question,
+                questionResult.answer,
+                questionResult.points,
+                questionResult.maxPoints
+            ))
+    }));
+}
+
+function calculateEarlyWarningScore(questionResults) {
+    const awardedPoints = questionResults.reduce((sum, questionResult) => sum + questionResult.points, 0);
+    const boundedPoints = Math.min(EARLY_WARNING_MAX_SCORE, Math.max(0, awardedPoints));
+    return Math.round(boundedPoints * 10) / 10;
+}
+
 function evaluateProjectEarlyWarning(report) {
     if (!report) {
         return {
-            score: 25,
+            score: 0,
             level: 'danger',
             levelLabel: 'بيانات غير مكتملة',
             color: '#ef4444',
@@ -1865,276 +2045,55 @@ function evaluateProjectEarlyWarning(report) {
         };
     }
 
-    let score = 0;
-    const groups = [];
+    const questionResults = evaluateEarlyWarningQuestions(report);
+    const score = calculateEarlyWarningScore(questionResults);
+    return {
+        score,
+        ...getEarlyWarningLevel(score),
+        groups: groupEarlyWarningQuestions(questionResults)
+    };
+}
 
-    const A = report.revisedContractValue || report.contractValue || 0;
-    const B = report.executedWorkTotal || 0;
-    const C = report.executedWorkApproved || 0;
-    const D = report.paidWork || 0;
-    const G = report.dueDebt || 0;
-    const H = report.uncollectibleWork || 0;
-    const progress = report.plannedProgressPercent || 0;
-    const status = String(report.scheduleStatus || '').trim();
-    const obstacles = String(report.projectObstacles || '').trim();
-    const claims = String(report.claimsStatus || '').trim();
-    const claimsVal = report.claimsValue || 0;
+function summarizeCountryEarlyWarning(projects) {
+    const projectList = Array.isArray(projects) ? projects.filter(Boolean) : [];
+    if (projectList.length === 0) {
+        return {
+            score: null,
+            level: 'neutral',
+            levelLabel: 'لا توجد بيانات مشروعات',
+            color: '#64748b',
+            totalProjects: 0,
+            dangerCount: 0,
+            mediumCount: 0,
+            safeCount: 0
+        };
+    }
 
-    const isDelayedStatus = status.includes('متأخر') || status.includes('خارج') || status.includes('متوقف') || status.includes('بطيء') || status.includes('تعثر') || status.includes('تأخير');
-    const hasObstacles = obstacles && !obstacles.includes('لا توجد') && !obstacles.includes('لايوجد') && obstacles.length > 4;
-    const hasClaims = claims && !claims.includes('لا يوجد') && !claims.includes('لايوجد') && !claims.includes('ودى') && !claims.includes('ودي');
-    const collectionRatio = C > 0 ? (D / C) : (D > 0 ? 1 : 0.5);
+    let totalScore = 0;
+    let dangerCount = 0;
+    let mediumCount = 0;
+    let safeCount = 0;
 
-    // 1. المقايسة ودقة التقدير المالي (15 pts)
-    const boqItems = [];
-    const hasBoqRaw = String(report.hasBillOfQuantities || '').trim();
-    const hasBoq = hasBoqRaw.includes('نعم') || hasBoqRaw.includes('متاح') || hasBoqRaw.includes('يوجد') || (A > 0 && report.contractValue > 0);
-    if (hasBoq) score += 8; else score += 1;
-    boqItems.push({
-        q: 'هل يوجد مقايسة للمشروع؟',
-        ans: hasBoq ? 'يوجد مقايسة تعاقدية معتمدة' : 'غير متوفرة / قيد الإعداد',
-        status: hasBoq ? 'pass' : 'fail'
+    projectList.forEach(project => {
+        const projectWarning = evaluateProjectEarlyWarning(project);
+        totalScore += projectWarning.score;
+        if (projectWarning.level === 'danger') dangerCount++;
+        else if (projectWarning.level === 'medium') mediumCount++;
+        else safeCount++;
     });
 
-    const boqAccRaw = String(report.boqAccuracy || '').trim();
-    const boqVariance = (A > 0 && report.contractValue > 0) ? Math.abs(A - report.contractValue) / report.contractValue : 0;
-    const isBoqAcc = boqAccRaw.includes('عالي') || boqAccRaw.includes('ممتاز') || boqAccRaw.includes('دقيق') || (boqVariance < 0.15 && boqVariance >= 0);
-    if (isBoqAcc) score += 7; else if (boqVariance < 0.35) score += 4; else score += 1;
-    boqItems.push({
-        q: 'دقة مقايسة المشروع',
-        ans: boqAccRaw || (isBoqAcc ? 'دقة تقدير جيدة ومطابقة' : `فروق كميات بنسبة ${(boqVariance * 100).toFixed(0)}%`),
-        status: isBoqAcc ? 'pass' : 'warn'
-    });
-    groups.push({ title: 'المقايسة ودقة التقدير المالي', icon: 'fa-file-invoice-dollar', items: boqItems });
-
-    // 2. المطالبات والتحكيم (15 pts)
-    const claimsItems = [];
-    if (!hasClaims && claimsVal === 0) {
-        score += 15;
-        claimsItems.push({
-            q: 'موقف المطالبات والتحكيم',
-            ans: 'لا توجد نزاعات أو تحكيم معلق',
-            status: 'pass'
-        });
-        claimsItems.push({
-            q: 'حجم المطالبات والتحكيم',
-            ans: 'صفر (لا توجد مطالبات مالية)',
-            status: 'pass'
-        });
-    } else if (claims.includes('تفاوض') || claims.includes('ودى') || claims.includes('ودي') || (claimsVal > 0 && claimsVal < A * 0.1)) {
-        score += 7;
-        claimsItems.push({
-            q: 'موقف المطالبات والتحكيم',
-            ans: claims || 'جاري التفاوض والتسوية الودية',
-            status: 'warn'
-        });
-        claimsItems.push({
-            q: 'حجم المطالبات والتحكيم',
-            ans: claimsVal > 0 ? formatCurrencyUSD(claimsVal) : 'مطالبات تحت الدراسة',
-            status: 'warn'
-        });
-    } else {
-        score += 1;
-        claimsItems.push({
-            q: 'موقف المطالبات والتحكيم',
-            ans: claims || 'نزاع أو تحكيم قائم',
-            status: 'fail'
-        });
-        claimsItems.push({
-            q: 'حجم المطالبات والتحكيم',
-            ans: claimsVal > 0 ? formatCurrencyUSD(claimsVal) : 'مطالبات مالية مؤثرة',
-            status: 'fail'
-        });
-    }
-    groups.push({ title: 'المطالبات والتحكيم والنزاعات التعاقدية', icon: 'fa-scale-balanced', items: claimsItems });
-
-    // 3. السيولة والمستحقات والتحصيل (25 pts)
-    const finItems = [];
-    if (collectionRatio >= 0.85) {
-        score += 10;
-        finItems.push({
-            q: 'كفاءة التحصيل (المسدد مقارنة بالمعتمد)',
-            ans: `تحصيل ممتاز بنسبة ${(collectionRatio * 100).toFixed(0)}%`,
-            status: 'pass'
-        });
-    } else if (collectionRatio >= 0.60) {
-        score += 5;
-        finItems.push({
-            q: 'كفاءة التحصيل (المسدد مقارنة بالمعتمد)',
-            ans: `تحصيل متوسط بنسبة ${(collectionRatio * 100).toFixed(0)}%`,
-            status: 'warn'
-        });
-    } else {
-        score += 1;
-        finItems.push({
-            q: 'كفاءة التحصيل (المسدد مقارنة بالمعتمد)',
-            ans: `تأخر تحصيل حرج بنسبة ${(collectionRatio * 100).toFixed(0)}%`,
-            status: 'fail'
-        });
-    }
-
-    if (H === 0) {
-        score += 5;
-        finItems.push({
-            q: 'الأعمال غير القابلة للصرف',
-            ans: 'صفر (كافة الأعمال قابلة للصرف)',
-            status: 'pass'
-        });
-    } else {
-        score += 0;
-        finItems.push({
-            q: 'الأعمال غير القابلة للصرف',
-            ans: formatCurrencyUSD(H) + ' (مستحقات معلقة)',
-            status: 'fail'
-        });
-    }
-
-    const isDebtHigh = C > 0 && (G / C) > 0.25;
-    if (!isDebtHigh) {
-        score += 5;
-        finItems.push({
-            q: 'مديونية أعمال لم تسدد بعد',
-            ans: G > 0 ? formatCurrencyUSD(G) : 'ضمن الحدود المقبولة',
-            status: 'pass'
-        });
-    } else {
-        score += 1;
-        finItems.push({
-            q: 'مديونية أعمال لم تسدد بعد',
-            ans: formatCurrencyUSD(G) + ' (مديونية مرتفعة)',
-            status: 'fail'
-        });
-    }
-
-    const isSubOk = report.subcontractorsDue === 0 || (report.collectedLiquidity > 0 && report.subcontractorsDue / report.collectedLiquidity < 0.35);
-    if (isSubOk) score += 5; else score += 1;
-    finItems.push({
-        q: 'مستحقات مقاولي الباطن',
-        ans: report.subcontractorsDue > 0 ? formatCurrencyUSD(report.subcontractorsDue) : 'مستحقات مسددة ومنتظمة',
-        status: isSubOk ? 'pass' : 'warn'
-    });
-    groups.push({ title: 'السيولة والمستحقات والتحصيل', icon: 'fa-coins', items: finItems });
-
-    // 4. المعوقات والتواصل الرسمي (15 pts)
-    const obsItems = [];
-    if (!hasObstacles) {
-        score += 15;
-        obsItems.push({
-            q: 'معوقات المشروع الميدانية',
-            ans: 'لا توجد معوقات تعيق سير الأعمال',
-            status: 'pass'
-        });
-        obsItems.push({
-            q: 'التواصل والخطابات الرسمية للجهة المالكة',
-            ans: 'موقف تعاقدي مستقر ومنتظم',
-            status: 'pass'
-        });
-    } else {
-        const formalSent = String(report.formalLetterSent || '').trim();
-        const isLetterOk = formalSent.includes('تم') || formalSent.includes('نعم') || formalSent.includes('ارسال');
-        if (isLetterOk) score += 7; else score += 1;
-        obsItems.push({
-            q: 'معوقات المشروع الميدانية',
-            ans: obstacles,
-            status: 'fail'
-        });
-        obsItems.push({
-            q: 'التواصل والخطابات الرسمية للجهة المالكة',
-            ans: isLetterOk ? 'تم إرسال وتوثيق خطابات رسمية بالمعوقات' : 'معوقات قائمة تتطلب مخاطبة رسمية عاجلة',
-            status: isLetterOk ? 'warn' : 'fail'
-        });
-    }
-    groups.push({ title: 'المعوقات والتواصل الرسمي مع العميل', icon: 'fa-handshake', items: obsItems });
-
-    // 5. التوريدات والكهروميكانيك (15 pts)
-    const mepItems = [];
-    const supRaw = String(report.supplySchedulePrepared || '').trim();
-    const isSup = supRaw.includes('نعم') || supRaw.includes('تم') || supRaw.includes('معتمد');
-    if (isSup || !hasObstacles) score += 8; else score += 2;
-    mepItems.push({
-        q: 'إعداد برنامج توريدات الخامات والمهمات',
-        ans: isSup ? 'برنامج توريدات معتمد ومنفذ' : (supRaw || 'برنامج توريدات قيد التحديث'),
-        status: (isSup || !hasObstacles) ? 'pass' : 'warn'
-    });
-
-    const mepRaw = String(report.mepApproved || '').trim();
-    const isMep = mepRaw.includes('نعم') || mepRaw.includes('تم') || mepRaw.includes('معتمد');
-    if (isMep || !hasObstacles) score += 7; else score += 2;
-    mepItems.push({
-        q: 'اعتماد جميع مهام الكهروميكانيك',
-        ans: isMep ? 'مهام معتمدة ومطابقة للمواصفات' : (mepRaw || 'اعتماد جزئي جاري استكماله'),
-        status: (isMep || !hasObstacles) ? 'pass' : 'warn'
-    });
-    groups.push({ title: 'التوريدات والأعمال الكهروميكانيكية', icon: 'fa-gears', items: mepItems });
-
-    // 6. البرنامج الزمني ومد المدة ومعدلات الأداء (15 pts)
-    const schedItems = [];
-    if (!isDelayedStatus && progress >= 30) {
-        score += 15;
-        schedItems.push({
-            q: 'الموقف التنفيذي والجدول الزمني',
-            ans: `منتظم بمعدل إنجاز ${progress}%`,
-            status: 'pass'
-        });
-        schedItems.push({
-            q: 'تاريخ النهو المتوقع مقارنة بالمعتمد',
-            ans: report.revisedEndDate || report.contractEndDate || 'وفق الجدول التعاقدي',
-            status: 'pass'
-        });
-    } else if (!isDelayedStatus || progress >= 20) {
-        score += 8;
-        schedItems.push({
-            q: 'الموقف التنفيذي والجدول الزمني',
-            ans: status || `معدل إنجاز ${progress}% يحتاج زيادة وتيرة التنفيذ`,
-            status: 'warn'
-        });
-        schedItems.push({
-            q: 'تاريخ النهو المتوقع مقارنة بالمعتمد',
-            ans: report.expectedFinishDate || report.revisedEndDate || 'قيد المتابعة',
-            status: 'warn'
-        });
-    } else {
-        score += 1;
-        schedItems.push({
-            q: 'الموقف التنفيذي والجدول الزمني',
-            ans: status || `تأخر حرج بمعدل إنجاز ${progress}%`,
-            status: 'fail'
-        });
-        schedItems.push({
-            q: 'تاريخ النهو المتوقع مقارنة بالمعتمد',
-            ans: report.expectedFinishDate || report.revisedEndDate || 'تأخر متوقع عن الموعد التعاقدي',
-            status: 'fail'
-        });
-    }
-    groups.push({ title: 'البرنامج الزمني ومعدلات الأداء', icon: 'fa-stopwatch', items: schedItems });
-
-    // Final Score bounded between 15% and 100%
-    score = Math.min(100, Math.max(15, Math.round(score)));
-
-    let level = 'safe';
-    let levelLabel = 'مستقر وآمن';
-    let color = '#10b981';
-    let pulseClass = 'radar-pulse-slow';
-
-    if (score < 50) {
-        level = 'danger';
-        levelLabel = 'إنذار مبكر حرج';
-        color = '#ef4444';
-        pulseClass = 'radar-pulse-fast';
-    } else if (score < 75) {
-        level = 'medium';
-        levelLabel = 'تحت المتابعة والملاحظة';
-        color = '#f59e0b';
-        pulseClass = 'radar-pulse-medium';
-    }
+    const score = Math.round((totalScore / projectList.length) * 10) / 10;
+    const levelData = getEarlyWarningLevel(score);
 
     return {
         score,
-        level,
-        levelLabel,
-        color,
-        pulseClass,
-        groups
+        level: levelData.level,
+        levelLabel: levelData.levelLabel,
+        color: levelData.color,
+        totalProjects: projectList.length,
+        dangerCount,
+        mediumCount,
+        safeCount
     };
 }
 
@@ -2156,76 +2115,24 @@ function evaluateCountryEarlyWarning(countryName, isoCode = null) {
 
     const countryProjects = [];
     const seen = new Set();
-    reportsData.forEach(r => {
-        if (!r || !r.projectName || seen.has(r.projectName)) return;
-        const c = r.country || branchToCountryMap[r.branchName] || projectToCountryMap[r.projectName] || '';
-        if (countriesMatch(c, countryName) || (isoCode && countriesMatch(c, isoCode))) {
-            seen.add(r.projectName);
-            countryProjects.push(r);
+    reportsData.forEach(report => {
+        if (!report || !report.projectName || seen.has(report.projectName)) return;
+        const country = report.country
+            || branchToCountryMap[report.branchName]
+            || projectToCountryMap[report.projectName]
+            || '';
+        if (countriesMatch(country, countryName) || (isoCode && countriesMatch(country, isoCode))) {
+            seen.add(report.projectName);
+            countryProjects.push(report);
         }
     });
 
-    if (countryProjects.length === 0) {
-        return {
-            score: 75,
-            level: 'safe',
-            levelLabel: 'مستقر',
-            color: '#10b981',
-            totalProjects: 0,
-            dangerCount: 0,
-            mediumCount: 0,
-            safeCount: 0
-        };
-    }
-
-    let totalScore = 0;
-    let dangerCount = 0;
-    let mediumCount = 0;
-    let safeCount = 0;
-
-    countryProjects.forEach(p => {
-        const ew = evaluateProjectEarlyWarning(p);
-        totalScore += ew.score;
-        if (ew.level === 'danger') dangerCount++;
-        else if (ew.level === 'medium') mediumCount++;
-        else safeCount++;
-    });
-
-    const totalProjects = countryProjects.length;
-    const avgScore = Math.round(totalScore / totalProjects);
-    let ewColor = getEarlyWarningColor(avgScore, dangerCount, totalProjects);
-    let level = 'safe';
-    let levelLabel = 'مستقر وآمن';
-
-    if (avgScore < 50 || dangerCount >= Math.max(1, Math.ceil(totalProjects * 0.35))) {
-        level = 'danger';
-        levelLabel = 'إنذار حرج';
-        ewColor = '#ef4444';
-    } else if (avgScore < 75 || dangerCount > 0) {
-        level = 'medium';
-        levelLabel = 'ملاحظة ومتابعة';
-        ewColor = '#f59e0b';
-    }
-
-    return {
-        score: avgScore,
-        level,
-        levelLabel,
-        color: ewColor,
-        totalProjects,
-        dangerCount,
-        mediumCount,
-        safeCount
-    };
+    return summarizeCountryEarlyWarning(countryProjects);
 }
 
 function getEarlyWarningColor(score) {
-    if (score >= 80) return '#10b981'; // Emerald Green (Healthy)
-    if (score >= 70) return '#22c55e'; // Green
-    if (score >= 60) return '#84cc16'; // Lime / Yellow-Green
-    if (score >= 50) return '#eab308'; // Amber-Yellow
-    if (score >= 40) return '#f97316'; // Orange (High Risk)
-    return '#ef4444'; // Red (Critical Danger)
+    if (score === null || score === undefined || Number.isNaN(Number(score))) return '#64748b';
+    return getEarlyWarningLevel(Number(score)).color;
 }
 
 function toggleEarlyWarningMode() {
@@ -2252,6 +2159,7 @@ function toggleEarlyWarningMode() {
         updateMapMarkers();
     }
     updateFloatingMapLegend();
+    persistMapModeState();
 }
 
 function updateFloatingMapLegend() {
@@ -2259,31 +2167,28 @@ function updateFloatingMapLegend() {
     const content = document.getElementById('legend-card-content');
     if (!container || !content) return;
 
+    content.classList.toggle('compact-market-legend', isBusinessAnalysisMode && !isEarlyWarningMode);
+    content.classList.toggle('flat-legend', isBusinessAnalysisMode || isEarlyWarningMode);
+
     if (isEarlyWarningMode) {
         content.innerHTML = `
-            <div class="legend-header">
-                <div class="legend-title">
-                    <i class="fa-solid fa-triangle-exclamation" style="color:#ef4444;"></i>
-                    <span>دليل مؤشرات الإنذار المبكر</span>
-                </div>
-            </div>
             <div class="legend-items">
                 <div class="legend-row">
                     <div class="legend-swatch-group">
                         <span class="legend-swatch" style="background:#10b981; color:rgba(16,185,129,0.55);"></span>
-                        <span class="legend-label">مستقر / أداء ممتاز</span>
+                        <span class="legend-label">75 - 100: مستقر / أداء ممتاز</span>
                     </div>
                 </div>
                 <div class="legend-row">
                     <div class="legend-swatch-group">
                         <span class="legend-swatch" style="background:#f59e0b; color:rgba(245,158,11,0.55);"></span>
-                        <span class="legend-label">تحت المراقبة / أداء متوسط</span>
+                        <span class="legend-label">50 - أقل من 75: تحت المتابعة</span>
                     </div>
                 </div>
                 <div class="legend-row">
                     <div class="legend-swatch-group">
                         <span class="legend-swatch" style="background:#ef4444; color:rgba(239,68,68,0.55);"></span>
-                        <span class="legend-label">خطر / حرج</span>
+                        <span class="legend-label">أقل من 50: خطر / حرج</span>
                     </div>
                 </div>
             </div>
@@ -2291,29 +2196,29 @@ function updateFloatingMapLegend() {
         container.classList.remove('hidden');
     } else if (isBusinessAnalysisMode) {
         content.innerHTML = `
-            <div class="legend-header">
-                <div class="legend-title">
-                    <i class="fa-solid fa-chart-pie" style="color:#10b981;"></i>
-                    <span>دليل تحليل الأعمال والأسواق</span>
-                </div>
-            </div>
             <div class="legend-items">
                 <div class="legend-row">
                     <div class="legend-swatch-group">
-                        <span class="legend-swatch" style="background:#10b981; color:rgba(16,185,129,0.55);"></span>
-                        <span class="legend-label">أسواق نشطة بمشاريع قائمة</span>
-                    </div>
-                </div>
-                <div class="legend-row">
-                    <div class="legend-swatch-group">
-                        <span class="legend-swatch" style="background:#ef4444; color:rgba(239,68,68,0.55);"></span>
-                        <span class="legend-label">فروع قائمة بدون مشاريع</span>
-                    </div>
-                </div>
-                <div class="legend-row">
-                    <div class="legend-swatch-group">
                         <span class="legend-swatch" style="background:#facc15; color:rgba(250,204,21,0.55);"></span>
-                        <span class="legend-label">أسواق جاري بحث فرص عمل بها</span>
+                        <span class="legend-label">فروع بدون مشروعات</span>
+                    </div>
+                </div>
+                <div class="legend-row">
+                    <div class="legend-swatch-group">
+                        <span class="legend-swatch" style="background:#991b1b; color:rgba(153,27,27,0.55);"></span>
+                        <span class="legend-label">فروع أعمالها منتهية</span>
+                    </div>
+                </div>
+                <div class="legend-row">
+                    <div class="legend-swatch-group">
+                        <span class="legend-swatch" style="background:#fca5a5; color:rgba(252,165,165,0.75);"></span>
+                        <span class="legend-label">فروع أعمالها شارفت على الانتهاء</span>
+                    </div>
+                </div>
+                <div class="legend-row">
+                    <div class="legend-swatch-group">
+                        <span class="legend-swatch" style="background:#10b981; color:rgba(16,185,129,0.55);"></span>
+                        <span class="legend-label">فروع بمشروعات نشطة</span>
                     </div>
                 </div>
             </div>
@@ -2372,7 +2277,8 @@ function renderAllEarlyWarningMarkers(targetCountry = null) {
 
             if (count > 1) {
                 const angle = (idx / count) * 2 * Math.PI - (Math.PI / 2);
-                const radius = 0.16 + (count > 6 ? 0.08 : 0);
+                // Keep early-warning collision offsets local to the project site.
+                const radius = Math.min(0.018, 0.008 + count * 0.001);
                 finalLat = bucket.baseLat + Math.sin(angle) * radius;
                 finalLng = bucket.baseLng + Math.cos(angle) * radius * 1.2;
             }
@@ -2398,33 +2304,6 @@ function renderAllEarlyWarningMarkers(targetCountry = null) {
             });
 
             const marker = L.marker([finalLat, finalLng], { icon });
-
-            marker.on('mouseover', () => {
-                const bar = document.getElementById('map-hovered-country-bar');
-                if (bar) {
-                    bar.innerHTML = `
-                        <span class="hover-country-name">${escapeHtml(country || '-')}</span>
-                        <span class="hover-divider"></span>
-                        <span class="hover-stat" style="color:#60A5FA;">🏢 ${escapeHtml(proj.branchName || '-')}</span>
-                        <span class="hover-divider"></span>
-                        <span class="hover-stat" style="color:${projColor}; font-weight:800;">🏗️ ${escapeHtml(proj.projectName)}</span>
-                        <span class="hover-divider"></span>
-                        <span class="hover-stat" style="color:${projColor}; font-weight:800;">الحالة: ${ew.levelLabel} (${ew.score}%)</span>
-                        <span class="hover-divider"></span>
-                        <span style="color:var(--theme-accent); font-size:11px; font-weight:700;">اضغط لتقرير الإنذار ❯</span>
-                    `;
-                }
-            });
-
-            marker.on('mouseout', () => {
-                const bar = document.getElementById('map-hovered-country-bar');
-                if (bar) {
-                    bar.innerHTML = `
-                        <span class="hover-flag">🌐</span>
-                        <span class="hover-hint">مرر الماوس فوق أي دولة أو مشروع أو فرع لعرض التفاصيل</span>
-                    `;
-                }
-            });
 
             marker.on('click', () => {
                 openEarlyWarningSidebar(proj.projectName, country, proj.branchName);
@@ -2484,7 +2363,7 @@ function openEarlyWarningSidebar(projectName, countryName = null, branchName = n
                     ${g.items.map(item => `
                         <div class="ew-item">
                             <span class="ew-item-q">${escapeHtml(item.q)}</span>
-                            <span class="ew-item-ans ew-ans-${item.status}">${escapeHtml(item.ans)}</span>
+                            <span class="ew-item-ans ew-ans-${item.status}">${escapeHtml(item.ans)} · ${item.points}/${item.maxPoints}</span>
                         </div>
                     `).join('')}
                 </div>
@@ -2536,24 +2415,7 @@ function closeEarlyWarningSidebar(event) {
 function renderBranchMarkersOnly() {
     if (!executiveMap || !markersGroup) return;
     markersGroup.clearLayers();
-    const branchesToRender = new Set(expectedBranches);
-    reportsData.forEach(r => {
-        if (r.branchName) branchesToRender.add(r.branchName);
-    });
-
-    branchesToRender.forEach(branchName => {
-        if (!branchName) return;
-        const country = branchToCountryMap[branchName] || '';
-        const bReports = reportsData.filter(r => r.branchName === branchName);
-        const bMapsLink = bReports.find(r => r.mapsLink)?.mapsLink || null;
-        const coords = typeof getBranchCoordinates === 'function' ? getBranchCoordinates(branchName, country, bMapsLink) : { lat: 30.0444, lng: 31.2357, isHQ: false };
-        const isHQ = coords.isHQ;
-
-        const branchIcon = createBranch3DMarkerIcon(branchName, country);
-        const marker = L.marker([coords.lat, coords.lng], { icon: branchIcon });
-        marker.on('click', () => openBranchDetailModal(branchName, country));
-        markersGroup.addLayer(marker);
-    });
+    addEntityMarkers(markersGroup);
 }
 
 function formatCompactUSD(val) {
@@ -2684,32 +2546,6 @@ function renderBusinessAnalysisBubbles() {
 
         const marker = L.marker(coords, { icon: bubbleIcon, zIndexOffset: 800 });
 
-        marker.on('mouseover', () => {
-            const bar = document.getElementById('map-hovered-country-bar');
-            if (bar) {
-                bar.innerHTML = `
-                    ${flagHtml}
-                    <span class="hover-country-name">${escapeHtml(countryName)}</span>
-                    <span class="hover-divider"></span>
-                    <span class="hover-stat" style="color:#34D399; font-weight:800;">💰 إجمالي حجم الأعمال: ${formatCurrencyUSD(totalVal)}</span>
-                    <span class="hover-divider"></span>
-                    <span class="hover-stat" style="color:#60A5FA; font-weight:700;">📁 ${projCount} مشاريع نشطة</span>
-                    <span class="hover-divider"></span>
-                    <span style="color:var(--theme-accent); font-size:11px; font-weight:700;">اضغط لعرض تفاصيل الدولة ❯</span>
-                `;
-            }
-        });
-
-        marker.on('mouseout', () => {
-            const bar = document.getElementById('map-hovered-country-bar');
-            if (bar) {
-                bar.innerHTML = `
-                    <span class="hover-flag">🌐</span>
-                    <span class="hover-hint">مرر الماوس فوق أي دولة أو مشروع أو فرع لعرض التفاصيل</span>
-                `;
-            }
-        });
-
         marker.on('click', () => openCountryDrawer(countryName));
         businessBubblesGroup.addLayer(marker);
     });
@@ -2760,7 +2596,21 @@ function openCountryDrawer(countryDataOrName, initialProjectName = null) {
         countryName = countryGeo.nameAr || countryGeo.fullNameAr || countryGeo.nameEn;
     }
 
+    activeCountryEntityTypes = new Set(ENTITY_TYPES);
+    activeCountryBoardContext = { countryGeo, countryName, initialProjectName };
     return openCountryBoard(countryGeo, countryName, initialProjectName);
+}
+
+function toggleCountryEntityTypeFilter(entityType) {
+    if (!ENTITY_TYPES.has(entityType) || !activeCountryBoardContext) return;
+    if (activeCountryEntityTypes.has(entityType)) {
+        activeCountryEntityTypes.delete(entityType);
+    } else {
+        activeCountryEntityTypes.add(entityType);
+    }
+    activeCountryBoardContext.initialProjectName = null;
+    const { countryGeo, countryName } = activeCountryBoardContext;
+    openCountryBoard(countryGeo, countryName);
 }
 
 function openCountryBoard(countryGeo, countryName, initialProjectName = null) {
@@ -2769,28 +2619,37 @@ function openCountryBoard(countryGeo, countryName, initialProjectName = null) {
     if (!overlay || !dialog) return;
 
     const reports = reportsData.filter(report => countriesMatch(report.country, countryName));
-    const latestByProject = new Map();
-    reports.forEach(report => {
-        const key = report.projectId || report.projectName;
-        const current = latestByProject.get(key);
-        if (key && (!current || (report.reportDate && (!current.reportDate || report.reportDate > current.reportDate)))) {
-            latestByProject.set(key, report);
-        }
-    });
-    const projects = [...latestByProject.values()];
+    const latestByProject = latestReportsByProject(reports);
+    const countryProjects = [...latestByProject.values()];
+    const availableCountryEntityTypes = new Set(
+        countryProjects.map(project => project.entityType).filter(entityType => ENTITY_TYPES.has(entityType))
+    );
+    const registeredCountryEntityTypes = new Set(
+        registeredEntities
+            .filter(entity => countriesMatch(entity.country, countryName))
+            .map(entity => entity.entityType)
+            .filter(entityType => ENTITY_TYPES.has(entityType))
+    );
+    activeCountryEntityTypes = new Set(
+        [...activeCountryEntityTypes].filter(entityType => availableCountryEntityTypes.has(entityType))
+    );
+    const projects = filterCountryProjectsByEntityType(countryProjects, activeCountryEntityTypes);
+    const branchProjectsAvailable = availableCountryEntityTypes.has('BRANCH');
+    const companyProjectsAvailable = availableCountryEntityTypes.has('COMPANY');
+    const branchPillVisible = registeredCountryEntityTypes.has('BRANCH') || branchProjectsAvailable;
+    const companyPillVisible = registeredCountryEntityTypes.has('COMPANY') || companyProjectsAvailable;
 
     const getMetrics = (p) => {
         if (!p) return { a: 0, b: 0, c: 0, d: 0, f: 0, j: 0, i: 0, h: 0, g: 0, coll: 0 };
-        const rate = p.exchangeRate || 1;
-        const a = (Number(p.revisedContractValue) || Number(p.contractValue) || 0) / rate;
-        const c = (Number(p.executedWorkApproved) || 0) / rate;
-        const b = (Number(p.executedWorkTotal) || c) / rate;
-        const d = (Number(p.paidWork) || 0) / rate;
-        const f = (Number(p.collectedLiquidity) || 0) / rate;
-        const j = (Number(p.wagesCost) || 0) / rate;
-        const i = (Number(p.profitLoss) || 0) / rate;
-        const h = (Number(p.uncollectibleWork) || 0) / rate;
-        const g = (Number(p.dueDebt) || 0) / rate;
+        const a = Number(p.contractValue) || 0;
+        const c = Number(p.executedWorkApproved) || 0;
+        const b = Number(p.executedWorkTotal) || c;
+        const d = Number(p.paidWork) || 0;
+        const f = Number(p.collectedLiquidity) || 0;
+        const j = Number(p.wagesCost) || 0;
+        const i = Number(p.profitLoss) || 0;
+        const h = Number(p.uncollectibleWork) || 0;
+        const g = Number(p.dueDebt) || 0;
         const coll = Math.max(0, c - d) || g;
         return { a, b, c, d, f, j, i, h, g, coll };
     };
@@ -2813,10 +2672,10 @@ function openCountryBoard(countryGeo, countryName, initialProjectName = null) {
     const kpisList = [
         {
             key: 'kpi_a',
-            title: 'القيمة التعاقدية المعدلة',
+            title: 'القيمة التعاقدية الإجمالية',
             subTitle: 'الوزن النسبي',
             getMain: (m) => m.a,
-            getSub: (m, isAgg) => isAgg ? 100 : (countryTotals.a ? (m.a / countryTotals.a * 100) : 0),
+            getSub: (m, isAgg) => isAgg ? (m.a ? 100 : 0) : (countryTotals.a ? (m.a / countryTotals.a * 100) : 0),
             formatMain: formatCurrencyUSD,
             formatSub: (v) => `${v.toFixed(1)}%`
         },
@@ -2908,9 +2767,24 @@ function openCountryBoard(countryGeo, countryName, initialProjectName = null) {
         <div class="country-board-head">
             <div>
                 <div class="country-board-eyebrow">COUNTRY PORTFOLIO</div>
-                <h3 class="country-board-title">${escapeHtml(countryName)}</h3>
+                <h3 class="country-board-title">
+                    <span>${escapeHtml(countryName)}</span>
+                    <span class="country-board-project-count"><strong>${projects.length}</strong> مشروع</span>
+                </h3>
             </div>
-            <button class="drawer-close-btn" onclick="closeCountryDrawer()"><i class="fa-solid fa-xmark"></i></button>
+            <div class="country-board-head-actions">
+                <div class="country-entity-filters" role="group" aria-label="تصفية المشروعات حسب نوع الجهة">
+                    ${branchPillVisible ? `
+                        <span class="country-entity-filter-wrap" data-tooltip="${branchProjectsAvailable ? 'تصفية مشروعات الفرع' : 'لا توجد مشروعات بالفرع'}">
+                            <button type="button" class="country-entity-filter${branchProjectsAvailable ? '' : ' is-unavailable'}" data-entity-type="BRANCH" aria-pressed="${branchProjectsAvailable && activeCountryEntityTypes.has('BRANCH')}" aria-disabled="${!branchProjectsAvailable}" title="${branchProjectsAvailable ? 'تصفية مشروعات الفرع' : 'لا توجد مشروعات بالفرع'}" ${branchProjectsAvailable ? '' : 'disabled'}>فرع</button>
+                        </span>` : ''}
+                    ${companyPillVisible ? `
+                        <span class="country-entity-filter-wrap" data-tooltip="${companyProjectsAvailable ? 'تصفية مشروعات الشركة' : 'لا توجد مشروعات بالشركة'}">
+                            <button type="button" class="country-entity-filter${companyProjectsAvailable ? '' : ' is-unavailable'}" data-entity-type="COMPANY" aria-pressed="${companyProjectsAvailable && activeCountryEntityTypes.has('COMPANY')}" aria-disabled="${!companyProjectsAvailable}" title="${companyProjectsAvailable ? 'تصفية مشروعات الشركة' : 'لا توجد مشروعات بالشركة'}" ${companyProjectsAvailable ? '' : 'disabled'}>شركة</button>
+                        </span>` : ''}
+                </div>
+                <button class="drawer-close-btn" onclick="closeCountryDrawer()" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button>
+            </div>
         </div>
         <div class="country-board-grid">
             <div class="country-board-kpis" id="country-board-kpis-grid">
@@ -2937,19 +2811,19 @@ function openCountryBoard(countryGeo, countryName, initialProjectName = null) {
                 <div class="country-kpi-project-list" id="country-kpi-project-list"></div>
             </section>
 
-            <div class="country-chart-card">
+            <div class="country-chart-card${projects.length ? '' : ' is-empty'}">
                 <div class="country-chart-title">توزيع قيمة العقود</div>
                 <div class="country-chart-canvas">
                     <canvas id="country-contract-chart"></canvas>
-                    <div class="country-chart-metric" id="country-contract-metric" aria-live="polite"></div>
+                    <div class="country-chart-metric" id="country-contract-metric" aria-live="polite">${projects.length ? '' : 'لا توجد مشاريع ضمن عوامل التصفية'}</div>
                 </div>
             </div>
 
-            <div class="country-chart-card">
+            <div class="country-chart-card${projects.length ? '' : ' is-empty'}">
                 <div class="country-chart-title">نسب الإنجاز الحالية</div>
                 <div class="country-chart-canvas">
                     <canvas id="country-progress-chart"></canvas>
-                    <div class="country-chart-metric" id="country-progress-metric" aria-live="polite"></div>
+                    <div class="country-chart-metric" id="country-progress-metric" aria-live="polite">${projects.length ? '' : 'لا توجد مشاريع ضمن عوامل التصفية'}</div>
                 </div>
             </div>
         </div>`;
@@ -2965,6 +2839,9 @@ function openCountryBoard(countryGeo, countryName, initialProjectName = null) {
     const kpiProjectList = document.getElementById('country-kpi-project-list');
     const kpiResetBtn = document.getElementById('country-kpi-project-reset');
     const kpiButtons = [...dialog.querySelectorAll('.country-board-kpi')];
+    dialog.querySelectorAll('.country-entity-filter').forEach(button => {
+        button.addEventListener('click', () => toggleCountryEntityTypeFilter(button.dataset.entityType));
+    });
 
     function renderKpiCardsData(focusedProject = null) {
         const m = focusedProject ? getMetrics(focusedProject) : countryTotals;
@@ -3000,7 +2877,7 @@ function openCountryBoard(countryGeo, countryName, initialProjectName = null) {
         kpiPanelTitle.textContent = `مشاريع الدولة حسب: ${config.title}`;
         kpiPanelOrder.textContent = `مرتبة من الأعلى إلى الأقل قيمة`;
 
-        kpiProjectList.innerHTML = rankedProjects.map(proj => {
+        kpiProjectList.innerHTML = rankedProjects.length ? rankedProjects.map(proj => {
             const pKey = projectKey(proj);
             const m = getMetrics(proj);
             const mainVal = config.formatMain(config.getMain(m));
@@ -3015,7 +2892,7 @@ function openCountryBoard(countryGeo, countryName, initialProjectName = null) {
                     <strong class="country-kpi-project-value" dir="ltr">${mainVal}</strong>
                 </div>
             </div>`;
-        }).join('');
+        }).join('') : '<div class="country-kpi-project-empty">لا توجد مشاريع ضمن عوامل التصفية الحالية</div>';
 
         kpiProjectList.querySelectorAll('.country-kpi-project-item').forEach(item => {
             item.addEventListener('click', (e) => {
@@ -3066,7 +2943,7 @@ function openCountryBoard(countryGeo, countryName, initialProjectName = null) {
     const progressValue = value => Math.min(100, Math.max(0, Number(value) || 0));
     const projectColors = new Map(projects.map((project, index) => [projectKey(project), colors[index % colors.length]]));
     const projectColor = project => projectColors.get(projectKey(project)) || colors[0];
-    const progressProjects = [...projects].sort((a, b) => progressValue(b.plannedProgressPercent) - progressValue(a.plannedProgressPercent));
+    const progressProjects = [...projects].sort((a, b) => progressValue(b.executionProgressPercent) - progressValue(a.executionProgressPercent));
     const progressCutout = `${Math.max(0, 100 - progressProjects.length * 10)}%`;
 
     let contractChart;
@@ -3132,7 +3009,7 @@ function openCountryBoard(countryGeo, countryName, initialProjectName = null) {
         });
 
         setMetric('country-contract-metric', clearSelection ? '' : `قيمة التعاقد: ${formatCurrencyUSD(project.valueUsd || 0)}`);
-        setMetric('country-progress-metric', clearSelection ? '' : `نسبة الإنجاز: ${progressValue(project.plannedProgressPercent)}%`);
+        setMetric('country-progress-metric', clearSelection ? '' : `نسبة الإنجاز: ${progressValue(project.executionProgressPercent)}%`);
         contractChart.update();
         progressChart.update();
     };
@@ -3168,7 +3045,7 @@ function openCountryBoard(countryGeo, countryName, initialProjectName = null) {
         const unfilledBg = isLight ? 'rgba(0,0,0,.06)' : 'rgba(255,255,255,.08)';
 
         progressProjects.forEach((project, index) => {
-            const progress = progressValue(project.plannedProgressPercent);
+            const progress = progressValue(project.executionProgressPercent);
             datasets.push({
                 label: project.projectName,
                 data: [progress, Math.max(.01, 100 - progress)],
@@ -3223,7 +3100,7 @@ function openCountryBoard(countryGeo, countryName, initialProjectName = null) {
                         title: () => '',
                         label: item => {
                             const proj = progressProjects.find(p => p.projectName === item.dataset.label);
-                            return `${item.dataset.label}: ${proj ? progressValue(proj.plannedProgressPercent) : ''}%`;
+                            return `${item.dataset.label}: ${proj ? progressValue(proj.executionProgressPercent) : ''}%`;
                         }
                     }
                 }
@@ -3304,61 +3181,6 @@ function closeCountryDrawer(e) {
     }
 }
 
-function openBranchDetailModal(branchName, countryName) {
-    const modal = document.getElementById('branch-detail-modal');
-    if (!modal) return;
-
-    document.getElementById('branch-modal-name').innerText = branchName;
-    const country = countryName || branchToCountryMap[branchName] || '-';
-    document.getElementById('branch-modal-country').innerText = country;
-
-    const bProjects = Array.from(expectedProjects).filter(p => projectToBranchMap[p] === branchName);
-    const bReports = reportsData.filter(r => r.branchName === branchName);
-
-    document.getElementById('branch-modal-proj-count').innerText = bProjects.length;
-    document.getElementById('branch-modal-rep-count').innerText = bReports.length;
-    document.getElementById('branch-modal-status').innerText = bReports.length > 0 ? 'تم رفع التحديثات' : 'لم يتم الرفع';
-
-    const listEl = document.getElementById('branch-modal-projects-list');
-    listEl.innerHTML = '';
-    if (bProjects.length === 0) {
-        listEl.innerHTML = '<div style="color:var(--text-muted); font-size:12px; padding:8px;">لا توجد مشاريع مسجلة تحت هذا الفرع</div>';
-    } else {
-        bProjects.forEach(p => {
-            const isRep = bReports.some(r => r.projectName === p);
-            const row = document.createElement('div');
-            row.className = 'detail-project-row';
-            row.innerHTML = `
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <i class="fa-solid fa-helmet-safety" style="color:var(--theme-accent);"></i>
-                    <strong style="color:var(--text-primary);">${escapeHtml(p)}</strong>
-                </div>
-                <span style="font-weight:700; color:${isRep ? '#10B981' : '#F59E0B'};">
-                    ${isRep ? '✓ تم الرفع' : '⏳ متأخر'}
-                </span>
-            `;
-            listEl.appendChild(row);
-        });
-    }
-
-    modal.classList.remove('hidden');
-    setTimeout(() => modal.classList.add('show'), 10);
-
-    if (executiveMap && typeof getBranchCoordinates === 'function') {
-        const bMapsLink = bReports.length > 0 ? bReports[0].mapsLink : null;
-        const coords = getBranchCoordinates(branchName, country, bMapsLink);
-        executiveMap.flyTo([coords.lat, coords.lng], 7, { duration: 1.0 });
-    }
-}
-
-function closeBranchDetailModal() {
-    const modal = document.getElementById('branch-detail-modal');
-    if (modal) {
-        modal.classList.remove('show');
-        setTimeout(() => modal.classList.add('hidden'), 300);
-    }
-}
-
 function switchProjModalTab(tabId, btnElement) {
     document.querySelectorAll('.proj-tab-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.proj-tab-content').forEach(content => content.classList.remove('active'));
@@ -3390,13 +3212,22 @@ async function loadMapPageData() {
 
         initExecutiveMap();
 
-        const [reportsTable, ddTable] = await Promise.all([
-            fetchSheetJSONP(MAP_DATA_SHEET),
-            fetchSheetJSONP('dd_lst')
+        const [mainTable, earlyAlertTable, registryTable] = await Promise.all([
+            fetchSheetByGidJSONP(MAIN_DATA_GID, 'Main Questions'),
+            fetchSheetByGidJSONP(EARLY_ALERT_GID, 'Early Alert'),
+            fetchSheetByGidJSONP(MAP_REGISTRY_GID, 'Map Registry')
         ]);
 
-        parseDropdownRegistry(ddTable);
-        globalRawReports = parseDashboardMapReports(reportsTable);
+        validateGvizTable(mainTable, 29, 'Main Questions');
+        validateGvizTable(earlyAlertTable, 14, 'Early Alert');
+        validateGvizTable(registryTable, 5, 'Map Registry');
+        const entities = parseMapRegistry(registryTable);
+        const registryIndex = buildMapRegistryIndex(entities);
+        applyMapRegistry([...registryIndex.values()]);
+        const mainReports = parseFinalMainReports(mainTable);
+        const earlyAlerts = parseFinalEarlyAlerts(earlyAlertTable);
+        const registeredMainReports = joinMainReportsWithRegistry(mainReports, registryIndex);
+        globalRawReports = mergeEarlyAlertAnswers(registeredMainReports, earlyAlerts);
         reportsData = globalRawReports;
         reportsData.forEach(report => {
             if (!report.projectName) return;
@@ -3406,7 +3237,7 @@ async function loadMapPageData() {
 
         rebuildCountryStatsCache();
         renderGeoJsonBoundaries();
-        updateMapMarkers();
+        applyRestoredMapDisplayMode();
         renderBoardBriefing();
         renderHeaderStockTicker();
         updateHeaderKPIStats();
@@ -3454,7 +3285,28 @@ function animateNumberCounting(elementId, targetNumber, duration = 5000) {
     requestAnimationFrame(update);
 }
 
+function updateHeaderLastDataDate() {
+    const dateElement = document.getElementById('header-last-update-date');
+    if (!dateElement) return;
+    const latestTimestamp = (reportsData || []).reduce((latest, report) => {
+        const timestamp = reportTimestamp(report);
+        return Number.isFinite(timestamp) && timestamp > latest ? timestamp : latest;
+    }, Number.NEGATIVE_INFINITY);
+    if (!Number.isFinite(latestTimestamp)) {
+        dateElement.textContent = '--';
+        dateElement.removeAttribute('datetime');
+        return;
+    }
+    const latestDate = new Date(latestTimestamp);
+    dateElement.textContent = latestDate.toLocaleDateString('en-GB');
+    const year = latestDate.getFullYear();
+    const month = String(latestDate.getMonth() + 1).padStart(2, '0');
+    const day = String(latestDate.getDate()).padStart(2, '0');
+    dateElement.setAttribute('datetime', `${year}-${month}-${day}`);
+}
+
 function updateHeaderKPIStats() {
+    updateHeaderLastDataDate();
     if (headerCountersAnimated) return;
     headerCountersAnimated = true;
 
@@ -3472,13 +3324,11 @@ function updateHeaderKPIStats() {
             uniqueCountries.add(geo ? geo.id : r.country);
         }
     });
-    const countriesCount = uniqueCountries.size || 21;
+    const countriesCount = uniqueCountries.size;
 
-    // Branches count
-    const branchesCount = expectedBranches.size || 50;
+    const branchesCount = registeredEntities.filter(entity => entity.entityType === 'BRANCH').length;
 
-    // Projects count
-    const projectsCount = expectedProjects.size || (reportsData ? reportsData.filter(r => r.projectName).length : 0);
+    const projectsCount = latestProjectReports().length;
 
     // Run slow 5-second counting animation
     animateNumberCounting('kpi-count-countries', countriesCount, 5000);
@@ -3487,8 +3337,7 @@ function updateHeaderKPIStats() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    setMapTheme(localStorage.getItem('appTheme') || 'corporate');
-    const themeSwitch = document.getElementById('map-theme-switch');
-    if (themeSwitch) themeSwitch.addEventListener('click', toggleMapTheme);
+    restoreMapControlState();
+    syncMapControlCenterUI();
     loadMapPageData();
 });

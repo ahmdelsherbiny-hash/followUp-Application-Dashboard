@@ -126,7 +126,7 @@ const COUNTRIES_GEO = {
         lng: 36.2384,
         zoom: 7,
         center: [31.9454, 35.9284], // Amman
-        aliases: ['الأردن', 'الاردن', 'المملكة الأردنية الهاشمية', 'jordan', 'jo']
+        aliases: ['الأردن', 'الاردن', 'المملكة الأردنية', 'المملكة الأردنية الهاشمية', 'jordan', 'jo']
     },
     'LB': {
         id: 'LB',
@@ -364,7 +364,7 @@ const COUNTRIES_GEO = {
         lng: -9.6966,
         zoom: 6.5,
         center: [9.6412, -13.5784], // Conakry
-        aliases: ['غينيا', 'جمهورية غينيا', 'غينيا الاستوائية', 'guinea', 'gn', 'gq', 'equatorial guinea', 'republic of guinea']
+        aliases: ['غينيا', 'جمهورية غينيا', 'guinea', 'gn', 'republic of guinea']
     },
     'CG': {
         id: 'CG',
@@ -476,7 +476,7 @@ const COUNTRIES_GEO = {
         lng: 21.7587,
         zoom: 5,
         center: [-4.3220, 15.3222],
-        aliases: ['الكونغو الديمقراطية', 'كونغو', 'congo', 'drc', 'cd', 'democratic republic of the congo', 'dr congo', 'dr. congo', 'd.r. congo', 'congo (kinshasa)']
+        aliases: ['الكونغو الديمقراطية', 'كونغو', 'congo', 'drc', 'cd', 'democratic congo', 'democratic republic of the congo', 'dr congo', 'dr. congo', 'd.r. congo', 'congo (kinshasa)']
     },
     'NA': {
         id: 'NA',
@@ -729,6 +729,9 @@ const COUNTRIES_GEO = {
             "aliases": [
                     "غينيا الاستوائية",
                     "equatorial guinea",
+                    "guinea ecuatorial",
+                    "guinea equatorial",
+                    "ge",
                     "gq"
             ]
     },
@@ -2678,14 +2681,17 @@ function getProjectCoordinates(projectName, branchName, countryName, mapsUrl) {
         }
     }
     
-    // 5. Fallback around Branch Location (Safe inland micro-jitter, 100m to 400m)
-    const branchCoords = getBranchCoordinates(branchName, countryName);
+    // 5. Fallback around the assigned country center (never the branch location)
+    const countryGeo = typeof findCountryGeo === 'function' ? findCountryGeo(countryName) : null;
+    const countryCoords = countryGeo && Array.isArray(countryGeo.center)
+        ? { lat: countryGeo.center[0], lng: countryGeo.center[1] }
+        : { lat: 30.0444, lng: 31.2357 };
     const h = pseudoHash(cleanProj);
     const dLat = ((h % 8) - 4) * 0.001;
     const dLng = (((h >> 2) % 8) - 4) * 0.001;
-    
+
     return {
-        lat: branchCoords.lat + dLat,
-        lng: branchCoords.lng + dLng
+        lat: countryCoords.lat + dLat,
+        lng: countryCoords.lng + dLng
     };
 }

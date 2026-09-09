@@ -63,6 +63,28 @@
             flex-shrink: 0;
         }
 
+        .header-summary-stack {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+        }
+
+        .header-last-update {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: #94a3b8;
+            font: 600 9.5px/1.2 Tajawal, sans-serif;
+            white-space: nowrap;
+        }
+
+        .header-last-update time {
+            color: #cbd5e1;
+            font-family: Outfit, Tajawal, sans-serif;
+            font-weight: 700;
+        }
+
         .minimal-stats-group {
             display: flex;
             align-items: center;
@@ -121,6 +143,10 @@
         }
         [data-theme="aegov"] .stat-number {
             color: #475569;
+        }
+        [data-theme="aegov"] .header-last-update,
+        [data-theme="aegov"] .header-last-update time {
+            color: #64748b;
         }
         [data-theme="aegov"] .minimal-stat-divider {
             background: rgba(15, 23, 42, 0.15);
@@ -568,97 +594,6 @@
             color: #94a3b8 !important;
         }
 
-        .map-theme-switch {
-            position: relative;
-            width: 118px;
-            height: 40px;
-            padding: 3px;
-            flex-shrink: 0;
-            display: inline-block;
-            border: 1px solid rgba(148, 163, 184, 0.28);
-            border-radius: 999px;
-            background: linear-gradient(135deg, rgba(15, 23, 42, 0.9), rgba(30, 41, 59, 0.75));
-            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5), 0 2px 10px rgba(0, 0, 0, 0.25);
-            cursor: pointer;
-            overflow: hidden;
-            transition: all 0.7s cubic-bezier(0.22, 1, 0.36, 1);
-        }
-        .map-theme-switch:hover {
-            border-color: rgba(56, 189, 248, 0.5);
-            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5), 0 0 14px rgba(56, 189, 248, 0.25);
-        }
-        .map-theme-switch:focus-visible {
-            outline: 2px solid #38bdf8;
-            outline-offset: 3px;
-        }
-        .map-theme-track {
-            position: relative;
-            display: flex;
-            direction: ltr;
-            align-items: center;
-            justify-content: space-between;
-            height: 100%;
-            padding: 0 12px;
-            font-family: 'Outfit', sans-serif;
-            font-size: 10.5px;
-            font-weight: 700;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-        }
-        .map-theme-label-dark {
-            color: #38bdf8;
-            opacity: 1;
-            transform: translateX(0);
-            transition: opacity 0.75s cubic-bezier(0.22, 1, 0.36, 1), color 0.75s ease, text-shadow 0.75s ease;
-            text-shadow: 0 0 10px rgba(56, 189, 248, 0.45);
-        }
-        .map-theme-label-light {
-            color: #94a3b8;
-            opacity: 0.45;
-            transition: opacity 0.75s cubic-bezier(0.22, 1, 0.36, 1), color 0.75s ease;
-        }
-        .tw-theme-thumb {
-            position: absolute;
-            top: 3px;
-            left: 4px;
-            display: grid;
-            width: 32px;
-            height: 32px;
-            place-items: center;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #38bdf8, #0284c7);
-            color: #0c4a6e;
-            font-size: 14px;
-            box-shadow: 0 3px 12px rgba(56, 189, 248, 0.45), 0 1px 3px rgba(0, 0, 0, 0.4);
-            transform: translateX(0) rotate(0deg);
-            transition: transform 0.85s cubic-bezier(0.25, 1, 0.35, 1), background 0.75s ease, color 0.75s ease, box-shadow 0.75s ease;
-        }
-        html[data-theme="aegov"] .map-theme-switch {
-            border-color: rgba(217, 119, 6, 0.35);
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(241, 245, 249, 0.9));
-            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.08), 0 2px 10px rgba(217, 119, 6, 0.12);
-        }
-        html[data-theme="aegov"] .map-theme-switch:hover {
-            border-color: rgba(217, 119, 6, 0.6);
-            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.08), 0 0 14px rgba(217, 119, 6, 0.25);
-        }
-        .map-theme-switch[aria-pressed="true"] .tw-theme-thumb {
-            transform: translateX(78px) rotate(360deg);
-            background: linear-gradient(135deg, #fbbf24, #d97706);
-            color: #78350f;
-            box-shadow: 0 3px 14px rgba(245, 158, 11, 0.5), 0 1px 3px rgba(0, 0, 0, 0.15);
-        }
-        .map-theme-switch[aria-pressed="true"] .map-theme-label-dark {
-            color: #64748b;
-            opacity: 0.35;
-            text-shadow: none;
-        }
-        .map-theme-switch[aria-pressed="true"] .map-theme-label-light {
-            color: #b45309;
-            opacity: 1;
-            font-weight: 800;
-            text-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
-        }
         html[data-theme="aegov"] body { background:#eef2f7; }
         html[data-theme="aegov"] .map-page-header { background:rgba(255,255,255,.96); border-bottom-color:rgba(197,155,39,.38); box-shadow:0 4px 20px rgba(15,23,42,.12); }
         html[data-theme="aegov"] #standalone-executive-map { background:#e2e8f0; }
@@ -675,10 +610,6 @@
             .minimal-stat-title{font-size:14px}
             .stat-number{font-size:12px}
             .minimal-stat-divider{height:26px}
-            .map-theme-switch{width:104px;height:36px}
-            .tw-theme-thumb{width:28px;height:28px;top:3px;left:3px;font-size:12px;transition:transform 0.85s cubic-bezier(0.25, 1, 0.35, 1), background 0.75s ease, color 0.75s ease, box-shadow 0.75s ease;}
-            .map-theme-track{font-size:9px;padding:0 8px}
-            .map-theme-switch[aria-pressed="true"] .tw-theme-thumb{transform:translateX(69px) rotate(360deg)}
         }
 
         .board-briefing {
@@ -717,9 +648,27 @@
         #country-drawer-overlay { justify-content:center; align-items:center; padding:14px; }
         #country-drawer.board-country-dialog { width:min(1320px, 97vw); max-width:none; height:min(1040px, 97vh); overflow:hidden; border:1px solid rgba(216,176,90,.35); border-top:3px solid #d8b05a; transform:translateY(18px) scale(.98); }
         #country-drawer-overlay.show #country-drawer.board-country-dialog { transform:translateY(0) scale(1); }
-        .country-board-head { display:flex; justify-content:space-between; align-items:flex-start; padding:22px 26px; border-bottom:1px solid rgba(255,255,255,.14); }
+        .country-board-head { display:flex; justify-content:space-between; align-items:center; gap:18px; padding:22px 26px; border-bottom:1px solid rgba(255,255,255,.14); }
         .country-board-eyebrow { color:#d8b05a; font:800 13px Outfit,sans-serif; letter-spacing:.15em; }
-        .country-board-title { margin:7px 0 0; color:#fff; font:900 32px Tajawal,sans-serif; }
+        .country-board-title { display:flex; align-items:baseline; gap:12px; margin:7px 0 0; color:#fff; font:900 32px Tajawal,sans-serif; }
+        .country-board-project-count { color:#94a3b8; font:800 12px Tajawal,sans-serif; white-space:nowrap; }
+        .country-board-project-count strong { color:#38bdf8; font:900 15px Outfit,sans-serif; }
+        .country-board-head-actions { display:flex; align-items:center; gap:14px; }
+        .country-entity-filters { display:flex; align-items:center; gap:8px; direction:rtl; }
+        .country-entity-filter-wrap { position:relative; display:inline-flex; align-items:center; justify-content:center; }
+        .country-entity-filter-wrap::after { content:attr(data-tooltip); position:absolute; z-index:30; top:calc(100% + 9px); right:50%; width:max-content; max-width:220px; padding:7px 10px; border:1px solid rgba(148,163,184,.42); border-radius:7px; background:rgba(15,23,42,.96); color:#e2e8f0; font:700 11px/1.35 Tajawal,sans-serif; text-align:center; white-space:normal; pointer-events:none; opacity:0; visibility:hidden; transform:translate(50%,-3px); transition:opacity .15s ease, visibility .15s ease, transform .15s ease; }
+        .country-entity-filter-wrap:hover::after,
+        .country-entity-filter-wrap:focus-within::after { opacity:1; visibility:visible; transform:translate(50%,0); }
+        .country-entity-filter { display:inline-flex; align-items:center; justify-content:center; min-width:76px; min-height:34px; padding:8px 15px; border:1px solid rgba(56,189,248,.62); border-radius:999px; background:rgba(14,116,144,.2); color:#e0f2fe; font:800 12px Tajawal,sans-serif; cursor:pointer; visibility:visible; transition:opacity .18s ease, background .18s ease, border-color .18s ease, transform .18s ease; }
+        .country-entity-filter:not(:disabled):hover { background:rgba(14,116,144,.34); transform:translateY(-1px); }
+        .country-entity-filter:focus-visible { outline:2px solid #facc15; outline-offset:2px; }
+        .country-entity-filter[aria-pressed="false"] { opacity:.38; border-color:rgba(148,163,184,.45); background:rgba(71,85,105,.18); color:#94a3b8; text-decoration:line-through; text-decoration-thickness:1.5px; }
+        .country-entity-filter:disabled,
+        .country-entity-filter.is-unavailable { opacity:.56; cursor:not-allowed; border-color:rgba(148,163,184,.48); background:rgba(71,85,105,.28); color:#a8b4c5; text-decoration:none; transform:none; visibility:visible; pointer-events:none; }
+        .board-country-dialog .drawer-close-btn { display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; flex:0 0 38px; padding:0; border:1px solid rgba(248,250,252,.35); border-radius:9px; background:rgba(15,23,42,.72); color:#f8fafc; font-size:19px; opacity:1; visibility:visible; position:relative; z-index:2; }
+        .board-country-dialog .drawer-close-btn:hover,
+        .board-country-dialog .drawer-close-btn:focus-visible { color:#fff; background:rgba(239,68,68,.72); border-color:#fca5a5; box-shadow:0 0 14px rgba(239,68,68,.35); }
+        [data-theme="aegov"] .board-country-dialog .drawer-close-btn { background:rgba(255,255,255,.9); color:#0f172a; border-color:rgba(71,85,105,.35); }
         .country-board-grid { display:grid; flex:1; min-height:0; grid-template-columns:1.05fr .95fr; gap:14px; padding:18px 26px 26px; overflow-y:auto; overscroll-behavior:contain; }
         .country-board-kpis { grid-column:1/-1; display:grid; grid-template-columns:repeat(5, 1fr); gap:10px; }
         .country-board-kpi { padding:12px 14px; background:rgba(255,255,255,.06); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,.16); border-radius:10px; color:inherit; font:inherit; text-align:right; cursor:pointer; transition:all .2s ease; display:flex; flex-direction:column; justify-content:space-between; }
@@ -740,6 +689,7 @@
         .country-kpi-project-reset:hover { background:rgba(239,68,68,.4); }
         .country-kpi-project-reset.show { display:inline-flex; align-items:center; gap:5px; }
         .country-kpi-project-list { display:grid; grid-template-columns:1fr; gap:9px; max-height:280px; overflow:auto; }
+        .country-kpi-project-empty { padding:28px 14px; border:1px dashed rgba(148,163,184,.35); border-radius:8px; color:#94a3b8; font-size:13px; font-weight:700; text-align:center; }
         .country-kpi-project-item { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; background:rgba(11,20,34,.7); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,.12); border-radius:8px; cursor:pointer; transition:all .2s ease; }
         .country-kpi-project-item:hover { background:rgba(59,130,246,.25); border-color:rgba(96,165,250,.7); transform:translateX(-3px); }
         .country-kpi-project-item.is-selected { background:rgba(16,185,129,.25) !important; border-color:#10b981 !important; box-shadow:0 0 14px rgba(16,185,129,.35); }
@@ -757,16 +707,17 @@
         .country-chart-metric { position:absolute; right:8px; bottom:14px; left:8px; color:#f1f5f9; font:800 13px Tajawal,sans-serif; text-align:center; pointer-events:none; }
         .country-chart-canvas canvas { opacity:0.1; transform:scale(.96); transition:opacity .5s cubic-bezier(.16, 1, .3, 1), transform .5s cubic-bezier(.16, 1, .3, 1); }
         .country-chart-card.is-in-view .country-chart-canvas canvas { opacity:1; transform:scale(1); }
+        .country-chart-card.is-empty .country-chart-canvas canvas { opacity:.08; }
         #country-contract-chart { transform:translateY(-28px) scale(.96); }
         .country-chart-card.is-in-view #country-contract-chart { transform:translateY(-28px) scale(1); }
         @media (prefers-reduced-motion: reduce) { .country-chart-canvas canvas { opacity:1; transform:none; } }
         @media(max-width:1150px){ .country-board-kpis{grid-template-columns:repeat(3,1fr)} }
-        @media(max-width:760px){ #country-drawer.board-country-dialog{height:94vh}.country-board-grid{grid-template-columns:1fr;padding:14px}.country-board-kpis{grid-template-columns:repeat(2,1fr)}.country-kpi-project-list{grid-template-columns:1fr}.country-chart-card.wide{grid-column:auto} }
+        @media(max-width:760px){ #country-drawer.board-country-dialog{height:94vh}.country-board-head{align-items:flex-start;flex-wrap:wrap;padding:16px}.country-board-title{flex-direction:column;gap:4px;font-size:25px}.country-board-head-actions{gap:8px;margin-inline-start:auto}.country-entity-filter{min-width:58px;padding:7px 10px}.country-board-grid{grid-template-columns:1fr;padding:14px}.country-board-kpis{grid-template-columns:repeat(2,1fr)}.country-kpi-project-list{grid-template-columns:1fr}.country-chart-card.wide{grid-column:auto} }
         .board-watchlist { margin-top: 14px; border-top: 1px solid rgba(255,255,255,.14); padding-top: 12px; }
         .board-watchlist-title { color:#f1f5f9; font-size:13px; font-weight:800; }
         .board-watchlist-item { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 0 0; color:#cbd5e1; font-size:11.5px; font-weight:600; }
         .board-watchlist-item strong { color:#facc15; font-weight:800; font-family:Outfit,sans-serif; white-space:nowrap; }
-        /* Interactive Arc Motion FAB Controls (Bottom-Left) */
+        /* Map Control Center Trigger (Bottom-Left) */
         .fab-container {
             position: absolute;
             bottom: 28px;
@@ -777,15 +728,6 @@
             justify-content: center;
             user-select: none;
             font-family: Tajawal, sans-serif;
-        }
-
-        .fab-path-container {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 1px;
-            height: 1px;
-            pointer-events: none;
         }
 
         /* Main Trigger Button */
@@ -816,109 +758,10 @@
             transform: scale(1.08);
         }
 
-        .fab-main svg {
-            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-
         .fab-container.is-open .fab-main {
             color: #f43f5e;
             border-color: rgba(244, 63, 94, 0.5);
             box-shadow: 0 0 22px rgba(244, 63, 94, 0.4);
-        }
-
-        .fab-container.is-open .fab-main svg {
-            transform: rotate(135deg);
-        }
-
-        /* Action Items on Arc Path */
-        .fab-action {
-            position: absolute;
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            background: rgba(15, 23, 42, 0.92);
-            color: #94a3b8;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            outline: none;
-            pointer-events: none;
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            offset-path: path('M 0 0 C 18 -75, 42 -170, 78 -275');
-            offset-rotate: 0deg;
-            offset-distance: 0%;
-            opacity: 0;
-            transform: scale(0.2);
-            transition: offset-distance 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
-                        opacity 0.25s ease,
-                        transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
-                        border-color 0.2s ease,
-                        box-shadow 0.2s ease,
-                        color 0.2s ease;
-        }
-
-        /* When FAB is Open */
-        .fab-container.is-open .fab-action {
-            opacity: 1;
-            pointer-events: auto;
-            transform: scale(1);
-        }
-
-        .fab-container.is-open #fab-action-projects {
-            offset-distance: 20%;
-            transition-delay: 0.03s;
-        }
-
-        .fab-container.is-open #fab-action-branches {
-            offset-distance: 44%;
-            transition-delay: 0.06s;
-        }
-
-        .fab-container.is-open #fab-action-analysis {
-            offset-distance: 68%;
-            transition-delay: 0.09s;
-        }
-
-        .fab-container.is-open #fab-action-warning {
-            offset-distance: 92%;
-            transition-delay: 0.12s;
-        }
-
-        /* Fallback translation for browsers without offset-path */
-        @supports not (offset-path: path('M 0 0')) {
-            .fab-action {
-                transform: translate(0, 0) scale(0.2);
-                transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.25s ease;
-            }
-            .fab-container.is-open #fab-action-projects {
-                transform: translate(8px, -54px) scale(1);
-            }
-            .fab-container.is-open #fab-action-branches {
-                transform: translate(20px, -108px) scale(1);
-            }
-            .fab-container.is-open #fab-action-analysis {
-                transform: translate(36px, -162px) scale(1);
-            }
-            .fab-container.is-open #fab-action-warning {
-                transform: translate(56px, -216px) scale(1);
-            }
-        }
-
-        .fab-action.active {
-            color: #ffffff;
-            border-color: var(--item-glow);
-            box-shadow: 0 0 16px var(--item-glow);
-        }
-
-        .fab-action:hover {
-            color: #ffffff;
-            border-color: var(--item-glow);
-            box-shadow: 0 0 20px var(--item-glow);
-            transform: scale(1.15) !important;
         }
 
         /* ==================================================== */
@@ -1206,58 +1049,6 @@
             50% { opacity: 0.6; transform: scale(1.15); }
         }
 
-        /* Tooltip floating to the right */
-        .fab-tooltip {
-            position: absolute;
-            left: calc(100% + 14px);
-            white-space: nowrap;
-            background: rgba(15, 23, 42, 0.95);
-            color: #f8fafc;
-            font-family: Tajawal, sans-serif;
-            font-size: 0.82rem;
-            font-weight: 700;
-            padding: 6px 12px;
-            border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
-            pointer-events: none;
-            display: flex;
-            align-items: center;
-            gap: 7px;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            opacity: 0;
-            transform: translateX(10px) scale(0.9);
-            transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .fab-container.is-open .fab-tooltip {
-            opacity: 1;
-            transform: translateX(0) scale(1);
-            transition-delay: 0.18s;
-        }
-
-        .fab-dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            box-shadow: 0 0 8px currentColor;
-            flex-shrink: 0;
-        }
-
-        .fab-tooltip-state {
-            font-size: 0.72rem;
-            padding: 2px 6px;
-            border-radius: 4px;
-            background: rgba(255, 255, 255, 0.08);
-            color: #94a3b8;
-        }
-
-        .fab-action.active .fab-tooltip-state {
-            background: rgba(16, 185, 129, 0.2);
-            color: #34d399;
-        }
-
         .analysis-btn-content {
             display: flex;
             align-items: center;
@@ -1419,20 +1210,6 @@
             box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.18), 0 0 15px 0 rgba(16, 185, 129, 0.2);
         }
 
-        [data-theme="aegov"] .fab-action {
-            background: rgba(255, 255, 255, 0.95);
-            color: #475569;
-            border-color: rgba(203, 213, 225, 0.9);
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
-        }
-
-        [data-theme="aegov"] .fab-tooltip {
-            background: rgba(255, 255, 255, 0.98);
-            color: #0f172a;
-            border-color: rgba(203, 213, 225, 0.9);
-            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12);
-        }
-
         [data-theme="aegov"] .item-text {
             color: #1e293b;
         }
@@ -1460,8 +1237,8 @@
         /* ==================================================== */
         .map-floating-legend {
             position: absolute;
-            bottom: 84px;
-            right: 24px;
+            bottom: 20px;
+            right: 20px;
             z-index: 850;
             pointer-events: auto;
             transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
@@ -1481,26 +1258,119 @@
         }
 
         .legend-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
             background: rgba(11, 20, 34, 0.94);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.14);
             border-radius: 14px;
-            padding: 12px 16px;
+            padding: 9px 16px;
             box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 20px rgba(0, 0, 0, 0.35);
             direction: rtl;
-            min-width: 260px;
-            max-width: 320px;
+            max-width: calc(100vw - 40px);
+            box-sizing: border-box;
             color: #e2e8f0;
+        }
+
+        .legend-card.compact-market-legend {
+            gap: 0;
+            padding: 7px 10px;
+            border-radius: 10px;
+            background: transparent;
+            border-color: transparent;
+            box-shadow: none;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+        }
+
+        .legend-card.flat-legend {
+            flex-direction: row;
+            align-items: center;
+            gap: 12px;
+            background: transparent;
+            border-color: transparent;
+            box-shadow: none;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            padding: 0;
+        }
+
+        .flat-legend .legend-header {
+            padding-left: 0;
+            border-left: 0;
+        }
+
+        .flat-legend .legend-items {
+            flex-direction: column;
+            align-items: flex-start;
+            flex-wrap: nowrap;
+            gap: 7px 16px;
+        }
+
+        .compact-market-legend .legend-items {
+            flex-wrap: nowrap;
+            gap: 6px 12px;
+            direction: rtl;
+        }
+
+        .compact-market-legend .legend-row {
+            gap: 0;
+            font-size: 10.5px;
+        }
+
+        .compact-market-legend .legend-items {
+            flex-wrap: wrap;
+            gap: 7px 16px;
+        }
+
+        .flat-legend .legend-items {
+            flex-direction: column;
+            align-items: flex-start;
+            flex-wrap: nowrap;
+        }
+
+        .compact-market-legend .legend-label { color: #e2e8f0; }
+        [data-theme="aegov"] .compact-market-legend .legend-label { color: #334155; }
+
+        .market-hover-tooltip {
+            background: rgba(15,23,42,.72) !important;
+            border: 1px solid rgba(255,255,255,.24) !important;
+            border-radius: 6px !important;
+            box-shadow: none !important;
+            color: #f8fafc !important;
+            font: 700 11px/1.3 Tajawal,sans-serif !important;
+            padding: 5px 8px !important;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+
+        .market-hover-tooltip::before { display: none !important; }
+        [data-theme="aegov"] .market-hover-tooltip {
+            background: rgba(255,255,255,.78) !important;
+            border-color: rgba(15,23,42,.2) !important;
+            color: #0f172a !important;
+        }
+
+        .compact-market-legend .legend-swatch-group {
+            gap: 5px;
+            direction: rtl;
+        }
+
+        .compact-market-legend .legend-swatch {
+            width: 11px;
+            height: 11px;
+            border-radius: 3px;
         }
 
         .legend-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding-bottom: 8px;
-            margin-bottom: 9px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-left: 16px;
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            flex-shrink: 0;
         }
 
         .legend-title {
@@ -1509,12 +1379,15 @@
             gap: 8px;
             font: 900 13px 'Tajawal', sans-serif;
             color: #f8fafc;
+            white-space: nowrap;
         }
 
         .legend-items {
             display: flex;
-            flex-direction: column;
-            gap: 8px;
+            flex-direction: row;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px 16px;
         }
 
         .legend-row {
@@ -1569,7 +1442,7 @@
         }
 
         [data-theme="aegov"] .legend-header {
-            border-bottom-color: rgba(15, 23, 42, 0.08);
+            border-left-color: rgba(15, 23, 42, 0.08);
         }
 
         [data-theme="aegov"] .legend-label {
@@ -1579,6 +1452,198 @@
         [data-theme="aegov"] .legend-grade {
             color: #475569;
             background: rgba(15, 23, 42, 0.06);
+        }
+
+        [data-theme="aegov"] .legend-card.compact-market-legend {
+            background: transparent;
+            border-color: transparent;
+            box-shadow: none;
+        }
+
+        [data-theme="aegov"] .legend-card.flat-legend {
+            background: transparent;
+            border-color: transparent;
+            box-shadow: none;
+        }
+
+        @media (max-width: 760px) {
+            .map-floating-legend {
+                right: 12px;
+                bottom: 12px;
+                left: 12px;
+            }
+
+            .legend-card {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 8px;
+                max-width: none;
+            }
+
+            .legend-card.flat-legend {
+                flex-direction: row;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .legend-header {
+                padding: 0 0 7px;
+                border-left: 0;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+
+            .legend-items {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 7px 12px;
+            }
+
+            .compact-market-legend .legend-items {
+                display: flex;
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 6px 10px;
+            }
+
+            .flat-legend .legend-items {
+                flex-direction: column;
+                align-items: flex-start;
+                flex-wrap: nowrap;
+            }
+        }
+        .fab-primary-column,
+        .fab-submenu {
+            position: absolute;
+            bottom: 66px;
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 10px;
+            pointer-events: none;
+        }
+        .fab-primary-column { left: 3px; }
+        .fab-submenu {
+            left: 144px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity .16s ease, visibility .16s;
+        }
+        .fab-menu-button {
+            --fab-delay: 0ms;
+            --item-glow: #10b981;
+            position: relative;
+            display: flex;
+            width: 118px;
+            height: 48px;
+            flex: 0 0 48px;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 8px;
+            padding: 0 13px;
+            border: 1px solid rgba(255,255,255,.16);
+            border-radius: 999px;
+            background: rgba(15,23,42,.94);
+            color: #94a3b8;
+            box-shadow: 0 7px 20px rgba(0,0,0,.52);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(18px) scale(.35);
+            cursor: pointer;
+            outline: none;
+            pointer-events: none;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            direction: rtl;
+            transition: opacity .2s ease, transform .42s cubic-bezier(.2,1.38,.42,1), visibility .2s, color .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease;
+        }
+        .fab-subaction { width: 172px; }
+        .fab-menu-button i { flex: 0 0 auto; font-size: 16px; pointer-events: none; }
+        .fab-container.is-open .fab-category,
+        .fab-submenu.is-open .fab-subaction {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+            transition-delay: var(--fab-delay), var(--fab-delay), var(--fab-delay), 0ms, 0ms, 0ms, 0ms;
+        }
+        .fab-submenu.is-open { opacity: 1; visibility: visible; }
+        .fab-container.is-open .fab-menu-button:hover,
+        .fab-container.is-open .fab-menu-button:focus-visible,
+        .fab-submenu.is-open .fab-subaction:hover,
+        .fab-submenu.is-open .fab-subaction:focus-visible {
+            color: #fff;
+            border-color: var(--item-glow);
+            box-shadow: 0 0 19px color-mix(in srgb, var(--item-glow) 72%, transparent);
+            transform: translateY(0) scale(1.04);
+            transition-delay: 0ms;
+        }
+        .fab-menu-button.active,
+        .fab-category.is-active {
+            color: #fff;
+            border-color: var(--item-glow);
+            background: color-mix(in srgb, var(--item-glow) 18%, rgba(15,23,42,.94));
+            box-shadow: 0 0 17px color-mix(in srgb, var(--item-glow) 72%, transparent);
+        }
+        .fab-category.is-active::after {
+            content: '';
+            position: absolute;
+            left: calc(100% + 5px);
+            width: 8px;
+            height: 8px;
+            border-top: 2px solid var(--item-glow);
+            border-right: 2px solid var(--item-glow);
+            transform: rotate(45deg);
+        }
+        .fab-button-label {
+            position: static;
+            display: flex;
+            flex: 1 1 auto;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+            min-width: 0;
+            min-height: 0;
+            padding: 0;
+            border: 0;
+            background: none;
+            color: inherit;
+            box-shadow: none;
+            font: 800 10.5px Tajawal,sans-serif;
+            direction: rtl;
+            opacity: 1;
+            visibility: visible;
+            white-space: nowrap;
+            pointer-events: none;
+            transform: none;
+            transition: none;
+        }
+        .fab-tooltip-state { color: #94a3b8; font-size: 9px; }
+        .fab-menu-button.active .fab-tooltip-state { color: #6ee7b7; }
+        .fab-main:focus-visible,
+        .fab-menu-button:focus-visible { outline: 2px solid #38bdf8; outline-offset: 3px; }
+        .fab-main i { font-size: 20px; transition: transform .3s cubic-bezier(.2,1.3,.4,1); }
+        .fab-container.is-open .fab-main i { transform: rotate(90deg); }
+        [data-theme="aegov"] .fab-menu-button {
+            background: rgba(255,255,255,.96);
+            color: #475569;
+            border-color: rgba(203,213,225,.95);
+            box-shadow: 0 7px 20px rgba(15,23,42,.16);
+        }
+        [data-theme="aegov"] .fab-menu-button.active,
+        [data-theme="aegov"] .fab-category.is-active {
+            color: #0f172a;
+            background: color-mix(in srgb, var(--item-glow) 15%, #fff);
+        }
+        @media(max-width:760px) {
+            .fab-container { left:12px; bottom:16px; }
+            .fab-primary-column, .fab-submenu { bottom:58px; gap:7px; }
+            .fab-primary-column { left:2px; }
+            .fab-submenu { left:126px; }
+            .fab-menu-button { width:104px; height:44px; flex-basis:44px; padding-inline:11px; }
+            .fab-subaction { width:156px; }
+            .fab-button-label { font-size:9.75px; }
+        }
+        @media(prefers-reduced-motion:reduce) {
+            .fab-menu-button, .fab-submenu, .fab-button-label, .fab-main, .fab-main i { transition:none; }
         }
     </style>
 </head>
@@ -1594,7 +1659,8 @@
         <!-- Top Toolbar Header with Centered Logo -->
         <header class="map-page-header">
             <div class="header-side-right">
-                <div class="minimal-stats-group">
+                <div class="header-summary-stack">
+                    <div class="minimal-stats-group">
                     <!-- 1. الدول -->
                     <div class="minimal-stat-item">
                         <span class="minimal-stat-title">الدول</span>
@@ -1622,6 +1688,11 @@
                             <span class="stat-number" id="kpi-count-projects">0</span>
                         </div>
                     </div>
+                    </div>
+                    <div class="header-last-update">
+                        <span>آخر تحديث بيانات بتاريخ:</span>
+                        <time id="header-last-update-date">--</time>
+                    </div>
                 </div>
             </div>
 
@@ -1637,13 +1708,6 @@
                     </div>
                 </div>
 
-                <button type="button" class="map-theme-switch" id="map-theme-switch" aria-pressed="false" aria-label="تبديل الثيم الداكن والفاتح">
-                    <span class="map-theme-track">
-                        <span class="map-theme-label-dark">Dark</span>
-                        <span class="map-theme-label-light">Light</span>
-                        <i class="tw-theme-thumb fa-solid fa-moon" aria-hidden="true"></i>
-                    </span>
-                </button>
             </div>
         </header>
 
@@ -1658,97 +1722,43 @@
                 </div>
             </div>
 
-            <!-- Floating Interactive Info Bar (Bottom-Right) -->
-            <div class="map-overlay-country-info" id="map-hovered-country-bar">
-                <span class="hover-flag">🌐</span>
-                <span class="hover-hint">مرر الماوس فوق أي دولة أو مشروع أو فرع لعرض التفاصيل</span>
-            </div>
-
-            <!-- Interactive Arc Motion FAB Controls (Bottom-Left) -->
             <div class="fab-container" id="map-controls-container">
-                <!-- Path & Arc Action Buttons -->
-                <div class="fab-path-container">
-                    <!-- 1. Projects Action -->
-                    <button type="button" 
-                            class="fab-action active" 
-                            id="fab-action-projects" 
-                            style="--item-glow: #10B981;"
-                            onclick="toggleMapLayer('projects')"
-                            title="المشاريع">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M3 3h7v7H3V3zm11 0h7v7h-7V3zm0 11h7v7h-7v-7zm-11 0h7v7H3v-7z" />
-                        </svg>
-                        <span class="fab-tooltip">
-                            <span class="fab-dot" style="background-color: #10B981;"></span>
-                            <span class="fab-tooltip-label">المشاريع</span>
-                            <span class="fab-tooltip-state" id="fab-state-projects">نشط</span>
-                        </span>
-                    </button>
-
-                    <!-- 2. Branches Action -->
-                    <button type="button" 
-                            class="fab-action active" 
-                            id="fab-action-branches" 
-                            style="--item-glow: #06B6D4;"
-                            onclick="toggleMapLayer('branches')"
-                            title="الفروع والمقرات">
-                        <i class="fa-solid fa-building" style="font-size: 16px;"></i>
-                        <span class="fab-tooltip">
-                            <span class="fab-dot" style="background-color: #06B6D4;"></span>
-                            <span class="fab-tooltip-label">الفروع والمقرات</span>
-                            <span class="fab-tooltip-state" id="fab-state-branches">نشط</span>
-                        </span>
-                    </button>
-
-                    <!-- 3. Business Analysis / Heatmap Action -->
-                    <button type="button" 
-                            class="fab-action" 
-                            id="fab-action-analysis" 
-                            style="--item-glow: #8B5CF6;"
-                            onclick="toggleBusinessAnalysisMode()"
-                            title="تحليل الأعمال والأسواق">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M18 20V10M12 20V4M6 20v-6" />
-                        </svg>
-                        <span class="fab-tooltip">
-                            <span class="fab-dot" style="background-color: #8B5CF6;"></span>
-                            <span class="fab-tooltip-label">تحليل الأعمال والأسواق</span>
-                            <span class="fab-tooltip-state" id="fab-state-analysis">معطل</span>
-                        </span>
-                    </button>
-
-                    <!-- 4. Early Warning Mechanism Action -->
-                    <button type="button" 
-                            class="fab-action" 
-                            id="fab-action-warning" 
-                            style="--item-glow: #EF4444;"
-                            onclick="toggleEarlyWarningMode()"
-                            title="آلية الإنذار المبكر">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
-                            <line x1="12" y1="9" x2="12" y2="13"/>
-                            <line x1="12" y1="17" x2="12.01" y2="17"/>
-                        </svg>
-                        <span class="fab-tooltip">
-                            <span class="fab-dot" style="background-color: #EF4444;"></span>
-                            <span class="fab-tooltip-label">آلية الإنذار المبكر</span>
-                            <span class="fab-tooltip-state" id="fab-state-warning">معطل</span>
-                        </span>
-                    </button>
+                <div class="fab-primary-column" id="fab-primary-menu" aria-label="أقسام التحكم بالخريطة" aria-hidden="true">
+                    <button type="button" class="fab-menu-button fab-category" id="control-tab-map" data-control-tab="map" style="--fab-delay:40ms;--item-glow:#10B981" aria-label="إعدادات الخريطة" aria-expanded="false" aria-controls="control-panel-map" onclick="selectMapControlTab('map')"><i class="fa-solid fa-layer-group" aria-hidden="true"></i><span class="fab-button-label">الخريطة</span></button>
+                    <button type="button" class="fab-menu-button fab-category" id="control-tab-ticker" data-control-tab="ticker" style="--fab-delay:90ms;--item-glow:#06B6D4" aria-label="إعدادات الشريط" aria-expanded="false" aria-controls="control-panel-ticker" onclick="selectMapControlTab('ticker')"><i class="fa-solid fa-arrow-down-wide-short" aria-hidden="true"></i><span class="fab-button-label">الشريط</span></button>
+                    <button type="button" class="fab-menu-button fab-category" id="control-tab-settings" data-control-tab="settings" style="--fab-delay:140ms;--item-glow:#F59E0B" aria-label="إعدادات العرض" aria-expanded="false" aria-controls="control-panel-settings" onclick="selectMapControlTab('settings')"><i class="fa-solid fa-gear" aria-hidden="true"></i><span class="fab-button-label">الإعدادات</span></button>
                 </div>
 
-                <!-- Main Trigger Button -->
-                <button type="button" 
-                        class="fab-main" 
-                        id="map-controls-trigger" 
-                        onclick="toggleMapControlsMenu(event)" 
-                        aria-label="Toggle Quick Map Controls" 
+                <div class="fab-submenu" id="control-panel-map" data-control-panel="map" aria-label="عناصر تحكم الخريطة" aria-hidden="true">
+                    <button type="button" class="fab-menu-button fab-subaction active" id="fab-action-projects" style="--fab-delay:30ms;--item-glow:#10B981" aria-label="إظهار أو إخفاء المشروعات" aria-pressed="true" onclick="toggleMapLayer('projects')"><i class="fa-solid fa-table-cells-large" aria-hidden="true"></i><span class="fab-button-label">المشروعات <span class="fab-tooltip-state" id="fab-state-projects">نشط</span></span></button>
+                    <button type="button" class="fab-menu-button fab-subaction active" id="fab-action-branches" style="--fab-delay:70ms;--item-glow:#06B6D4" aria-label="إظهار أو إخفاء الفروع" aria-pressed="true" onclick="toggleMapLayer('branches')"><i class="fa-solid fa-building" aria-hidden="true"></i><span class="fab-button-label">الفروع <span class="fab-tooltip-state" id="fab-state-branches">نشط</span></span></button>
+                    <button type="button" class="fab-menu-button fab-subaction" id="fab-action-analysis" style="--fab-delay:110ms;--item-glow:#8B5CF6" aria-label="تفعيل أو تعطيل تحليل الأعمال" aria-pressed="false" onclick="toggleBusinessAnalysisMode()"><i class="fa-solid fa-chart-column" aria-hidden="true"></i><span class="fab-button-label">تحليل الأعمال <span class="fab-tooltip-state" id="fab-state-analysis">معطل</span></span></button>
+                    <button type="button" class="fab-menu-button fab-subaction" id="fab-action-warning" style="--fab-delay:150ms;--item-glow:#EF4444" aria-label="تفعيل أو تعطيل الإنذار المبكر" aria-pressed="false" onclick="toggleEarlyWarningMode()"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i><span class="fab-button-label">الإنذار المبكر <span class="fab-tooltip-state" id="fab-state-warning">معطل</span></span></button>
+                </div>
+
+                <div class="fab-submenu" id="control-panel-ticker" data-control-panel="ticker" aria-label="إعدادات ترتيب الشريط" aria-hidden="true">
+                    <button type="button" class="fab-menu-button fab-subaction" data-ticker-criterion="projectCount" style="--fab-delay:30ms;--item-glow:#06B6D4" aria-label="ترتيب حسب عدد المشروعات" aria-pressed="true" onclick="setTickerSortCriterion('projectCount')"><i class="fa-solid fa-list-ol" aria-hidden="true"></i><span class="fab-button-label">عدد المشروعات</span></button>
+                    <button type="button" class="fab-menu-button fab-subaction" data-ticker-criterion="healthScore" style="--fab-delay:65ms;--item-glow:#06B6D4" aria-label="ترتيب حسب صحة المشروعات" aria-pressed="false" onclick="setTickerSortCriterion('healthScore')"><i class="fa-solid fa-heart-pulse" aria-hidden="true"></i><span class="fab-button-label">صحة المشروعات</span></button>
+                    <button type="button" class="fab-menu-button fab-subaction" data-ticker-criterion="progressAverage" style="--fab-delay:100ms;--item-glow:#06B6D4" aria-label="ترتيب حسب متوسط الإنجاز" aria-pressed="false" onclick="setTickerSortCriterion('progressAverage')"><i class="fa-solid fa-chart-line" aria-hidden="true"></i><span class="fab-button-label">متوسط الإنجاز</span></button>
+                    <button type="button" class="fab-menu-button fab-subaction" data-ticker-direction="desc" style="--fab-delay:135ms;--item-glow:#8B5CF6" aria-label="ترتيب تنازلي" aria-pressed="true" onclick="setTickerSortDirection('desc')"><i class="fa-solid fa-arrow-down-wide-short" aria-hidden="true"></i><span class="fab-button-label">تنازلي</span></button>
+                    <button type="button" class="fab-menu-button fab-subaction" data-ticker-direction="asc" style="--fab-delay:170ms;--item-glow:#8B5CF6" aria-label="ترتيب تصاعدي" aria-pressed="false" onclick="setTickerSortDirection('asc')"><i class="fa-solid fa-arrow-up-wide-short" aria-hidden="true"></i><span class="fab-button-label">تصاعدي</span></button>
+                </div>
+
+                <div class="fab-submenu" id="control-panel-settings" data-control-panel="settings" aria-label="إعدادات عرض الخريطة" aria-hidden="true">
+                    <button type="button" class="fab-menu-button fab-subaction" data-map-theme="corporate" style="--fab-delay:30ms;--item-glow:#38BDF8" aria-label="تفعيل المظهر الداكن" aria-pressed="true" onclick="setMapTheme('corporate')"><i class="fa-solid fa-moon" aria-hidden="true"></i><span class="fab-button-label">Dark</span></button>
+                    <button type="button" class="fab-menu-button fab-subaction" data-map-theme="aegov" style="--fab-delay:75ms;--item-glow:#F59E0B" aria-label="تفعيل المظهر الفاتح" aria-pressed="false" onclick="setMapTheme('aegov')"><i class="fa-solid fa-sun" aria-hidden="true"></i><span class="fab-button-label">Light</span></button>
+                    <button type="button" class="fab-menu-button fab-subaction" id="completion-slicer-toggle" style="--fab-delay:120ms;--item-glow:#10B981" aria-label="اعتبار إنجاز أكبر من 95 بالمائة منتهيا" aria-pressed="false" onclick="toggleCompletionSlicerEnabled()"><i class="fa-solid fa-filter-circle-check" aria-hidden="true"></i><span class="fab-button-label">فلتر الإنجاز فوق 95%</span></button>
+                </div>
+
+                <button type="button"
+                        class="fab-main"
+                        id="map-controls-trigger"
+                        onclick="toggleMapControlsMenu(event)"
+                        aria-label="فتح مركز التحكم بالخريطة"
                         aria-expanded="false"
-                        title="التحكم بالطبقات والتحليل">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19" />
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
+                        aria-controls="fab-primary-menu"
+                        title="مركز التحكم بالخريطة">
+                    <i class="fa-solid fa-sliders" aria-hidden="true"></i>
                 </button>
             </div>
         </main>
@@ -1828,48 +1838,6 @@
         </div>
     </div>
 
-    <!-- Branch Detail Modal -->
-    <div id="branch-detail-modal" class="detail-modal-backdrop hidden" onclick="closeBranchDetailModal()">
-        <div class="detail-modal-card" onclick="event.stopPropagation()">
-            <div class="detail-modal-header">
-                <div class="detail-header-info">
-                    <div class="detail-icon-badge branch">
-                        <i class="fa-solid fa-building"></i>
-                    </div>
-                    <div>
-                        <span class="detail-tag branch" id="branch-modal-country">الدولة</span>
-                        <h3 id="branch-modal-name">اسم الفرع</h3>
-                    </div>
-                </div>
-                <button class="modal-close-btn" onclick="closeBranchDetailModal()">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-            <div class="detail-modal-body">
-                <div class="detail-stats-grid">
-                    <div class="detail-stat-box">
-                        <span class="stat-label">المشاريع التابعة</span>
-                        <span class="stat-value highlight" id="branch-modal-proj-count">0</span>
-                    </div>
-                    <div class="detail-stat-box">
-                        <span class="stat-label">تقارير المتابعة</span>
-                        <span class="stat-value" id="branch-modal-rep-count">0</span>
-                    </div>
-                    <div class="detail-stat-box">
-                        <span class="stat-label">حالة التحديث</span>
-                        <span class="stat-value" id="branch-modal-status">-</span>
-                    </div>
-                </div>
-                <div class="detail-section">
-                    <h4 class="detail-section-subtitle"><i class="fa-solid fa-list-check"></i> قائمة المشروعات التابعة للفرع</h4>
-                    <div class="detail-items-list" id="branch-modal-projects-list"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-
-
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
@@ -1878,9 +1846,9 @@
     <script src="mena_geojson.js"></script>
 
     <!-- High-Precision Geographic Coordinates Dictionary -->
-    <script src="geo_coords.js?v=7.0"></script>
+    <script src="geo_coords.js?v=7.4"></script>
     
     <!-- Dedicated Performance Map Application Logic -->
-    <script src="performance_map.js?v=7.0"></script>
+    <script src="performance_map.js?v=8.2"></script>
 </body>
 </html>
