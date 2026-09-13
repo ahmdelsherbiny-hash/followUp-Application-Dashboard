@@ -462,8 +462,22 @@ function reportUsd(report, field) {
     return Number(report[field]) || 0;
 }
 
-function latestProjectReports() {
-    return [...latestReportsByProject(reportsData).values()];
+function isProjectExcludedByCompletion(report, forBusinessAnalysis = false) {
+    if (!mapControlState.completionSlicerEnabled) return false;
+    if (forBusinessAnalysis || isBusinessAnalysisMode) return false;
+    if (!report) return false;
+    const progress = Number(report.executionProgressPercent !== undefined && report.executionProgressPercent !== null
+        ? report.executionProgressPercent
+        : (report.plannedProgressPercent || 0)) || 0;
+    return progress >= 95;
+}
+
+function latestProjectReports(includeCompleted = false) {
+    const allLatest = [...latestReportsByProject(reportsData).values()];
+    if (includeCompleted || isBusinessAnalysisMode || !mapControlState.completionSlicerEnabled) {
+        return allLatest;
+    }
+    return allLatest.filter(report => !isProjectExcludedByCompletion(report));
 }
 
 function renderBoardBriefing() {
@@ -945,6 +959,7 @@ function rebuildCountryStatsCache() {
     };
 
     // 1. Index reportsData
+    const countryProjectsRaw = new Map();
     (reportsData || []).forEach(r => {
         if (!r || !r.country) return;
         const geo = typeof findCountryGeo === 'function' ? findCountryGeo(r.country) : null;
@@ -954,8 +969,13 @@ function rebuildCountryStatsCache() {
         countryReports.get(canKey).push(r);
 
         if (r.projectName) {
+            if (!countryProjectsRaw.has(canKey)) countryProjectsRaw.set(canKey, new Set());
+            countryProjectsRaw.get(canKey).add(r.projectName);
+
             if (!countryProjects.has(canKey)) countryProjects.set(canKey, new Set());
-            countryProjects.get(canKey).add(r.projectName);
+            if (!isProjectExcludedByCompletion(r)) {
+                countryProjects.get(canKey).add(r.projectName);
+            }
         }
     });
 
@@ -970,7 +990,7 @@ function rebuildCountryStatsCache() {
     precomputedEarlyWarningStats.clear();
 
     // Populate all canonical keys
-    const allCanKeys = new Set([...countryReports.keys(), ...countryProjects.keys(), ...countryBranches.keys()]);
+    const allCanKeys = new Set([...countryReports.keys(), ...countryProjectsRaw.keys(), ...countryBranches.keys()]);
     allCanKeys.forEach(canKey => {
         const pSet = countryProjects.get(canKey) || new Set();
         const bSet = countryBranches.get(canKey) || new Set();
@@ -994,7 +1014,9 @@ function rebuildCountryStatsCache() {
         rList.forEach(r => {
             if (r.projectName && !seenP.has(r.projectName)) {
                 seenP.add(r.projectName);
-                pList.push(r);
+                if (!isProjectExcludedByCompletion(r)) {
+                    pList.push(r);
+                }
             }
         });
 
@@ -1033,7 +1055,7 @@ function rebuildCountryStatsCache() {
     });
 
     cacheCombinedMarketHighlights({
-        projects: countryProjects,
+        projects: countryProjectsRaw,
         branches: countryBranches,
         reports: countryReports
     }, getKeysForCountry);
@@ -1616,9 +1638,13 @@ function syncSettingsControlUI() {
         themeButton.setAttribute('aria-pressed', String(isActive));
     });
     const slicer = document.getElementById('completion-slicer-toggle');
+    const slicerState = document.getElementById('fab-state-completion');
     if (slicer) {
         slicer.classList.toggle('active', mapControlState.completionSlicerEnabled);
         slicer.setAttribute('aria-pressed', String(mapControlState.completionSlicerEnabled));
+    }
+    if (slicerState) {
+        slicerState.textContent = mapControlState.completionSlicerEnabled ? 'نشط' : 'معطل';
     }
 }
 
@@ -1658,6 +1684,19 @@ function setCompletionSlicerEnabled(isEnabled) {
     mapControlState.completionSlicerEnabled = isEnabled === true;
     saveMapControlState();
     syncMapControlCenterUI();
+
+    precomputeCountryStats();
+    applyRestoredMapDisplayMode();
+    renderBoardBriefing();
+    renderHeaderStockTicker();
+
+    const projCountEl = document.getElementById('kpi-count-projects');
+    if (projCountEl) projCountEl.textContent = String(latestProjectReports().length);
+
+    if (activeCountryBoardContext && document.getElementById('country-drawer-overlay')?.classList.contains('show')) {
+        const { countryGeo, countryName } = activeCountryBoardContext;
+        openCountryBoard(countryGeo, countryName);
+    }
 }
 
 function toggleCompletionSlicerEnabled() {
@@ -2129,6 +2168,7 @@ function evaluateCountryEarlyWarning(countryName, isoCode = null) {
     const seen = new Set();
     reportsData.forEach(report => {
         if (!report || !report.projectName || seen.has(report.projectName)) return;
+        if (isProjectExcludedByCompletion(report)) return;
         const country = report.country
             || branchToCountryMap[report.branchName]
             || projectToCountryMap[report.projectName]
@@ -2253,6 +2293,7 @@ function renderAllEarlyWarningMarkers(targetCountry = null) {
 
     reportsData.forEach(r => {
         if (!r || !r.projectName || seen.has(r.projectName)) return;
+        if (isProjectExcludedByCompletion(r)) return;
         const c = r.country || branchToCountryMap[r.branchName] || '';
         if (targetCountry) {
             if (c === targetCountry || (typeof countriesMatch === 'function' && countriesMatch(c, targetCountry))) {
@@ -2632,7 +2673,10 @@ function openCountryBoard(countryGeo, countryName, initialProjectName = null) {
 
     const reports = reportsData.filter(report => countriesMatch(report.country, countryName));
     const latestByProject = latestReportsByProject(reports);
-    const countryProjects = [...latestByProject.values()];
+    let countryProjects = [...latestByProject.values()];
+    if (!isBusinessAnalysisMode && mapControlState.completionSlicerEnabled) {
+        countryProjects = countryProjects.filter(project => !isProjectExcludedByCompletion(project));
+    }
     const availableCountryEntityTypes = new Set(
         countryProjects.map(project => project.entityType).filter(entityType => ENTITY_TYPES.has(entityType))
     );
