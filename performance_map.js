@@ -99,6 +99,11 @@ function setMapTheme(themeName) {
     if (currentTileLayer && executiveMap && currentTileStyle !== 'satellite') currentTileLayer.setUrl(getMapBaseTileUrl());
 }
 
+function toggleMapTheme() {
+    const nextTheme = mapControlState.theme === 'corporate' ? 'aegov' : 'corporate';
+    setMapTheme(nextTheme);
+}
+
 // Get high-fidelity vector flag icon class based on country name
 function getFlagIconClass(countryName) {
     if (!countryName) return 'fi-xx';
@@ -1632,11 +1637,23 @@ function syncTickerControlUI() {
 }
 
 function syncSettingsControlUI() {
-    document.querySelectorAll('[data-map-theme]').forEach(themeButton => {
-        const isActive = themeButton.dataset.mapTheme === mapControlState.theme;
-        themeButton.classList.toggle('active', isActive);
-        themeButton.setAttribute('aria-pressed', String(isActive));
-    });
+    const themeBtn = document.getElementById('theme-toggle-btn');
+    const themeState = document.getElementById('fab-state-theme');
+    const themeKnobIcon = document.getElementById('theme-knob-icon');
+    const isLight = mapControlState.theme === 'aegov';
+
+    if (themeBtn) {
+        themeBtn.setAttribute('data-theme-active', mapControlState.theme);
+        themeBtn.classList.toggle('active', isLight);
+        themeBtn.setAttribute('aria-pressed', String(isLight));
+    }
+    if (themeState) {
+        themeState.textContent = isLight ? 'Light' : 'Dark';
+    }
+    if (themeKnobIcon) {
+        themeKnobIcon.className = isLight ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+    }
+
     const slicer = document.getElementById('completion-slicer-toggle');
     const slicerState = document.getElementById('fab-state-completion');
     if (slicer) {

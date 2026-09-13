@@ -1563,6 +1563,100 @@
         }
         .fab-subaction { width: 172px; }
         .fab-menu-button i { flex: 0 0 auto; font-size: 16px; pointer-events: none; }
+        /* ==================================================== */
+        /* Pill Toggle Button Component (Settings Submenu)      */
+        /* ==================================================== */
+        .fab-pill-toggle-btn {
+            width: 220px;
+            padding: 0 12px;
+            justify-content: space-between;
+        }
+        .fab-pill-toggle-label {
+            font: 800 11px/1.2 Tajawal, sans-serif;
+            color: inherit;
+            white-space: nowrap;
+            user-select: none;
+            pointer-events: none;
+        }
+        .fab-pill-toggle-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+            pointer-events: none;
+        }
+        .fab-pill-toggle-state {
+            font: 800 10.5px/1 Tajawal, sans-serif;
+            color: #94a3b8;
+            min-width: 28px;
+            text-align: center;
+            transition: color .2s ease;
+        }
+        .fab-pill-toggle-track {
+            position: relative;
+            width: 34px;
+            height: 18px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.16);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            display: inline-flex;
+            align-items: center;
+            padding: 2px;
+            box-sizing: border-box;
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            flex-shrink: 0;
+        }
+        .fab-pill-toggle-knob {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #cbd5e1;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+            transform: translateX(0);
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 7.5px;
+            color: #0f172a;
+        }
+        .fab-pill-toggle-knob i {
+            font-size: 7.5px;
+            line-height: 1;
+        }
+        .fab-pill-toggle-btn.active .fab-pill-toggle-track {
+            background: #10b981;
+            border-color: #34d399;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+        }
+        .fab-pill-toggle-btn.active .fab-pill-toggle-knob {
+            background: #ffffff;
+            transform: translateX(-16px);
+        }
+        .fab-pill-toggle-btn.active .fab-pill-toggle-state {
+            color: #6ee7b7;
+            font-weight: 900;
+        }
+        /* Theme specific toggle styling */
+        .fab-pill-toggle-btn[data-theme-active="aegov"] .fab-pill-toggle-track {
+            background: #f59e0b;
+            border-color: #fbbf24;
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+        }
+        .fab-pill-toggle-btn[data-theme-active="aegov"] .fab-pill-toggle-knob {
+            background: #ffffff;
+            transform: translateX(-16px);
+            color: #d97706;
+        }
+        .fab-pill-toggle-btn[data-theme-active="aegov"] .fab-pill-toggle-state {
+            color: #fcd34d;
+            font-weight: 900;
+        }
+        .fab-pill-toggle-btn[data-theme-active="corporate"] .fab-pill-toggle-knob {
+            background: #38bdf8;
+            transform: translateX(0);
+            color: #0f172a;
+        }
         .fab-container.is-open .fab-category,
         .fab-submenu.is-open .fab-subaction {
             opacity: 1;
@@ -1751,9 +1845,24 @@
                 </div>
 
                 <div class="fab-submenu" id="control-panel-settings" data-control-panel="settings" aria-label="إعدادات عرض الخريطة" aria-hidden="true">
-                    <button type="button" class="fab-menu-button fab-subaction" data-map-theme="corporate" style="--fab-delay:30ms;--item-glow:#38BDF8" aria-label="تفعيل المظهر الداكن" aria-pressed="true" onclick="setMapTheme('corporate')"><i class="fa-solid fa-moon" aria-hidden="true"></i><span class="fab-button-label">Dark</span></button>
-                    <button type="button" class="fab-menu-button fab-subaction" data-map-theme="aegov" style="--fab-delay:75ms;--item-glow:#F59E0B" aria-label="تفعيل المظهر الفاتح" aria-pressed="false" onclick="setMapTheme('aegov')"><i class="fa-solid fa-sun" aria-hidden="true"></i><span class="fab-button-label">Light</span></button>
-                    <button type="button" class="fab-menu-button fab-subaction" id="completion-slicer-toggle" style="--fab-delay:120ms;--item-glow:#10B981" aria-label="إخفاء مشاريع إنجازها 95%" aria-pressed="false" onclick="toggleCompletionSlicerEnabled()"><i class="fa-solid fa-eye-slash" aria-hidden="true"></i><span class="fab-button-label">إخفاء مشاريع إنجازها 95% <span class="fab-tooltip-state" id="fab-state-completion">معطل</span></span></button>
+                    <button type="button" class="fab-menu-button fab-subaction fab-pill-toggle-btn" id="theme-toggle-btn" style="--fab-delay:30ms;--item-glow:#38BDF8" aria-label="تبديل مظهر الخريطة الداكن والفاتح" onclick="toggleMapTheme()">
+                        <span class="fab-pill-toggle-label">المظهر</span>
+                        <div class="fab-pill-toggle-action">
+                            <span class="fab-pill-toggle-state" id="fab-state-theme">Dark</span>
+                            <span class="fab-pill-toggle-track" aria-hidden="true">
+                                <span class="fab-pill-toggle-knob"><i class="fa-solid fa-moon" id="theme-knob-icon"></i></span>
+                            </span>
+                        </div>
+                    </button>
+                    <button type="button" class="fab-menu-button fab-subaction fab-pill-toggle-btn" id="completion-slicer-toggle" style="--fab-delay:75ms;--item-glow:#10B981" aria-label="إخفاء مشاريع إنجازها 95%" aria-pressed="false" onclick="toggleCompletionSlicerEnabled()">
+                        <span class="fab-pill-toggle-label">إخفاء مشاريع إنجازها 95%</span>
+                        <div class="fab-pill-toggle-action">
+                            <span class="fab-pill-toggle-state" id="fab-state-completion">معطل</span>
+                            <span class="fab-pill-toggle-track" aria-hidden="true">
+                                <span class="fab-pill-toggle-knob"></span>
+                            </span>
+                        </div>
+                    </button>
                 </div>
 
                 <button type="button"
