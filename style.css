@@ -1354,58 +1354,6 @@ header {
     color: var(--theme-accent);
 }
 
-/* Interactive Hover Info Bar (Bottom-Right) */
-.map-overlay-country-info {
-    position: absolute;
-    bottom: 20px;
-    right: 20px;
-    z-index: 500;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 8px 16px;
-    border-radius: 12px;
-    background: rgba(15, 23, 42, 0.88);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    color: #FFFFFF;
-    font-size: 11px;
-    font-weight: 600;
-    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.5);
-    pointer-events: none;
-    transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
-    min-height: 38px;
-}
-
-.map-overlay-country-info .hover-flag {
-    font-size: 15px;
-    display: inline-flex;
-    align-items: center;
-}
-
-.map-overlay-country-info .hover-country-name {
-    color: #FEF08A;
-    font-weight: 800;
-    font-size: 12px;
-}
-
-.map-overlay-country-info .hover-divider {
-    width: 1px;
-    height: 12px;
-    background: rgba(255, 255, 255, 0.2);
-}
-
-.map-overlay-country-info .hover-stat {
-    color: #93C5FD;
-    font-size: 11px;
-}
-
-.map-overlay-country-info .hover-hint {
-    color: var(--text-muted);
-    font-size: 11px;
-}
-
 /* Map Floating Summary Legend (Bottom-Left) */
 .map-overlay-legend {
     position: absolute;

@@ -2,7 +2,7 @@
 
 ## Goal
 
-Make the calculation behind each of the ten country portfolio KPI cards visible at a glance. Display the agreed source code and ratio formula in red, retain the explicit Google Sheet field bindings, and make each visible percentage follow its approved formula. The final duration card reads Main Questions column AC only after a project is selected.
+Make the calculation behind each of the ten country portfolio KPI cards visible at a glance. Display the agreed source code and ratio formula in the dashboard's gold accent, retain the explicit Google Sheet field bindings, and make each visible percentage follow its approved formula. The final duration card reads Main Questions column AC only after a project is selected.
 
 ## Card Mapping
 
@@ -17,13 +17,15 @@ Make the calculation behind each of the ten country portfolio KPI cards visible 
 | G | غير قابلة للصرف | `uncollectibleWork` | G/C | Divide G by C. |
 | I | الربحية | `profitLoss` | I/C | Divide I by C. |
 | J | الأجور | `wagesCost` | J/C | Divide J by C. |
-| COLUMN AC | نسبة انقضاء المدة الزمنية | `timeElapsedPercent` | No aggregate ratio | Keep the value blank until a project is selected, then show that project's AC percentage. |
+| AC-linked card | نسبة انقضاء المدة الزمنية | `timeElapsedPercent` | No aggregate ratio | Keep the main value blank until a project is selected, then show that project's AC percentage in the main value position. |
 
 ## Presentation
 
 - Match the supplied reference image: show each single-letter card code near the card heading and each ratio formula in the lower metadata row.
-- Render codes and formulas in the existing dark red accent used by the reference.
-- Show `COLUMN AC` prominently inside the final duration card instead of a single-letter code and ratio formula.
+- Keep each code directly beside its title and each formula directly beside its ratio description, using an exact `5px` gap between the paired texts.
+- Render codes and formulas in the dashboard's existing `#d8b05a` gold accent.
+- Do not display `COLUMN AC`, a single-letter code, a formula, or a lower subtitle row inside the final duration card.
+- Reserve the final card's centered main value position for the selected project's AC percentage.
 - Keep all codes permanently visible; do not hide them behind hover, focus, tooltips, or expansion.
 - Use the approved card titles listed in the mapping table; do not restore the older titles currently found in the implementation.
 - Keep current currency and percentage formatting, responsive behavior, themes, focus behavior, and project drill-down interaction.

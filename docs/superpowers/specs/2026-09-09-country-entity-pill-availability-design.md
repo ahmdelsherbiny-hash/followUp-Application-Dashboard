@@ -6,10 +6,11 @@ Keep the Branch and Company slicer pills visible, but disable either pill when t
 
 ## Behavior
 
-- Availability is calculated from the selected country's latest project reports, not from entity presence in the Map Registry.
-- A type with one or more projects remains enabled and selected when the drawer opens.
-- A type with zero projects is excluded from the active filters and rendered with native `disabled` and `aria-disabled="true"` attributes.
-- Disabled pills remain labelled, use a muted visual treatment, do not show the interactive hover treatment, and cannot change the dashboard state.
+- Pill visibility is calculated from entity presence in the selected country registry.
+- A registered type with one or more latest projects remains enabled and selected when the drawer opens.
+- A registered type with zero latest projects remains visible but uses a muted visual treatment, native `disabled`, and `aria-disabled="true"`.
+- A type with no registered entity in the country is omitted from the header.
+- Muted pills remain labelled, do not show the interactive hover treatment, and cannot change the dashboard state.
 - All existing KPI, project-list, donut, and radial-chart filtering behavior remains unchanged for enabled pills.
 
 ## Verification

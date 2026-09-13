@@ -1655,13 +1655,9 @@ function syncSettingsControlUI() {
     }
 
     const slicer = document.getElementById('completion-slicer-toggle');
-    const slicerState = document.getElementById('fab-state-completion');
     if (slicer) {
         slicer.classList.toggle('active', mapControlState.completionSlicerEnabled);
         slicer.setAttribute('aria-pressed', String(mapControlState.completionSlicerEnabled));
-    }
-    if (slicerState) {
-        slicerState.textContent = mapControlState.completionSlicerEnabled ? 'نشط' : 'معطل';
     }
 }
 
