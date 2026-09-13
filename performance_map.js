@@ -1698,7 +1698,7 @@ function setCompletionSlicerEnabled(isEnabled) {
     saveMapControlState();
     syncMapControlCenterUI();
 
-    precomputeCountryStats();
+    rebuildCountryStatsCache();
     applyRestoredMapDisplayMode();
     renderBoardBriefing();
     renderHeaderStockTicker();
