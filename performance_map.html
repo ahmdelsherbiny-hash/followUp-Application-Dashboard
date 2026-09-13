@@ -745,8 +745,9 @@
         #country-drawer-overlay.show #country-drawer.board-country-dialog { transform:translateY(0) scale(1); }
         .country-board-head { display:flex; justify-content:space-between; align-items:center; gap:18px; padding:22px 26px; border-bottom:1px solid rgba(255,255,255,.14); }
         .country-board-eyebrow { color:#d8b05a; font:800 13px Outfit,sans-serif; letter-spacing:.15em; }
-        .country-board-title { display:flex; align-items:baseline; gap:12px; margin:7px 0 0; color:#fff; font:900 32px Tajawal,sans-serif; }
-        .country-board-project-count { color:#94a3b8; font:800 12px Tajawal,sans-serif; white-space:nowrap; }
+        .country-board-title { display:flex; align-items:baseline; gap:10px; margin:7px 0 0; color:#fff; font:900 32px Tajawal,sans-serif; }
+        .country-board-title-separator { color:#d8b05a; opacity:.75; font-weight:700; font-size:24px; margin:0 2px; }
+        .country-board-project-count { color:#94a3b8; font:800 13px Tajawal,sans-serif; white-space:nowrap; }
         .country-board-project-count strong { color:#38bdf8; font:900 15px Outfit,sans-serif; }
         .country-board-head-actions { display:flex; align-items:center; gap:14px; }
         .country-entity-filters { display:flex; align-items:center; gap:8px; direction:rtl; }
@@ -811,8 +812,34 @@
         #country-contract-chart { transform:translateY(-28px) scale(.96); }
         .country-chart-card.is-in-view #country-contract-chart { transform:translateY(-28px) scale(1); }
         @media (prefers-reduced-motion: reduce) { .country-chart-canvas canvas { opacity:1; transform:none; } }
-        @media(max-width:1150px){ .country-board-kpis{grid-template-columns:repeat(3,1fr)} }
-        @media(max-width:760px){ #country-drawer.board-country-dialog{height:94vh}.country-board-head{align-items:flex-start;flex-wrap:wrap;padding:16px}.country-board-title{flex-direction:column;gap:4px;font-size:25px}.country-board-head-actions{gap:8px;margin-inline-start:auto}.country-entity-filter{min-width:58px;padding:7px 10px}.country-board-grid{grid-template-columns:1fr;padding:14px}.country-board-kpis{grid-template-columns:repeat(2,1fr)}.country-kpi-project-list{grid-template-columns:1fr}.country-chart-card.wide{grid-column:auto} }
+        @media(max-width:760px){
+            #country-drawer-overlay { padding:0; padding-top:max(8px, env(safe-area-inset-top)); padding-bottom:max(8px, env(safe-area-inset-bottom)); padding-left:max(4px, env(safe-area-inset-left)); padding-right:max(4px, env(safe-area-inset-right)); }
+            #country-drawer.board-country-dialog { width:100vw; height:100%; max-height:calc(100dvh - max(8px, env(safe-area-inset-top)) - max(8px, env(safe-area-inset-bottom))); border-radius:16px 16px 0 0; }
+            .country-board-head { align-items:flex-start; flex-wrap:wrap; padding:14px 16px; gap:10px; }
+            .country-board-title { display:flex; flex-direction:row; align-items:baseline; flex-wrap:wrap; gap:6px; font-size:22px; margin:3px 0 0; }
+            .country-board-title-separator { font-size:18px; margin:0 1px; }
+            .country-board-project-count { font-size:12px; }
+            .country-board-head-actions { gap:8px; margin-inline-start:auto; }
+            .country-entity-filter { min-width:54px; min-height:30px; padding:5px 8px; font-size:11px; }
+            .country-board-grid { grid-template-columns:1fr; padding:12px 14px; gap:12px; }
+            .country-board-kpis { grid-template-columns:repeat(2,1fr); gap:8px; }
+            .country-board-kpi { padding:10px 12px; }
+            .kpi-main-label { font-size:11.5px; }
+            .kpi-main-val { font-size:18px; }
+            .country-chart-card { min-height:280px; padding:14px; }
+            .country-chart-card.wide { grid-column:auto; min-height:300px; }
+            .country-chart-canvas { height:220px; }
+            .country-chart-card.wide .country-chart-canvas { height:240px; }
+            .country-kpi-project-list { grid-template-columns:1fr; max-height:240px; }
+        }
+        @media(max-height:520px){
+            #country-drawer.board-country-dialog { height:98vh; max-height:98dvh; }
+            .country-board-head { padding:8px 14px; }
+            .country-board-title { font-size:18px; }
+            .country-board-grid { padding:8px 12px; gap:8px; }
+            .country-chart-card, .country-chart-card.wide { min-height:220px; }
+            .country-chart-canvas, .country-chart-card.wide .country-chart-canvas { height:170px; }
+        }
         .board-watchlist { margin-top: 14px; border-top: 1px solid rgba(255,255,255,.14); padding-top: 12px; }
         .board-watchlist-title { color:#f1f5f9; font-size:13px; font-weight:800; }
         .board-watchlist-item { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 0 0; color:#cbd5e1; font-size:11.5px; font-weight:600; }

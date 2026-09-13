@@ -2864,6 +2864,7 @@ function openCountryBoard(countryGeo, countryName, initialProjectName = null) {
                 <div class="country-board-eyebrow">COUNTRY PORTFOLIO</div>
                 <h3 class="country-board-title">
                     <span>${escapeHtml(countryName)}</span>
+                    <span class="country-board-title-separator" aria-hidden="true">-</span>
                     <span class="country-board-project-count"><strong>${projects.length}</strong> مشروع</span>
                 </h3>
             </div>
