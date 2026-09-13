@@ -1274,15 +1274,8 @@ function renderGeoJsonBoundaries() {
             const groupedMarketCounts = getMarketHighlightCounts(countryName, isoCode);
             if (!counts.hasData && !groupedMarketCounts.hasData) return;
 
-            layer.bindTooltip('', {
-                sticky: true,
-                direction: 'top',
-                className: 'market-hover-tooltip',
-                opacity: 0.9
-            });
-
             // Countries WITH projects or branches: Glow on hover and enable interactive drawer
-            layer.on('mouseover', () => {
+            layer.on('mouseover', (event) => {
                 if (!counts.hasData && !isBusinessAnalysisMode) return;
                 resetHoveredCountryLayers();
                 currentHoveredCountryLayers = hoveredCountryLayers(layer, isoCode);
@@ -1291,8 +1284,14 @@ function renderGeoJsonBoundaries() {
                     : counts;
                 if (isBusinessAnalysisMode) {
                     const executionRatio = Number(hoverCounts.executionRatioPercent) || 0;
+                    layer.bindTooltip('', {
+                        sticky: true,
+                        direction: 'top',
+                        className: 'market-hover-tooltip',
+                        opacity: 0.9
+                    });
                     layer.setTooltipContent(`${countryName}: نسبة الإنجاز ${executionRatio.toFixed(1)}%`);
-                    layer.openTooltip();
+                    layer.openTooltip(event.latlng);
                 }
                 let hoverStyle;
                 
@@ -1329,6 +1328,7 @@ function renderGeoJsonBoundaries() {
             layer.on('mouseout', () => {
                 resetHoveredCountryLayers();
                 layer.closeTooltip();
+                layer.unbindTooltip();
             });
 
             layer.on('click', (e) => {
@@ -1779,6 +1779,7 @@ function toggleBusinessAnalysisMode() {
     if (geoJsonLayer) {
         geoJsonLayer.eachLayer(countryLayer => {
             if (typeof countryLayer.closeTooltip === 'function') countryLayer.closeTooltip();
+            if (typeof countryLayer.unbindTooltip === 'function') countryLayer.unbindTooltip();
         });
         geoJsonLayer.setStyle(getCountryBoundaryStyle);
     }
@@ -1854,6 +1855,8 @@ function isNoStartupProblemAnswer(answerValue) {
         'لا توجد مشاكل في القدره',
         'لا يوجد مشاكل تخص القدرة على البدء',
         'لا توجد مشاكل تخص القدرة على البدء',
+        'لا يوجد مشاكل تخص القدرة على البدأ',
+        'لا توجد مشاكل تخص القدرة على البدأ',
         'لا يوجد مشاكل في البدء',
         'لا توجد مشاكل في البدء',
         'لا يوجد معوقات',
@@ -1866,11 +1869,13 @@ function isNoStartupProblemAnswer(answerValue) {
     return hasNoProblem && normalized.includes('قدر') && normalized.includes('بدء');
 }
 
-function makeEarlyWarningItem(question, answer, points, maxPoints) {
+function makeEarlyWarningItem(questionResult) {
+    const { question, answer, points, maxPoints, answerUnit = '' } = questionResult;
     const cleanAnswer = String(answer === null || answer === undefined ? '' : answer).trim();
+    const displayedAnswer = cleanAnswer && answerUnit ? `${cleanAnswer} ${answerUnit}` : cleanAnswer;
     return {
         q: question,
-        ans: cleanAnswer || 'بيانات غير مكتملة',
+        ans: displayedAnswer || 'بيانات غير مكتملة',
         points,
         maxPoints,
         status: points === maxPoints ? 'pass' : (points > 0 ? 'warn' : 'fail')
@@ -2010,6 +2015,7 @@ const EARLY_WARNING_QUESTIONS = [
         groupKey: 'delivery',
         question: 'إجمالي قيمة مستحقات مقاولي الباطن',
         maxPoints: 10,
+        answerUnit: '$',
         readAnswer: report => report.subcontractorsDueAnswer,
         scoreRatio: (answer, report) => noOutstandingValueRatio(answer, report.subcontractorsDue)
     }
@@ -2029,12 +2035,7 @@ function groupEarlyWarningQuestions(questionResults) {
         icon: groupDefinition.icon,
         items: questionResults
             .filter(questionResult => questionResult.groupKey === groupDefinition.key)
-            .map(questionResult => makeEarlyWarningItem(
-                questionResult.question,
-                questionResult.answer,
-                questionResult.points,
-                questionResult.maxPoints
-            ))
+            .map(makeEarlyWarningItem)
     }));
 }
 
@@ -2651,7 +2652,7 @@ function openCountryBoard(countryGeo, countryName, initialProjectName = null) {
     const companyPillVisible = registeredCountryEntityTypes.has('COMPANY') || companyProjectsAvailable;
 
     const getMetrics = (p) => {
-        if (!p) return { a: 0, b: 0, c: 0, d: 0, f: 0, j: 0, i: 0, h: 0, g: 0, coll: 0 };
+        if (!p) return { a: 0, b: 0, c: 0, d: 0, f: 0, j: 0, i: 0, h: 0, g: 0, ac: null };
         const a = Number(p.contractValue) || 0;
         const c = Number(p.executedWorkApproved) || 0;
         const b = Number(p.executedWorkTotal) || c;
@@ -2661,8 +2662,9 @@ function openCountryBoard(countryGeo, countryName, initialProjectName = null) {
         const i = Number(p.profitLoss) || 0;
         const h = Number(p.uncollectibleWork) || 0;
         const g = Number(p.dueDebt) || 0;
-        const coll = Math.max(0, c - d) || g;
-        return { a, b, c, d, f, j, i, h, g, coll };
+        const rawTimeElapsedPercent = Number(p.timeElapsedPercent);
+        const ac = Number.isFinite(rawTimeElapsedPercent) ? rawTimeElapsedPercent : null;
+        return { a, b, c, d, f, j, i, h, g, ac };
     };
 
     const countryTotals = projects.reduce((acc, p) => {
@@ -2676,100 +2678,125 @@ function openCountryBoard(countryGeo, countryName, initialProjectName = null) {
         acc.i += m.i;
         acc.h += m.h;
         acc.g += m.g;
-        acc.coll += m.coll;
         return acc;
-    }, { a: 0, b: 0, c: 0, d: 0, f: 0, j: 0, i: 0, h: 0, g: 0, coll: 0 });
+    }, { a: 0, b: 0, c: 0, d: 0, f: 0, j: 0, i: 0, h: 0, g: 0, ac: null });
+
+    const formatPercent = percentage => Number.isFinite(percentage) ? `${percentage.toFixed(1)}%` : '';
 
     const kpisList = [
         {
             key: 'kpi_a',
-            title: 'القيمة التعاقدية الإجمالية',
+            code: 'A',
+            formula: '',
+            title: 'إجمالي القيمة التعاقدية',
             subTitle: 'الوزن النسبي',
             getMain: (m) => m.a,
             getSub: (m, isAgg) => isAgg ? (m.a ? 100 : 0) : (countryTotals.a ? (m.a / countryTotals.a * 100) : 0),
             formatMain: formatCurrencyUSD,
-            formatSub: (v) => `${v.toFixed(1)}%`
-        },
-        {
-            key: 'kpi_c',
-            title: 'الأعمال المنفذة المعتمدة',
-            subTitle: 'نسبة التقدم المعتمد',
-            getMain: (m) => m.c,
-            getSub: (m) => m.a ? (m.c / m.a * 100) : 0,
-            formatMain: formatCurrencyUSD,
-            formatSub: (v) => `${v.toFixed(1)}%`
+            formatSub: formatPercent
         },
         {
             key: 'kpi_b',
-            title: 'الأعمال شامل الداخلي',
+            code: 'B',
+            formula: 'B/A',
+            title: 'منفذ شامل مستخلص داخلي',
             subTitle: 'نسبة تقدم الأعمال',
             getMain: (m) => m.b,
             getSub: (m) => m.a ? (m.b / m.a * 100) : 0,
             formatMain: formatCurrencyUSD,
-            formatSub: (v) => `${v.toFixed(1)}%`
+            formatSub: formatPercent
+        },
+        {
+            key: 'kpi_c',
+            code: 'C',
+            formula: 'C/A',
+            title: 'منفذ معتمد',
+            subTitle: 'نسبة التقدم المعتمد',
+            getMain: (m) => m.c,
+            getSub: (m) => m.a ? (m.c / m.a * 100) : 0,
+            formatMain: formatCurrencyUSD,
+            formatSub: formatPercent
         },
         {
             key: 'kpi_d',
-            title: 'الأعمال المسددة',
+            code: 'D',
+            formula: 'D/C',
+            title: 'أعمال مسددة',
             subTitle: 'نسبة كفاءة التحصيل',
             getMain: (m) => m.d,
             getSub: (m) => m.c ? (m.d / m.c * 100) : 0,
             formatMain: formatCurrencyUSD,
-            formatSub: (v) => `${v.toFixed(1)}%`
+            formatSub: formatPercent
         },
         {
             key: 'kpi_f',
-            title: 'إجمالي السيولة المحصلة',
+            code: 'F',
+            formula: 'F/C',
+            title: 'سيولة محصلة',
             subTitle: 'نسبة السيولة للعمل',
             getMain: (m) => m.f,
             getSub: (m) => m.c ? (m.f / m.c * 100) : 0,
             formatMain: formatCurrencyUSD,
-            formatSub: (v) => `${v.toFixed(1)}%`
-        },
-        {
-            key: 'kpi_j',
-            title: 'تكلفة أجور المشروع',
-            subTitle: 'نسبة الأجور',
-            getMain: (m) => m.j,
-            getSub: (m) => m.c ? (m.j / m.c * 100) : 0,
-            formatMain: formatCurrencyUSD,
-            formatSub: (v) => `${v.toFixed(1)}%`
-        },
-        {
-            key: 'kpi_i',
-            title: 'ربحية المشروع',
-            subTitle: 'نسبة الربحية',
-            getMain: (m) => m.i,
-            getSub: (m) => m.c ? (m.i / m.c * 100) : 0,
-            formatMain: formatCurrencyUSD,
-            formatSub: (v) => `${v.toFixed(1)}%`
+            formatSub: formatPercent
         },
         {
             key: 'kpi_h',
-            title: 'غير القابل للصرف',
+            code: 'H',
+            formula: 'H/B',
+            title: 'الأعمال القابلة للصرف',
+            subTitle: 'نسبة القابل للصرف',
+            getMain: (m) => m.g,
+            getSub: (m) => m.b ? (m.g / m.b * 100) : 0,
+            formatMain: formatCurrencyUSD,
+            formatSub: formatPercent
+        },
+        {
+            key: 'kpi_g',
+            code: 'G',
+            formula: 'G/C',
+            title: 'غير قابلة للصرف',
             subTitle: 'نسبة غير القابل',
             getMain: (m) => m.h,
             getSub: (m) => m.c ? (m.h / m.c * 100) : 0,
             formatMain: formatCurrencyUSD,
-            formatSub: (v) => `${v.toFixed(1)}%`
+            formatSub: formatPercent
         },
         {
-            key: 'kpi_g',
-            title: 'أعمال لم تسدد بعد',
-            subTitle: 'نسبة غير المسدد',
-            getMain: (m) => m.g,
-            getSub: (m) => m.c ? (m.g / m.c * 100) : 0,
+            key: 'kpi_i',
+            code: 'I',
+            formula: 'I/C',
+            title: 'الربحية',
+            subTitle: 'نسبة الربحية',
+            getMain: (m) => m.i,
+            getSub: (m) => m.c ? (m.i / m.c * 100) : 0,
             formatMain: formatCurrencyUSD,
-            formatSub: (v) => `${v.toFixed(1)}%`
+            formatSub: formatPercent
         },
         {
-            key: 'kpi_coll',
-            title: 'مديونية قابلة للتحصيل',
-            subTitle: 'نسبة التحصيل المتوقع',
-            getMain: (m) => m.coll,
-            getSub: (m) => m.c ? (m.coll / m.c * 100) : 0,
+            key: 'kpi_j',
+            code: 'J',
+            formula: 'J/C',
+            title: 'الأجور',
+            subTitle: 'نسبة الأجور',
+            getMain: (m) => m.j,
+            getSub: (m) => m.c ? (m.j / m.c * 100) : 0,
             formatMain: formatCurrencyUSD,
-            formatSub: (v) => `${v.toFixed(1)}%`
+            formatSub: formatPercent
+        },
+        {
+            key: 'kpi_ac',
+            code: '',
+            formula: '',
+            title: 'نسبة انقضاء المدة الزمنية',
+            subTitle: '',
+            getMain: (m) => m.ac,
+            getSub: () => null,
+            formatMain: formatPercent,
+            formatSub: formatPercent,
+            formatProjectMain: formatPercent,
+            formatProjectSub: () => '',
+            hideSubRow: true,
+            isSelectionOnly: true
         }
     ];
 
@@ -2801,12 +2828,21 @@ function openCountryBoard(countryGeo, countryName, initialProjectName = null) {
             <div class="country-board-kpis" id="country-board-kpis-grid">
                 ${kpisList.map(kpi => `
                     <button type="button" class="country-board-kpi" data-kpi="${kpi.key}" aria-expanded="false" aria-controls="country-kpi-projects">
-                        <span class="kpi-main-label">${kpi.title}</span>
-                        <strong class="kpi-main-val" id="val-${kpi.key}">${kpi.formatMain(kpi.getMain(countryTotals))}</strong>
-                        <div class="kpi-sub-ratio">
-                            <span class="kpi-sub-label">${kpi.subTitle}</span>
+                        <span class="kpi-main-head">
+                            <span class="kpi-main-label">${kpi.title}</span>
+                            ${kpi.code ? `<span class="kpi-card-code" dir="ltr">${kpi.code}</span>` : ''}
+                        </span>
+                        <strong class="kpi-main-val${kpi.isSelectionOnly ? ' is-selection-only' : ''}" id="val-${kpi.key}">${kpi.formatMain(kpi.getMain(countryTotals), true)}</strong>
+                        ${kpi.hideSubRow ? `<div class="kpi-sub-ratio is-placeholder" aria-hidden="true">
+                            <span class="kpi-sub-copy"><span class="kpi-sub-label">&nbsp;</span></span>
+                            <span class="kpi-sub-val">&nbsp;</span>
+                        </div>` : `<div class="kpi-sub-ratio">
+                            <span class="kpi-sub-copy">
+                                <span class="kpi-sub-label">${kpi.subTitle}</span>
+                                ${kpi.formula ? `<span class="kpi-formula" dir="ltr">${kpi.formula}</span>` : ''}
+                            </span>
                             <span class="kpi-sub-val" id="sub-${kpi.key}">${kpi.formatSub(kpi.getSub(countryTotals, true))}</span>
-                        </div>
+                        </div>`}
                     </button>
                 `).join('')}
             </div>
@@ -2860,7 +2896,7 @@ function openCountryBoard(countryGeo, countryName, initialProjectName = null) {
         kpisList.forEach(kpi => {
             const valEl = document.getElementById(`val-${kpi.key}`);
             const subEl = document.getElementById(`sub-${kpi.key}`);
-            if (valEl) valEl.textContent = kpi.formatMain(kpi.getMain(m));
+            if (valEl) valEl.textContent = kpi.formatMain(kpi.getMain(m), isAgg);
             if (subEl) subEl.textContent = kpi.formatSub(kpi.getSub(m, isAgg));
         });
     }
@@ -2891,15 +2927,20 @@ function openCountryBoard(countryGeo, countryName, initialProjectName = null) {
         kpiProjectList.innerHTML = rankedProjects.length ? rankedProjects.map(proj => {
             const pKey = projectKey(proj);
             const m = getMetrics(proj);
-            const mainVal = config.formatMain(config.getMain(m));
-            const subVal = config.formatSub(config.getSub(m, false));
+            const mainValue = config.getMain(m);
+            const mainVal = config.formatProjectMain
+                ? config.formatProjectMain(mainValue)
+                : config.formatMain(mainValue, false);
+            const subVal = config.formatProjectSub
+                ? config.formatProjectSub(config.getSub(m, false))
+                : config.formatSub(config.getSub(m, false));
             const isSelected = selectedProjectKey === pKey;
             const isDimmed = selectedProjectKey && !isSelected;
 
             return `<div class="country-kpi-project-item${isSelected ? ' is-selected' : ''}${isDimmed ? ' is-dimmed' : ''}" data-project-key="${escapeHtml(pKey)}">
                 <span class="country-kpi-project-name">🏗️ ${escapeHtml(proj.projectName)}</span>
                 <div style="display:flex;align-items:center;gap:12px;">
-                    <span style="font-size:12px;color:#38bdf8;font-weight:700;">(${subVal})</span>
+                    ${subVal ? `<span style="font-size:12px;color:#38bdf8;font-weight:700;">(${subVal})</span>` : ''}
                     <strong class="country-kpi-project-value" dir="ltr">${mainVal}</strong>
                 </div>
             </div>`;
