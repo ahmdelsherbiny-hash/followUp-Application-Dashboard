@@ -598,19 +598,97 @@
         html[data-theme="aegov"] body { background:#eef2f7; }
         html[data-theme="aegov"] .map-page-header { background:rgba(255,255,255,.96); border-bottom-color:rgba(197,155,39,.38); box-shadow:0 4px 20px rgba(15,23,42,.12); }
         html[data-theme="aegov"] #standalone-executive-map { background:#e2e8f0; }
-        @media(max-width:990px){
-            .minimal-stats-group{gap:14px}
-            .minimal-stat-title{font-size:17px}
-            .stat-number{font-size:13px}
+        .header-brand-block {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
         }
-        @media(max-width:760px){
-            .map-page-header{height:84px;padding:0 14px}
-            .map-page-canvas-wrapper{height:calc(100vh - 84px)}
-            .map-header-logo-center img{height:74px}
-            .minimal-stats-group{gap:10px}
-            .minimal-stat-title{font-size:14px}
-            .stat-number{font-size:12px}
-            .minimal-stat-divider{height:26px}
+
+        .mobile-only-update {
+            display: none;
+        }
+
+        @media(max-width:1024px){
+            .map-page-header {
+                height: 80px;
+                padding: 0 14px;
+                gap: 12px;
+                justify-content: flex-start;
+            }
+            .map-page-canvas-wrapper {
+                height: calc(100vh - 80px);
+            }
+            /* 1. Hide stats block (red box) completely on mobile & tablet */
+            .header-side-right {
+                display: none !important;
+            }
+            /* 2. Logo moves to the start (right side in RTL) */
+            .map-header-logo-center {
+                order: 1;
+                padding: 0 4px;
+            }
+            .header-brand-block {
+                align-items: flex-start;
+                gap: 1px;
+            }
+            .map-header-logo-center img {
+                height: 48px;
+                max-height: 48px;
+            }
+            /* 3. Show last update date under logo on mobile/tablet */
+            .mobile-only-update {
+                display: flex;
+                margin-top: 0;
+                font-size: 8.5px;
+                gap: 3px;
+                color: #94a3b8;
+                white-space: nowrap;
+                line-height: 1;
+            }
+            .mobile-only-update time {
+                color: #cbd5e1;
+                font-size: 8.5px;
+                font-weight: 700;
+            }
+            /* 4. Ticker takes all the rest of the available space */
+            .header-side-left {
+                order: 2;
+                flex: 1;
+                width: 0;
+                min-width: 0;
+                margin-inline-start: 10px;
+            }
+            .header-stock-ticker {
+                height: 60px;
+            }
+        }
+        @media(max-width:600px){
+            .map-page-header {
+                height: 74px;
+                padding: 0 10px;
+                gap: 8px;
+            }
+            .map-page-canvas-wrapper {
+                height: calc(100vh - 74px);
+            }
+            .map-header-logo-center img {
+                height: 42px;
+                max-height: 42px;
+            }
+            .mobile-only-update {
+                font-size: 7.5px;
+            }
+            .mobile-only-update time {
+                font-size: 7.5px;
+            }
+            .header-side-left {
+                margin-inline-start: 6px;
+            }
+            .header-stock-ticker {
+                height: 54px;
+            }
         }
 
         .board-briefing {
@@ -728,12 +806,13 @@
             position: absolute;
             bottom: 28px;
             left: 52px;
-            z-index: 600;
+            z-index: 1200;
             display: flex;
             align-items: center;
             justify-content: center;
             user-select: none;
             font-family: Tajawal, sans-serif;
+            pointer-events: auto;
         }
 
         /* Main Trigger Button */
@@ -1475,25 +1554,28 @@
         @media (max-width: 760px) {
             .map-floating-legend {
                 right: 12px;
-                bottom: 12px;
-                left: 12px;
+                bottom: 16px;
+                left: auto;
+                max-width: calc(100vw - 86px);
+                z-index: 1000;
             }
 
             .legend-card {
                 flex-direction: column;
                 align-items: stretch;
-                gap: 8px;
+                gap: 6px;
+                padding: 6px 10px;
                 max-width: none;
             }
 
             .legend-card.flat-legend {
                 flex-direction: row;
                 align-items: center;
-                gap: 10px;
+                gap: 8px;
             }
 
             .legend-header {
-                padding: 0 0 7px;
+                padding: 0 0 5px;
                 border-left: 0;
                 border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             }
@@ -1501,14 +1583,14 @@
             .legend-items {
                 display: grid;
                 grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 7px 12px;
+                gap: 5px 8px;
             }
 
             .compact-market-legend .legend-items {
                 display: flex;
                 justify-content: center;
                 flex-wrap: wrap;
-                gap: 6px 10px;
+                gap: 5px 8px;
             }
 
             .flat-legend .legend-items {
@@ -1734,13 +1816,22 @@
             background: color-mix(in srgb, var(--item-glow) 15%, #fff);
         }
         @media(max-width:760px) {
-            .fab-container { left:12px; bottom:16px; }
-            .fab-primary-column, .fab-submenu { bottom:58px; gap:7px; }
-            .fab-primary-column { left:2px; }
-            .fab-submenu { left:126px; }
-            .fab-menu-button { width:104px; height:44px; flex-basis:44px; padding-inline:11px; }
-            .fab-subaction { width:156px; }
-            .fab-button-label { font-size:9.75px; }
+            .fab-container { left:12px; bottom:16px; z-index:1200; }
+            .fab-main { width:48px; height:48px; }
+            .fab-main i { font-size:18px; }
+            .fab-primary-column, .fab-submenu { bottom:56px; gap:6px; }
+            .fab-primary-column { left:0px; }
+            .fab-submenu { left:108px; }
+            .fab-menu-button { width:98px; height:42px; flex-basis:42px; padding-inline:9px; font-size:9.5px; }
+            .fab-subaction { width:148px; }
+            .fab-pill-toggle-btn { width:180px; padding:0 8px; }
+            .fab-pill-toggle-label { font-size:9.5px; }
+            .fab-pill-toggle-state { font-size:9px; min-width:22px; }
+            .fab-pill-toggle-track { width:30px; height:16px; }
+            .fab-pill-toggle-knob { width:10px; height:10px; font-size:6.5px; }
+            .fab-pill-toggle-btn.active .fab-pill-toggle-knob,
+            .fab-pill-toggle-btn[data-theme-active="aegov"] .fab-pill-toggle-knob { transform:translateX(-14px); }
+            .fab-button-label { font-size:9.5px; }
         }
         @media(prefers-reduced-motion:reduce) {
             .fab-menu-button, .fab-submenu, .fab-button-label, .fab-main, .fab-main i { transition:none; }
@@ -1797,7 +1888,13 @@
             </div>
 
             <div class="map-header-logo-center">
-                <img src="arab_contractors_logo.png" alt="شعار المقاولون العرب">
+                <div class="header-brand-block">
+                    <img src="arab_contractors_logo.png" alt="شعار المقاولون العرب">
+                    <div class="header-last-update mobile-only-update">
+                        <span>آخر تحديث:</span>
+                        <time class="header-last-update-date-ref">--</time>
+                    </div>
+                </div>
             </div>
 
             <div class="header-side-left">

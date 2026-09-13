@@ -3395,23 +3395,32 @@ function animateNumberCounting(elementId, targetNumber, duration = 5000) {
 }
 
 function updateHeaderLastDataDate() {
-    const dateElement = document.getElementById('header-last-update-date');
-    if (!dateElement) return;
+    const dateElements = [
+        document.getElementById('header-last-update-date'),
+        ...document.querySelectorAll('.header-last-update-date-ref')
+    ].filter(Boolean);
+    if (!dateElements.length) return;
     const latestTimestamp = (reportsData || []).reduce((latest, report) => {
         const timestamp = reportTimestamp(report);
         return Number.isFinite(timestamp) && timestamp > latest ? timestamp : latest;
     }, Number.NEGATIVE_INFINITY);
     if (!Number.isFinite(latestTimestamp)) {
-        dateElement.textContent = '--';
-        dateElement.removeAttribute('datetime');
+        dateElements.forEach(el => {
+            el.textContent = '--';
+            el.removeAttribute('datetime');
+        });
         return;
     }
     const latestDate = new Date(latestTimestamp);
-    dateElement.textContent = latestDate.toLocaleDateString('en-GB');
+    const dateText = latestDate.toLocaleDateString('en-GB');
     const year = latestDate.getFullYear();
     const month = String(latestDate.getMonth() + 1).padStart(2, '0');
     const day = String(latestDate.getDate()).padStart(2, '0');
-    dateElement.setAttribute('datetime', `${year}-${month}-${day}`);
+    const isoDate = `${year}-${month}-${day}`;
+    dateElements.forEach(el => {
+        el.textContent = dateText;
+        el.setAttribute('datetime', isoDate);
+    });
 }
 
 function updateHeaderKPIStats() {
