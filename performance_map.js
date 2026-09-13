@@ -3054,7 +3054,7 @@ function openCountryBoard(countryGeo, countryName, initialProjectName = null) {
     const projectColors = new Map(projects.map((project, index) => [projectKey(project), colors[index % colors.length]]));
     const projectColor = project => projectColors.get(projectKey(project)) || colors[0];
     const progressProjects = [...projects].sort((a, b) => progressValue(b.executionProgressPercent) - progressValue(a.executionProgressPercent));
-    const progressCutout = `${Math.max(0, 100 - progressProjects.length * 10)}%`;
+    const progressCutout = `${Math.max(25, 90 - progressProjects.length * 7)}%`;
 
     let contractChart;
     let progressChart;
@@ -3141,7 +3141,7 @@ function openCountryBoard(countryGeo, countryName, initialProjectName = null) {
         },
         options: {
             maintainAspectRatio: false,
-            cutout: '30%',
+            cutout: '58%',
             animation: { animateRotate: true, animateScale: true, duration: 1100, easing: 'easeOutCubic' },
             onClick: (_, elements) => { if (elements[0]) selectProject(projects[elements[0].index]); },
             plugins: { legend: { display: false }, tooltip: { callbacks: { label: item => formatCurrencyUSD(contractValues[item.dataIndex]) } } }
