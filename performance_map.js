@@ -520,7 +520,7 @@ function renderBoardBriefing() {
                 backgroundColor: composition.map(item => item.color),
                 borderColor: 'transparent',
                 borderWidth: 0,
-                spacing: 4,
+                spacing: 0,
                 hoverOffset: 6,
                 offset: 0
             }]
@@ -3076,7 +3076,7 @@ function openCountryBoard(countryGeo, countryName, initialProjectName = null) {
                 backgroundColor: projects.map(projectColor),
                 borderColor: 'transparent',
                 borderWidth: 0,
-                spacing: 4,
+                spacing: 0,
                 hoverOffset: 6,
                 offset: projects.map(() => 0)
             }]
