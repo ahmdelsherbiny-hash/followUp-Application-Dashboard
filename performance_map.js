@@ -2034,15 +2034,18 @@ function isNoStartupProblemAnswer(answerValue) {
 }
 
 function makeEarlyWarningItem(questionResult) {
-    const { question, answer, points, maxPoints, answerUnit = '' } = questionResult;
+    const { question, answer, points, maxPoints, answerUnit = '', isDeactivated } = questionResult;
     const cleanAnswer = String(answer === null || answer === undefined ? '' : answer).trim();
-    const displayedAnswer = cleanAnswer && answerUnit ? `${cleanAnswer} ${answerUnit}` : cleanAnswer;
+    const displayedAnswer = isDeactivated
+        ? 'غير منطبق (معطل)'
+        : (cleanAnswer && answerUnit ? `${cleanAnswer} ${answerUnit}` : cleanAnswer);
     return {
         q: question,
         ans: displayedAnswer || 'بيانات غير مكتملة',
         points,
         maxPoints,
-        status: points === maxPoints ? 'pass' : (points > 0 ? 'warn' : 'fail')
+        isDeactivated: !!isDeactivated,
+        status: isDeactivated ? 'neutral' : (points === maxPoints ? 'pass' : (points > 0 ? 'warn' : 'fail'))
     };
 }
 
@@ -2186,10 +2189,47 @@ const EARLY_WARNING_QUESTIONS = [
 ];
 
 function evaluateEarlyWarningQuestions(report) {
-    return EARLY_WARNING_QUESTIONS.map(questionDefinition => {
+    const isQ9Yes = isEarlyWarningYesAnswer(report ? report.cashFlowPlanPrepared : null);
+
+    // Condition 01: If Q9 is "No" (or not Yes), deactivate Q10 (0%) and redistribute its 15% weight equally across the remaining 10 questions
+    const dynamicWeights = isQ9Yes ? [
+        14, // Q1: موقف المطالبات والتحكيم
+        5,  // Q2: هل يوجد مقايسة للمشروع (BOQ)؟
+        6,  // Q3: ما مدى دقة مقايسة المشروع؟
+        5,  // Q4: إصدار خطابات الضمان وبداية المشروع
+        5,  // Q5: الاجتماع مع العميل لعرض المعوقات
+        5,  // Q6: إرسال خطاب رسمي بالمعوقات
+        10, // Q7: برنامج التوريدات ومراحل الشراء
+        12, // Q8: اعتماد مهمات الكهروميكانيك
+        13, // Q9: إعداد برنامج التدفقات النقدية ومراجعته
+        15, // Q10: هل يوجد Negative cashflow؟
+        10  // Q11: إجمالي قيمة مستحقات مقاولي الباطن
+    ] : [
+        16, // Q1: +2% -> 16%
+        6,  // Q2: +1% -> 6%
+        7,  // Q3: +1% -> 7%
+        6,  // Q4: +1% -> 6%
+        6,  // Q5: +1% -> 6%
+        6,  // Q6: +1% -> 6%
+        12, // Q7: +2% -> 12%
+        14, // Q8: +2% -> 14%
+        15, // Q9: +2% -> 15%
+        0,  // Q10: -15% -> 0% (معطل)
+        12  // Q11: +2% -> 12%
+    ];
+
+    return EARLY_WARNING_QUESTIONS.map((questionDefinition, index) => {
+        const maxPoints = dynamicWeights[index] !== undefined ? dynamicWeights[index] : questionDefinition.maxPoints;
         const answer = questionDefinition.readAnswer(report);
-        const points = questionDefinition.maxPoints * questionDefinition.scoreRatio(answer, report);
-        return { ...questionDefinition, answer, points };
+        const ratio = maxPoints === 0 ? 0 : questionDefinition.scoreRatio(answer, report);
+        const points = Math.round(maxPoints * ratio * 10) / 10;
+        return {
+            ...questionDefinition,
+            maxPoints,
+            answer,
+            points,
+            isDeactivated: maxPoints === 0
+        };
     });
 }
 
@@ -2542,7 +2582,7 @@ function openEarlyWarningSidebar(projectName, countryName = null, branchName = n
                         <i class="fa-solid ${g.icon}"></i> ${g.title}
                     </div>
                     ${g.items.map(item => `
-                        <div class="ew-item">
+                        <div class="ew-item${item.isDeactivated ? ' is-deactivated' : ''}">
                             <span class="ew-item-q">${escapeHtml(item.q)}</span>
                             <span class="ew-item-ans ew-ans-${item.status}">${escapeHtml(item.ans)} · ${item.points}/${item.maxPoints}</span>
                         </div>

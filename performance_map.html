@@ -505,20 +505,19 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 9.5px;
+            font-size: 10px;
             font-weight: 900;
             font-family: 'Outfit', sans-serif;
-            color: #d8b05a;
-            background: rgba(216, 176, 90, 0.15);
-            border: 1px solid rgba(216, 176, 90, 0.4);
-            border-radius: 4px;
-            padding: 0 4.5px;
-            height: 15px;
+            color: #1e3a8a;
+            background: transparent;
+            border: none;
+            padding: 0;
+            height: auto;
             line-height: 1;
             margin-right: 6px;
             letter-spacing: 0.02em;
             flex-shrink: 0;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+            box-shadow: none;
         }
 
         .ticker-row-metric {
@@ -597,9 +596,10 @@
         }
 
         [data-theme="aegov"] .ticker-rank-badge {
-            color: #92400e !important;
-            background: rgba(217, 119, 6, 0.12) !important;
-            border-color: rgba(217, 119, 6, 0.35) !important;
+            color: #1e3a8a !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
         }
 
         [data-theme="aegov"] .ticker-metric-label {
@@ -1278,6 +1278,8 @@
         .ew-ans-pass { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid #10b981; }
         .ew-ans-warn { background: rgba(245, 158, 11, 0.2); color: #fcd34d; border: 1px solid #f59e0b; }
         .ew-ans-fail { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid #ef4444; }
+        .ew-ans-neutral { background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); }
+        .ew-item.is-deactivated { opacity: 0.6; }
 
         @keyframes pulse-icon {
             0%, 100% { opacity: 1; transform: scale(1); }
