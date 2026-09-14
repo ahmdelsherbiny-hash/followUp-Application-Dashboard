@@ -1413,50 +1413,57 @@
         }
 
         .legend-card.flat-legend {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 6px;
-            background: transparent;
-            border-color: transparent;
-            box-shadow: none;
-            backdrop-filter: none;
-            -webkit-backdrop-filter: none;
-            padding: 0;
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 5px !important;
+            background: transparent !important;
+            border-color: transparent !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            padding: 0 !important;
         }
 
         .flat-legend .legend-header {
             padding-left: 0;
             border-left: 0;
+            border-bottom: 0;
             margin-bottom: 2px;
+            width: 100%;
+        }
+
+        .flat-legend .legend-title {
+            font-size: 12px;
+            font-weight: 800;
+            white-space: nowrap;
         }
 
         .flat-legend .legend-items {
-            flex-direction: column;
-            align-items: flex-start;
-            flex-wrap: nowrap;
-            gap: 7px 16px;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            flex-wrap: nowrap !important;
+            gap: 4px !important;
+            width: 100%;
+        }
+
+        .flat-legend .legend-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            white-space: nowrap;
         }
 
         .compact-market-legend .legend-items {
-            flex-wrap: nowrap;
-            gap: 6px 12px;
+            flex-wrap: wrap;
+            gap: 7px 16px;
             direction: rtl;
         }
 
         .compact-market-legend .legend-row {
             gap: 0;
             font-size: 10.5px;
-        }
-
-        .compact-market-legend .legend-items {
-            flex-wrap: wrap;
-            gap: 7px 16px;
-        }
-
-        .flat-legend .legend-items {
-            flex-direction: column;
-            align-items: flex-start;
-            flex-wrap: nowrap;
         }
 
         .compact-market-legend .legend-label { color: #e2e8f0; }
@@ -1612,34 +1619,41 @@
             }
 
             .legend-card.flat-legend {
-                flex-direction: row;
-                align-items: center;
-                gap: 8px;
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 4px !important;
+                padding: 0 !important;
             }
 
-            .legend-header {
-                padding: 0 0 5px;
-                border-left: 0;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            .flat-legend .legend-header {
+                padding: 0 0 2px !important;
+                border-left: 0 !important;
+                border-bottom: 0 !important;
+                margin-bottom: 2px !important;
+                width: 100% !important;
             }
 
-            .legend-items {
-                display: grid;
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 5px 8px;
-            }
-
-            .compact-market-legend .legend-items {
-                display: flex;
-                justify-content: center;
-                flex-wrap: wrap;
-                gap: 5px 8px;
+            .flat-legend .legend-title {
+                font-size: 11.5px !important;
+                font-weight: 800 !important;
+                white-space: nowrap !important;
             }
 
             .flat-legend .legend-items {
-                flex-direction: column;
-                align-items: flex-start;
-                flex-wrap: nowrap;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                flex-wrap: nowrap !important;
+                gap: 4px !important;
+                width: 100% !important;
+            }
+
+            .flat-legend .legend-row {
+                display: flex !important;
+                align-items: center !important;
+                gap: 6px !important;
+                font-size: 10.5px !important;
+                white-space: nowrap !important;
             }
         }
         .fab-primary-column,
