@@ -708,7 +708,16 @@ function bindCountryTickerInteractions(track) {
     });
 }
 
-function renderHeaderStockTicker() {
+function resetTickerScroll() {
+    tickerScrollPos = 0;
+    tickerTargetPos = 0;
+    const container = document.getElementById('header-stock-ticker');
+    if (container) {
+        container.scrollLeft = 0;
+    }
+}
+
+function renderHeaderStockTicker(resetScroll = false) {
     const track = document.getElementById('stock-ticker-track');
     if (!track) return;
     const countryList = sortCountryTickerItems(
@@ -724,6 +733,9 @@ function renderHeaderStockTicker() {
     const itemsHtml = countryList.map((country, index) => generateCountryTickerItemHtml(country, index + 1)).join('');
     track.innerHTML = itemsHtml + itemsHtml;
     bindCountryTickerInteractions(track);
+    if (resetScroll) {
+        resetTickerScroll();
+    }
     initStockTickerScroll();
 }
 
@@ -736,6 +748,11 @@ let tickerIsInteracting = false;
 function initStockTickerScroll() {
     const container = document.getElementById('header-stock-ticker');
     if (!container) return;
+
+    if (container.dataset.tickerScrollInitialized === 'true') {
+        return;
+    }
+    container.dataset.tickerScrollInitialized = 'true';
 
     tickerScrollPos = container.scrollLeft || 0;
     tickerTargetPos = container.scrollLeft || 0;
@@ -878,7 +895,7 @@ function initStockTickerScroll() {
             if (tickerScrollPos >= halfWidth) {
                 tickerScrollPos -= halfWidth;
                 tickerTargetPos -= halfWidth;
-            } else if (tickerScrollPos <= 0) {
+            } else if (tickerScrollPos < 0) {
                 tickerScrollPos += halfWidth;
                 tickerTargetPos += halfWidth;
             }
@@ -1794,7 +1811,7 @@ function setTickerSortCriterion(criterion) {
     mapControlState.tickerCriterion = criterion;
     saveMapControlState();
     syncMapControlCenterUI();
-    renderHeaderStockTicker();
+    renderHeaderStockTicker(true);
 }
 
 function setTickerSortDirection(direction) {
@@ -1802,7 +1819,7 @@ function setTickerSortDirection(direction) {
     mapControlState.tickerDirection = direction;
     saveMapControlState();
     syncMapControlCenterUI();
-    renderHeaderStockTicker();
+    renderHeaderStockTicker(true);
 }
 
 function setCompletionSlicerEnabled(isEnabled) {
@@ -2037,7 +2054,7 @@ function makeEarlyWarningItem(questionResult) {
     const { question, answer, points, maxPoints, answerUnit = '', isDeactivated } = questionResult;
     const cleanAnswer = String(answer === null || answer === undefined ? '' : answer).trim();
     const displayedAnswer = isDeactivated
-        ? 'غير منطبق (معطل)'
+        ? 'غير منطبق'
         : (cleanAnswer && answerUnit ? `${cleanAnswer} ${answerUnit}` : cleanAnswer);
     return {
         q: question,
