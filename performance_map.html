@@ -505,19 +505,21 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            font-size: 10px;
+            font-size: 11px;
             font-weight: 900;
             font-family: 'Outfit', sans-serif;
             color: #1e3a8a;
-            background: transparent;
-            border: none;
-            padding: 0;
-            height: auto;
+            background: rgba(250, 204, 21, 0.16);
+            border: 1px solid rgba(250, 204, 21, 0.38);
+            border-radius: 9999px;
+            min-width: 19px;
+            height: 19px;
+            padding: 0 3px;
             line-height: 1;
             margin-right: 6px;
-            letter-spacing: 0.02em;
+            letter-spacing: -0.01em;
             flex-shrink: 0;
-            box-shadow: none;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
         }
 
         .ticker-row-metric {
@@ -597,8 +599,8 @@
 
         [data-theme="aegov"] .ticker-rank-badge {
             color: #1e3a8a !important;
-            background: transparent !important;
-            border: none !important;
+            background: rgba(234, 179, 8, 0.16) !important;
+            border: 1px solid rgba(234, 179, 8, 0.38) !important;
             box-shadow: none !important;
         }
 
@@ -1769,15 +1771,15 @@
         .fab-primary-column,
         .fab-submenu {
             position: absolute;
-            bottom: 66px;
+            bottom: 58px;
             display: flex;
             flex-direction: column-reverse;
-            gap: 10px;
+            gap: 7px;
             pointer-events: none;
         }
-        .fab-primary-column { left: 3px; }
+        .fab-primary-column { left: 2px; }
         .fab-submenu {
-            left: 144px;
+            left: 114px;
             opacity: 0;
             visibility: hidden;
             transition: opacity .16s ease, visibility .16s;
@@ -1787,13 +1789,13 @@
             --item-glow: #10b981;
             position: relative;
             display: flex;
-            width: 118px;
-            height: 48px;
-            flex: 0 0 48px;
+            width: 106px;
+            height: 38px;
+            flex: 0 0 38px;
             align-items: center;
             justify-content: flex-start;
-            gap: 8px;
-            padding: 0 13px;
+            gap: 7px;
+            padding: 0 11px;
             border: 1px solid rgba(255,255,255,.16);
             border-radius: 999px;
             background: rgba(15,23,42,.94);
@@ -1810,14 +1812,14 @@
             direction: rtl;
             transition: opacity .2s ease, transform .42s cubic-bezier(.2,1.38,.42,1), visibility .2s, color .18s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease;
         }
-        .fab-subaction { width: 172px; }
-        .fab-menu-button i { flex: 0 0 auto; font-size: 16px; pointer-events: none; }
+        .fab-subaction { width: 160px; }
+        .fab-menu-button i { flex: 0 0 auto; font-size: 14.5px; pointer-events: none; }
         /* ==================================================== */
         /* Pill Toggle Button Component (Settings Submenu)      */
         /* ==================================================== */
         .fab-pill-toggle-btn {
-            width: 220px;
-            padding: 0 12px;
+            width: 196px;
+            padding: 0 10px;
             justify-content: space-between;
         }
         .fab-pill-toggle-label {
@@ -1873,14 +1875,21 @@
             font-size: 7.5px;
             line-height: 1;
         }
-        .fab-pill-toggle-btn.active .fab-pill-toggle-track {
-            background: #10b981;
-            border-color: #34d399;
-            box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+        .fab-pill-toggle-btn.active .fab-pill-toggle-track,
+        .fab-menu-button.active .fab-pill-toggle-track {
+            background: var(--item-glow);
+            border-color: var(--item-glow);
+            box-shadow: 0 0 10px color-mix(in srgb, var(--item-glow) 50%, transparent);
         }
-        .fab-pill-toggle-btn.active .fab-pill-toggle-knob {
+        .fab-pill-toggle-btn.active .fab-pill-toggle-knob,
+        .fab-menu-button.active .fab-pill-toggle-knob {
             background: #ffffff;
             transform: translateX(-16px);
+        }
+        .fab-menu-button .fab-pill-toggle-track {
+            margin-right: auto;
+            flex-shrink: 0;
+            pointer-events: none;
         }
         .fab-pill-toggle-btn.active .fab-pill-toggle-state {
             color: #6ee7b7;
@@ -1965,6 +1974,70 @@
             transform: none;
             transition: none;
         }
+        .fab-check-icon {
+            font-size: 11px !important;
+            margin-right: auto;
+            color: var(--item-glow);
+            opacity: 0;
+            transform: scale(0.4);
+            transition: opacity .18s ease, transform .22s cubic-bezier(.2,1.4,.4,1);
+            pointer-events: none;
+            flex-shrink: 0;
+        }
+        .fab-menu-button.active .fab-check-icon {
+            opacity: 1;
+            transform: scale(1);
+        }
+        .fab-direction-dual-toggle {
+            --knob-shift: -16px;
+            justify-content: space-between !important;
+            padding: 0 10px !important;
+        }
+        .fab-dir-label {
+            font: 800 10px/1.2 'Tajawal', sans-serif;
+            color: #64748b;
+            white-space: nowrap;
+            user-select: none;
+            pointer-events: none;
+            transition: color .2s ease, transform .2s ease;
+        }
+        .fab-dir-label.active {
+            color: #22d3ee;
+            font-weight: 900;
+        }
+        .fab-dir-track {
+            position: relative;
+            width: 32px;
+            height: 17px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            display: inline-flex;
+            align-items: center;
+            padding: 2px;
+            box-sizing: border-box;
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            flex-shrink: 0;
+            pointer-events: none;
+        }
+        .fab-dir-knob {
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            background: #06b6d4;
+            color: #0f172a;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 7px;
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background .2s ease;
+            flex-shrink: 0;
+        }
+        .fab-dir-knob i {
+            font-size: 6.5px;
+            line-height: 1;
+        }
         .fab-tooltip-state { color: #94a3b8; font-size: 9px; }
         .fab-menu-button.active .fab-tooltip-state { color: #6ee7b7; }
         .fab-main:focus-visible,
@@ -1977,28 +2050,92 @@
             border-color: rgba(203,213,225,.95);
             box-shadow: 0 7px 20px rgba(15,23,42,.16);
         }
+        [data-theme="aegov"] .fab-container.is-open .fab-menu-button:hover,
+        [data-theme="aegov"] .fab-container.is-open .fab-menu-button:focus-visible,
+        [data-theme="aegov"] .fab-submenu.is-open .fab-subaction:hover,
+        [data-theme="aegov"] .fab-submenu.is-open .fab-subaction:focus-visible {
+            color: #0f172a;
+            border-color: var(--item-glow);
+            background: color-mix(in srgb, var(--item-glow) 12%, #ffffff);
+            box-shadow: 0 0 16px color-mix(in srgb, var(--item-glow) 45%, transparent);
+        }
         [data-theme="aegov"] .fab-menu-button.active,
         [data-theme="aegov"] .fab-category.is-active {
             color: #0f172a;
+            border-color: var(--item-glow);
             background: color-mix(in srgb, var(--item-glow) 15%, #fff);
         }
-        @media(max-width:760px) {
-            .fab-container { left:12px; bottom:16px; z-index:1200; }
-            .fab-main { width:48px; height:48px; }
-            .fab-main i { font-size:18px; }
-            .fab-primary-column, .fab-submenu { bottom:56px; gap:6px; }
-            .fab-primary-column { left:0px; }
-            .fab-submenu { left:108px; }
-            .fab-menu-button { width:98px; height:42px; flex-basis:42px; padding-inline:9px; font-size:9.5px; }
-            .fab-subaction { width:148px; }
-            .fab-pill-toggle-btn { width:180px; padding:0 8px; }
-            .fab-pill-toggle-label { font-size:9.5px; }
-            .fab-pill-toggle-state { font-size:9px; min-width:22px; }
-            .fab-pill-toggle-track { width:30px; height:16px; }
-            .fab-pill-toggle-knob { width:10px; height:10px; font-size:6.5px; }
+        [data-theme="aegov"] .fab-pill-toggle-track {
+            background: rgba(15, 23, 42, 0.12);
+            border-color: rgba(15, 23, 42, 0.2);
+        }
+        [data-theme="aegov"] .fab-pill-toggle-knob {
+            background: #94a3b8;
+        }
+        [data-theme="aegov"] .fab-pill-toggle-btn.active .fab-pill-toggle-track,
+        [data-theme="aegov"] .fab-menu-button.active .fab-pill-toggle-track {
+            background: var(--item-glow);
+            border-color: var(--item-glow);
+            box-shadow: 0 0 10px color-mix(in srgb, var(--item-glow) 40%, transparent);
+        }
+        [data-theme="aegov"] .fab-pill-toggle-btn.active .fab-pill-toggle-knob,
+        [data-theme="aegov"] .fab-menu-button.active .fab-pill-toggle-knob {
+            background: #ffffff;
+            transform: translateX(-16px);
+        }
+        [data-theme="aegov"] .fab-tooltip-state { color: #64748b; }
+        [data-theme="aegov"] .fab-menu-button.active .fab-tooltip-state { color: #059669; }
+        [data-theme="aegov"] .fab-pill-toggle-state { color: #64748b; }
+        [data-theme="aegov"] .fab-pill-toggle-btn.active .fab-pill-toggle-state { color: #059669; }
+        [data-theme="aegov"] .fab-check-icon { color: #0891b2; }
+        [data-theme="aegov"] .fab-dir-label { color: #94a3b8; }
+        [data-theme="aegov"] .fab-dir-label.active { color: #0891b2; font-weight: 900; }
+        [data-theme="aegov"] .fab-dir-track {
+            background: rgba(15, 23, 42, 0.08);
+            border-color: rgba(15, 23, 42, 0.16);
+        }
+        [data-theme="aegov"] .fab-dir-knob {
+            background: #0891b2;
+            color: #ffffff;
+        }
+        @media(max-width:768px) {
+            .fab-container { left: 10px; bottom: 14px; z-index: 1200; }
+            .fab-main { width: 40px; height: 40px; }
+            .fab-main i { font-size: 15px; }
+            .fab-primary-column, .fab-submenu { bottom: 46px; gap: 5px; }
+            .fab-primary-column { left: 0px; }
+            .fab-submenu { left: 84px; }
+            .fab-menu-button {
+                width: 78px;
+                height: 30px;
+                flex: 0 0 30px;
+                padding: 0 7px;
+                gap: 5px;
+                font-size: 8.5px;
+            }
+            .fab-menu-button i { font-size: 12px; }
+            .fab-button-label { font-size: 8.5px; font-weight: 800; gap: 4px; }
+            .fab-subaction { width: 128px; height: 30px; flex: 0 0 30px; padding: 0 6px; gap: 4px; }
+            .fab-subaction i { font-size: 11.5px; }
+            .fab-subaction .fab-button-label { font-size: 8.5px; }
+            .fab-check-icon { font-size: 8.5px !important; }
+            .fab-pill-toggle-track { width: 24px; height: 13px; padding: 1.5px; }
+            .fab-pill-toggle-knob { width: 8.5px; height: 8.5px; font-size: 5px; }
             .fab-pill-toggle-btn.active .fab-pill-toggle-knob,
-            .fab-pill-toggle-btn[data-theme-active="aegov"] .fab-pill-toggle-knob { transform:translateX(-14px); }
-            .fab-button-label { font-size:9.5px; }
+            .fab-menu-button.active .fab-pill-toggle-knob,
+            [data-theme="aegov"] .fab-pill-toggle-btn.active .fab-pill-toggle-knob,
+            [data-theme="aegov"] .fab-menu-button.active .fab-pill-toggle-knob {
+                transform: translateX(-11px) !important;
+            }
+            .fab-pill-toggle-btn { width: 150px; padding: 0 6px; height: 30px; flex: 0 0 30px; }
+            .fab-pill-toggle-label { font-size: 8px; }
+            .fab-pill-toggle-state { font-size: 7.5px; min-width: 16px; }
+            .fab-direction-dual-toggle { --knob-shift: -11px; padding: 0 5px !important; }
+            .fab-dir-label { font-size: 8px; }
+            .fab-dir-track { width: 25px; height: 14px; padding: 1.5px; }
+            .fab-dir-knob { width: 9px; height: 9px; font-size: 5px; }
+            .fab-dir-knob i { font-size: 5px; }
+            .fab-category.is-active::after { width: 5px; height: 5px; border-width: 1.5px; left: calc(100% + 2px); }
         }
         @media(prefers-reduced-motion:reduce) {
             .fab-menu-button, .fab-submenu, .fab-button-label, .fab-main, .fab-main i { transition:none; }
@@ -2094,18 +2231,47 @@
                 </div>
 
                 <div class="fab-submenu" id="control-panel-map" data-control-panel="map" aria-label="عناصر تحكم الخريطة" aria-hidden="true">
-                    <button type="button" class="fab-menu-button fab-subaction active" id="fab-action-projects" style="--fab-delay:30ms;--item-glow:#10B981" aria-label="إظهار أو إخفاء المشروعات" aria-pressed="true" onclick="toggleMapLayer('projects')"><i class="fa-solid fa-table-cells-large" aria-hidden="true"></i><span class="fab-button-label">المشروعات <span class="fab-tooltip-state" id="fab-state-projects">نشط</span></span></button>
-                    <button type="button" class="fab-menu-button fab-subaction active" id="fab-action-branches" style="--fab-delay:70ms;--item-glow:#06B6D4" aria-label="إظهار أو إخفاء الفروع" aria-pressed="true" onclick="toggleMapLayer('branches')"><i class="fa-solid fa-building" aria-hidden="true"></i><span class="fab-button-label">الفروع <span class="fab-tooltip-state" id="fab-state-branches">نشط</span></span></button>
-                    <button type="button" class="fab-menu-button fab-subaction" id="fab-action-analysis" style="--fab-delay:110ms;--item-glow:#8B5CF6" aria-label="تفعيل أو تعطيل تحليل الأعمال" aria-pressed="false" onclick="toggleBusinessAnalysisMode()"><i class="fa-solid fa-chart-column" aria-hidden="true"></i><span class="fab-button-label">تحليل الأعمال <span class="fab-tooltip-state" id="fab-state-analysis">معطل</span></span></button>
-                    <button type="button" class="fab-menu-button fab-subaction" id="fab-action-warning" style="--fab-delay:150ms;--item-glow:#EF4444" aria-label="تفعيل أو تعطيل الإنذار المبكر" aria-pressed="false" onclick="toggleEarlyWarningMode()"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i><span class="fab-button-label">الإنذار المبكر <span class="fab-tooltip-state" id="fab-state-warning">معطل</span></span></button>
+                    <button type="button" class="fab-menu-button fab-subaction active" id="fab-action-projects" style="--fab-delay:30ms;--item-glow:#10B981" aria-label="إظهار أو إخفاء المشروعات" aria-pressed="true" onclick="toggleMapLayer('projects')">
+                        <i class="fa-solid fa-table-cells-large" aria-hidden="true"></i>
+                        <span class="fab-button-label">المشروعات</span>
+                        <span class="fab-pill-toggle-track" aria-hidden="true">
+                            <span class="fab-pill-toggle-knob"></span>
+                        </span>
+                    </button>
+                    <button type="button" class="fab-menu-button fab-subaction active" id="fab-action-branches" style="--fab-delay:70ms;--item-glow:#06B6D4" aria-label="إظهار أو إخفاء الفروع" aria-pressed="true" onclick="toggleMapLayer('branches')">
+                        <i class="fa-solid fa-building" aria-hidden="true"></i>
+                        <span class="fab-button-label">الفروع</span>
+                        <span class="fab-pill-toggle-track" aria-hidden="true">
+                            <span class="fab-pill-toggle-knob"></span>
+                        </span>
+                    </button>
+                    <button type="button" class="fab-menu-button fab-subaction" id="fab-action-analysis" style="--fab-delay:110ms;--item-glow:#8B5CF6" aria-label="تفعيل أو تعطيل تحليل الأعمال" aria-pressed="false" onclick="toggleBusinessAnalysisMode()">
+                        <i class="fa-solid fa-chart-column" aria-hidden="true"></i>
+                        <span class="fab-button-label">تحليل الأعمال</span>
+                        <span class="fab-pill-toggle-track" aria-hidden="true">
+                            <span class="fab-pill-toggle-knob"></span>
+                        </span>
+                    </button>
+                    <button type="button" class="fab-menu-button fab-subaction" id="fab-action-warning" style="--fab-delay:150ms;--item-glow:#EF4444" aria-label="تفعيل أو تعطيل الإنذار المبكر" aria-pressed="false" onclick="toggleEarlyWarningMode()">
+                        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                        <span class="fab-button-label">الإنذار المبكر</span>
+                        <span class="fab-pill-toggle-track" aria-hidden="true">
+                            <span class="fab-pill-toggle-knob"></span>
+                        </span>
+                    </button>
                 </div>
 
                 <div class="fab-submenu" id="control-panel-ticker" data-control-panel="ticker" aria-label="إعدادات ترتيب الشريط" aria-hidden="true">
-                    <button type="button" class="fab-menu-button fab-subaction" data-ticker-criterion="projectCount" style="--fab-delay:30ms;--item-glow:#06B6D4" aria-label="ترتيب حسب عدد المشروعات" aria-pressed="true" onclick="setTickerSortCriterion('projectCount')"><i class="fa-solid fa-list-ol" aria-hidden="true"></i><span class="fab-button-label">عدد المشروعات</span></button>
-                    <button type="button" class="fab-menu-button fab-subaction" data-ticker-criterion="healthScore" style="--fab-delay:65ms;--item-glow:#06B6D4" aria-label="ترتيب حسب صحة المشروعات" aria-pressed="false" onclick="setTickerSortCriterion('healthScore')"><i class="fa-solid fa-heart-pulse" aria-hidden="true"></i><span class="fab-button-label">صحة المشروعات</span></button>
-                    <button type="button" class="fab-menu-button fab-subaction" data-ticker-criterion="progressAverage" style="--fab-delay:100ms;--item-glow:#06B6D4" aria-label="ترتيب حسب متوسط الإنجاز" aria-pressed="false" onclick="setTickerSortCriterion('progressAverage')"><i class="fa-solid fa-chart-line" aria-hidden="true"></i><span class="fab-button-label">متوسط الإنجاز</span></button>
-                    <button type="button" class="fab-menu-button fab-subaction" data-ticker-direction="desc" style="--fab-delay:135ms;--item-glow:#8B5CF6" aria-label="ترتيب تنازلي" aria-pressed="true" onclick="setTickerSortDirection('desc')"><i class="fa-solid fa-arrow-down-wide-short" aria-hidden="true"></i><span class="fab-button-label">تنازلي</span></button>
-                    <button type="button" class="fab-menu-button fab-subaction" data-ticker-direction="asc" style="--fab-delay:170ms;--item-glow:#8B5CF6" aria-label="ترتيب تصاعدي" aria-pressed="false" onclick="setTickerSortDirection('asc')"><i class="fa-solid fa-arrow-up-wide-short" aria-hidden="true"></i><span class="fab-button-label">تصاعدي</span></button>
+                    <button type="button" class="fab-menu-button fab-subaction active" data-ticker-criterion="projectCount" style="--fab-delay:30ms;--item-glow:#06B6D4" aria-label="ترتيب حسب عدد المشروعات" aria-pressed="true" onclick="setTickerSortCriterion('projectCount')"><i class="fa-solid fa-list-ol" aria-hidden="true"></i><span class="fab-button-label">عدد المشروعات</span><i class="fa-solid fa-check fab-check-icon" aria-hidden="true"></i></button>
+                    <button type="button" class="fab-menu-button fab-subaction" data-ticker-criterion="healthScore" style="--fab-delay:65ms;--item-glow:#06B6D4" aria-label="ترتيب حسب صحة المشروعات" aria-pressed="false" onclick="setTickerSortCriterion('healthScore')"><i class="fa-solid fa-heart-pulse" aria-hidden="true"></i><span class="fab-button-label">صحة المشروعات</span><i class="fa-solid fa-check fab-check-icon" aria-hidden="true"></i></button>
+                    <button type="button" class="fab-menu-button fab-subaction" data-ticker-criterion="progressAverage" style="--fab-delay:100ms;--item-glow:#06B6D4" aria-label="ترتيب حسب متوسط الإنجاز" aria-pressed="false" onclick="setTickerSortCriterion('progressAverage')"><i class="fa-solid fa-chart-line" aria-hidden="true"></i><span class="fab-button-label">متوسط الإنجاز</span><i class="fa-solid fa-check fab-check-icon" aria-hidden="true"></i></button>
+                    <button type="button" class="fab-menu-button fab-subaction fab-direction-dual-toggle" id="ticker-direction-toggle" style="--fab-delay:135ms;--item-glow:#06B6D4" aria-label="تبديل اتجاه الترتيب (تنازلي / تصاعدي)" onclick="toggleTickerSortDirection()">
+                        <span class="fab-dir-label active" id="label-ticker-desc">تنازلي</span>
+                        <span class="fab-dir-track" aria-hidden="true">
+                            <span class="fab-dir-knob" id="ticker-dir-knob"><i class="fa-solid fa-arrow-down" id="ticker-direction-knob-icon"></i></span>
+                        </span>
+                        <span class="fab-dir-label" id="label-ticker-asc">تصاعدي</span>
+                    </button>
                 </div>
 
                 <div class="fab-submenu" id="control-panel-settings" data-control-panel="settings" aria-label="إعدادات عرض الخريطة" aria-hidden="true">

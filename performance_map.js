@@ -660,7 +660,7 @@ function validateGvizTable(table, minimumColumnCount, sourceLabel) {
 
 function generateCountryTickerItemHtml(country, rank) {
     const safeCountryName = escapeHtml(country.countryName);
-    const rankHtml = rank ? `<span class="ticker-rank-badge" title="الترتيب #${rank}">#${rank}</span>` : '';
+    const rankHtml = rank ? `<span class="ticker-rank-badge" title="الترتيب #${rank}">${rank}</span>` : '';
     return `
         <div class="stock-ticker-item" role="button" tabindex="0" data-country="${safeCountryName}" title="${safeCountryName}${rank ? ` (الترتيب #${rank})` : ''} - اضغط لعرض الدولة">
             <div class="ticker-row-title">
@@ -1758,11 +1758,27 @@ function syncTickerControlUI() {
         criterionButton.classList.toggle('active', isActive);
         criterionButton.setAttribute('aria-pressed', String(isActive));
     });
-    document.querySelectorAll('[data-ticker-direction]').forEach(directionButton => {
-        const isActive = directionButton.dataset.tickerDirection === mapControlState.tickerDirection;
-        directionButton.classList.toggle('active', isActive);
-        directionButton.setAttribute('aria-pressed', String(isActive));
-    });
+
+    const isAsc = mapControlState.tickerDirection === 'asc';
+    const directionToggle = document.getElementById('ticker-direction-toggle');
+    const labelDesc = document.getElementById('label-ticker-desc');
+    const labelAsc = document.getElementById('label-ticker-asc');
+    const knob = document.getElementById('ticker-dir-knob');
+    const knobIcon = document.getElementById('ticker-direction-knob-icon');
+
+    if (directionToggle) {
+        directionToggle.setAttribute('aria-pressed', String(isAsc));
+    }
+    if (labelDesc && labelAsc) {
+        labelDesc.classList.toggle('active', !isAsc);
+        labelAsc.classList.toggle('active', isAsc);
+    }
+    if (knob) {
+        knob.style.transform = isAsc ? 'translateX(var(--knob-shift, -16px))' : 'translateX(0)';
+    }
+    if (knobIcon) {
+        knobIcon.className = isAsc ? 'fa-solid fa-arrow-up' : 'fa-solid fa-arrow-down';
+    }
 }
 
 function syncSettingsControlUI() {
@@ -1820,6 +1836,11 @@ function setTickerSortDirection(direction) {
     saveMapControlState();
     syncMapControlCenterUI();
     renderHeaderStockTicker(true);
+}
+
+function toggleTickerSortDirection() {
+    const nextDirection = mapControlState.tickerDirection === 'asc' ? 'desc' : 'asc';
+    setTickerSortDirection(nextDirection);
 }
 
 function setCompletionSlicerEnabled(isEnabled) {
