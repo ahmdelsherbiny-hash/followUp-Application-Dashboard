@@ -253,8 +253,16 @@ function gvizCellNumber(row, columnIndex) {
 }
 
 function gvizCellPercent(row, columnIndex) {
-    const percentage = gvizCellNumber(row, columnIndex);
-    return percentage > 0 && percentage <= 1 ? percentage * 100 : percentage;
+    const cell = row && row.c ? row.c[columnIndex] : null;
+    if (!cell) return 0;
+    if (cell.f && typeof cell.f === 'string' && cell.f.includes('%')) {
+        const parsed = Number(cell.f.replace(/%/g, '').replace(/,/g, '').trim());
+        if (Number.isFinite(parsed)) return parsed;
+    }
+    const rawValue = cell.v;
+    const numericValue = Number(String(rawValue ?? '').replace(/,/g, ''));
+    if (!Number.isFinite(numericValue)) return 0;
+    return numericValue > 0 && numericValue <= 1 ? numericValue * 100 : numericValue;
 }
 
 function gvizCellDate(row, columnIndex) {
