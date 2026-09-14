@@ -2238,7 +2238,7 @@ function updateFloatingMapLegend() {
     if (isEarlyWarningMode) {
         content.innerHTML = `
             <div class="legend-header">
-                <div class="legend-title">مؤشر الإنذار المبكر</div>
+                <div class="legend-title">خريطة مؤشر الإنذار المبكر</div>
             </div>
             <div class="legend-items">
                 <div class="legend-row">
@@ -2264,6 +2264,9 @@ function updateFloatingMapLegend() {
         container.classList.remove('hidden');
     } else if (isBusinessAnalysisMode) {
         content.innerHTML = `
+            <div class="legend-header">
+                <div class="legend-title">خريطة تحليل الأعمال</div>
+            </div>
             <div class="legend-items">
                 <div class="legend-row">
                     <div class="legend-swatch-group">
