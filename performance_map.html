@@ -501,6 +501,26 @@
             line-height: 1.25;
         }
 
+        .ticker-rank-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9.5px;
+            font-weight: 900;
+            font-family: 'Outfit', sans-serif;
+            color: #d8b05a;
+            background: rgba(216, 176, 90, 0.15);
+            border: 1px solid rgba(216, 176, 90, 0.4);
+            border-radius: 4px;
+            padding: 0 4.5px;
+            height: 15px;
+            line-height: 1;
+            margin-right: 6px;
+            letter-spacing: 0.02em;
+            flex-shrink: 0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+        }
+
         .ticker-row-metric {
             display: flex;
             align-items: baseline;
@@ -574,6 +594,12 @@
         [data-theme="aegov"] .ticker-proj-title {
             color: #0f172a !important;
             font-weight: 900 !important;
+        }
+
+        [data-theme="aegov"] .ticker-rank-badge {
+            color: #92400e !important;
+            background: rgba(217, 119, 6, 0.12) !important;
+            border-color: rgba(217, 119, 6, 0.35) !important;
         }
 
         [data-theme="aegov"] .ticker-metric-label {

@@ -658,13 +658,15 @@ function validateGvizTable(table, minimumColumnCount, sourceLabel) {
     }
 }
 
-function generateCountryTickerItemHtml(country) {
+function generateCountryTickerItemHtml(country, rank) {
     const safeCountryName = escapeHtml(country.countryName);
+    const rankHtml = rank ? `<span class="ticker-rank-badge" title="الترتيب #${rank}">#${rank}</span>` : '';
     return `
-        <div class="stock-ticker-item" role="button" tabindex="0" data-country="${safeCountryName}" title="${safeCountryName} - اضغط لعرض الدولة">
+        <div class="stock-ticker-item" role="button" tabindex="0" data-country="${safeCountryName}" title="${safeCountryName}${rank ? ` (الترتيب #${rank})` : ''} - اضغط لعرض الدولة">
             <div class="ticker-row-title">
                 <span class="fi ${country.flagClass}" aria-hidden="true" style="margin-left:6px"></span>
                 <span class="ticker-proj-title">${safeCountryName}</span>
+                ${rankHtml}
             </div>
             <div class="ticker-row-metric">
                 <span class="ticker-metric-label">عدد المشروعات :</span>
@@ -719,7 +721,7 @@ function renderHeaderStockTicker() {
         return;
     }
 
-    const itemsHtml = countryList.map(generateCountryTickerItemHtml).join('');
+    const itemsHtml = countryList.map((country, index) => generateCountryTickerItemHtml(country, index + 1)).join('');
     track.innerHTML = itemsHtml + itemsHtml;
     bindCountryTickerInteractions(track);
     initStockTickerScroll();
