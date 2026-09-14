@@ -675,9 +675,20 @@ function generateCountryTickerItemHtml(country) {
     `;
 }
 
+let tickerDragMoved = false;
+
 function bindCountryTickerInteractions(track) {
     track.querySelectorAll('.stock-ticker-item').forEach(tickerElement => {
-        const openCountry = () => openCountryFromTicker(tickerElement.dataset.country);
+        const openCountry = (e) => {
+            if (tickerDragMoved) {
+                if (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                return;
+            }
+            openCountryFromTicker(tickerElement.dataset.country);
+        };
         tickerElement.addEventListener('click', openCountry);
         tickerElement.addEventListener('keydown', event => {
             if (event.key !== 'Enter' && event.key !== ' ') return;
@@ -710,6 +721,7 @@ let tickerScrollPos = 0;
 let tickerTargetPos = 0;
 let tickerAutoSpeed = 0.40; // Calm, continuous drift
 let tickerRafId = null;
+let tickerIsInteracting = false;
 
 function initStockTickerScroll() {
     const container = document.getElementById('header-stock-ticker');
@@ -719,6 +731,13 @@ function initStockTickerScroll() {
     tickerTargetPos = container.scrollLeft || 0;
 
     let isHovered = false;
+    let isDragging = false;
+    let startX = 0;
+    let dragStartPos = 0;
+    let lastX = 0;
+    let velocity = 0;
+    const dragMovedThreshold = 6;
+    let dragDistance = 0;
 
     container.onmouseenter = () => { isHovered = true; };
     container.onmouseleave = () => { isHovered = false; };
@@ -730,31 +749,114 @@ function initStockTickerScroll() {
         tickerTargetPos += delta * 1.85;
     };
 
-    // Smooth Drag / Swipe support
-    let isDragging = false;
-    let startX = 0;
-    let dragStartPos = 0;
-
+    // 1. Mouse Drag Support (Desktop)
     container.onmousedown = (e) => {
         isDragging = true;
+        tickerIsInteracting = true;
+        tickerDragMoved = false;
+        dragDistance = 0;
         startX = e.pageX;
+        lastX = e.pageX;
+        velocity = 0;
         dragStartPos = tickerTargetPos;
     };
 
-    window.addEventListener('mouseup', () => { isDragging = false; });
+    window.addEventListener('mouseup', () => {
+        if (!isDragging) return;
+        isDragging = false;
+        tickerIsInteracting = false;
+        // Momentum release
+        tickerTargetPos -= velocity * 6;
+        if (dragDistance > dragMovedThreshold) {
+            tickerDragMoved = true;
+            setTimeout(() => { tickerDragMoved = false; }, 80);
+        }
+    });
 
     container.onmousemove = (e) => {
         if (!isDragging) return;
         e.preventDefault();
-        const diff = (e.pageX - startX) * 1.8;
+        const diff = (e.pageX - startX) * 1.6;
+        dragDistance = Math.abs(e.pageX - startX);
+        if (dragDistance > dragMovedThreshold) {
+            tickerDragMoved = true;
+        }
         tickerTargetPos = dragStartPos - diff;
+        velocity = e.pageX - lastX;
+        lastX = e.pageX;
     };
+
+    // 2. Mobile Touch Swipe & Kinetic Scroll Support
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let isTouching = false;
+    let touchStartPos = 0;
+    let touchLastX = 0;
+    let touchVelocity = 0;
+    let isHorizontalGesture = null;
+
+    container.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1) return;
+        const touch = e.touches[0];
+        isTouching = true;
+        tickerIsInteracting = true;
+        tickerDragMoved = false;
+        dragDistance = 0;
+        isHorizontalGesture = null;
+        touchStartX = touch.pageX;
+        touchStartY = touch.pageY;
+        touchLastX = touch.pageX;
+        touchVelocity = 0;
+        touchStartPos = tickerTargetPos;
+    }, { passive: true });
+
+    container.addEventListener('touchmove', (e) => {
+        if (!isTouching || e.touches.length !== 1) return;
+        const touch = e.touches[0];
+        const deltaX = touch.pageX - touchStartX;
+        const deltaY = touch.pageY - touchStartY;
+
+        if (isHorizontalGesture === null) {
+            if (Math.abs(deltaX) > 4 || Math.abs(deltaY) > 4) {
+                isHorizontalGesture = Math.abs(deltaX) >= Math.abs(deltaY);
+            }
+        }
+
+        if (isHorizontalGesture) {
+            if (e.cancelable) e.preventDefault();
+            dragDistance = Math.abs(deltaX);
+            if (dragDistance > dragMovedThreshold) {
+                tickerDragMoved = true;
+            }
+            tickerTargetPos = touchStartPos - deltaX * 1.5;
+            touchVelocity = touch.pageX - touchLastX;
+            touchLastX = touch.pageX;
+        }
+    }, { passive: false });
+
+    const handleTouchEnd = () => {
+        if (!isTouching) return;
+        isTouching = false;
+        tickerIsInteracting = false;
+        if (isHorizontalGesture && dragDistance > dragMovedThreshold) {
+            tickerDragMoved = true;
+            // Apply kinetic momentum
+            tickerTargetPos -= touchVelocity * 7;
+            setTimeout(() => { tickerDragMoved = false; }, 120);
+        } else {
+            tickerDragMoved = false;
+        }
+        isHorizontalGesture = null;
+    };
+
+    container.addEventListener('touchend', handleTouchEnd, { passive: true });
+    container.addEventListener('touchcancel', handleTouchEnd, { passive: true });
 
     if (tickerRafId) cancelAnimationFrame(tickerRafId);
 
     function loop() {
-        // Continuous auto-drift runs when not hovered and not dragging
-        if (!isDragging && !isHovered) {
+        // Continuous auto-drift runs when not hovered and not interacting
+        if (!tickerIsInteracting && !isHovered) {
             tickerTargetPos += tickerAutoSpeed;
         }
 
