@@ -2974,15 +2974,17 @@ function openCountryBoard(countryGeo, countryName, initialProjectName = null) {
                 </h3>
             </div>
             <div class="country-board-head-actions">
-                <div class="country-entity-filters" role="group" aria-label="تصفية المشروعات حسب نوع الجهة">
+                <div class="country-entity-toggles" role="group" aria-label="تصفية المشروعات حسب نوع الجهة">
                     ${branchPillVisible ? `
-                        <span class="country-entity-filter-wrap" data-tooltip="${branchProjectsAvailable ? 'تصفية مشروعات الفرع' : 'لا توجد مشروعات بالفرع'}">
-                            <button type="button" class="country-entity-filter${branchProjectsAvailable ? '' : ' is-unavailable'}" data-entity-type="BRANCH" aria-pressed="${branchProjectsAvailable && activeCountryEntityTypes.has('BRANCH')}" aria-disabled="${!branchProjectsAvailable}" title="${branchProjectsAvailable ? 'تصفية مشروعات الفرع' : 'لا توجد مشروعات بالفرع'}" ${branchProjectsAvailable ? '' : 'disabled'}>فرع</button>
-                        </span>` : ''}
+                        <button type="button" class="country-entity-toggle-btn${branchProjectsAvailable ? '' : ' is-disabled'}" data-entity-type="BRANCH" aria-pressed="${branchProjectsAvailable && activeCountryEntityTypes.has('BRANCH')}" aria-disabled="${!branchProjectsAvailable}" title="${branchProjectsAvailable ? (activeCountryEntityTypes.has('BRANCH') ? 'إخفاء مشروعات الفرع' : 'إظهار مشروعات الفرع') : 'لا توجد مشروعات بالفرع'}" ${branchProjectsAvailable ? '' : 'disabled'}>
+                            <span class="country-toggle-title">فرع</span>
+                            <span class="country-toggle-track"><span class="country-toggle-thumb"></span></span>
+                        </button>` : ''}
                     ${companyPillVisible ? `
-                        <span class="country-entity-filter-wrap" data-tooltip="${companyProjectsAvailable ? 'تصفية مشروعات الشركة' : 'لا توجد مشروعات بالشركة'}">
-                            <button type="button" class="country-entity-filter${companyProjectsAvailable ? '' : ' is-unavailable'}" data-entity-type="COMPANY" aria-pressed="${companyProjectsAvailable && activeCountryEntityTypes.has('COMPANY')}" aria-disabled="${!companyProjectsAvailable}" title="${companyProjectsAvailable ? 'تصفية مشروعات الشركة' : 'لا توجد مشروعات بالشركة'}" ${companyProjectsAvailable ? '' : 'disabled'}>شركة</button>
-                        </span>` : ''}
+                        <button type="button" class="country-entity-toggle-btn${companyProjectsAvailable ? '' : ' is-disabled'}" data-entity-type="COMPANY" aria-pressed="${companyProjectsAvailable && activeCountryEntityTypes.has('COMPANY')}" aria-disabled="${!companyProjectsAvailable}" title="${companyProjectsAvailable ? (activeCountryEntityTypes.has('COMPANY') ? 'إخفاء مشروعات الشركة' : 'إظهار مشروعات الشركة') : 'لا توجد مشروعات بالشركة'}" ${companyProjectsAvailable ? '' : 'disabled'}>
+                            <span class="country-toggle-title">شركة</span>
+                            <span class="country-toggle-track"><span class="country-toggle-thumb"></span></span>
+                        </button>` : ''}
                 </div>
                 <button class="drawer-close-btn" onclick="closeCountryDrawer()" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button>
             </div>
@@ -3049,7 +3051,7 @@ function openCountryBoard(countryGeo, countryName, initialProjectName = null) {
     const kpiProjectList = document.getElementById('country-kpi-project-list');
     const kpiResetBtn = document.getElementById('country-kpi-project-reset');
     const kpiButtons = [...dialog.querySelectorAll('.country-board-kpi')];
-    dialog.querySelectorAll('.country-entity-filter').forEach(button => {
+    dialog.querySelectorAll('.country-entity-toggle-btn').forEach(button => {
         button.addEventListener('click', () => toggleCountryEntityTypeFilter(button.dataset.entityType));
     });
 
