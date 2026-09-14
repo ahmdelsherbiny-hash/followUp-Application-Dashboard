@@ -761,9 +761,9 @@
             gap:8px;
             padding:3px 7px 3px 8px;
             border-radius:6px;
-            background:rgba(255,255,255,.05);
-            border:1px solid rgba(255,255,255,.14);
-            color:#cbd5e1;
+            background:rgba(255,255,255,.07);
+            border:1px solid rgba(255,255,255,.18);
+            color:#ffffff !important;
             font:700 11.5px Tajawal,sans-serif;
             cursor:pointer;
             user-select:none;
@@ -771,20 +771,20 @@
             min-width:76px;
         }
         .country-entity-toggle-btn:not(:disabled):hover {
-            background:rgba(255,255,255,.1);
-            border-color:rgba(216,176,90,.4);
-            color:#fff;
+            background:rgba(255,255,255,.14);
+            border-color:rgba(216,176,90,.5);
+            color:#ffffff !important;
         }
         .country-entity-toggle-btn[aria-pressed="true"] {
-            color:#fff;
-            border-color:rgba(16,185,129,.55);
-            background:rgba(16,185,129,.14);
+            color:#ffffff !important;
+            border-color:rgba(16,185,129,.7);
+            background:rgba(16,185,129,.22);
         }
         .country-entity-toggle-btn[aria-pressed="false"] {
-            opacity:.45;
-            color:#94a3b8;
-            border-color:rgba(148,163,184,.22);
-            background:rgba(15,23,42,.3);
+            opacity:.55;
+            color:#ffffff !important;
+            border-color:rgba(255,255,255,.2);
+            background:rgba(15,23,42,.4);
         }
         .country-entity-toggle-btn:disabled,
         .country-entity-toggle-btn.is-disabled {
@@ -792,7 +792,13 @@
             cursor:not-allowed;
             pointer-events:none;
         }
-        .country-toggle-title { font-weight:800; font-size:11.5px; }
+        .country-toggle-title {
+            font-weight:800;
+            font-size:11.5px;
+            color:#ffffff !important;
+            text-shadow:0 1px 2px rgba(0,0,0,.6);
+            line-height:1;
+        }
         .country-toggle-track {
             position:relative;
             width:26px;
@@ -822,18 +828,17 @@
             transform:translateX(11px);
         }
         [data-theme="aegov"] .country-entity-toggle-btn {
-            background:rgba(0,0,0,.04);
-            border-color:rgba(0,0,0,.14);
-            color:#334155;
+            color:#ffffff !important;
         }
         [data-theme="aegov"] .country-entity-toggle-btn[aria-pressed="true"] {
-            background:rgba(16,185,129,.14);
-            color:#065f46;
-            border-color:#10b981;
+            background:rgba(16,185,129,.22);
+            color:#ffffff !important;
+            border-color:rgba(16,185,129,.7);
         }
         [data-theme="aegov"] .country-entity-toggle-btn[aria-pressed="false"] {
-            background:rgba(0,0,0,.05);
-            color:#94a3b8;
+            background:rgba(15,23,42,.4);
+            color:#ffffff !important;
+            border-color:rgba(255,255,255,.2);
         }
         .board-country-dialog .drawer-close-btn { display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; flex:0 0 38px; padding:0; border:1px solid rgba(248,250,252,.35); border-radius:9px; background:rgba(15,23,42,.72); color:#f8fafc; font-size:19px; opacity:1; visibility:visible; position:relative; z-index:2; }
         .board-country-dialog .drawer-close-btn:hover,
