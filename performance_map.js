@@ -2851,7 +2851,7 @@ function openCountryBoard(countryGeo, countryName, initialProjectName = null) {
             code: 'A',
             formula: '',
             title: 'إجمالي القيمة التعاقدية',
-            subTitle: 'الوزن النسبي',
+            subTitle: 'النسبة من إجمالي التعاقدات',
             getMain: (m) => m.a,
             getSub: (m, isAgg) => isAgg ? (m.a ? 100 : 0) : (countryTotals.a ? (m.a / countryTotals.a * 100) : 0),
             formatMain: formatCurrencyUSD,
