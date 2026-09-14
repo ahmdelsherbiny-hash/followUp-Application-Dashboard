@@ -2237,23 +2237,26 @@ function updateFloatingMapLegend() {
 
     if (isEarlyWarningMode) {
         content.innerHTML = `
+            <div class="legend-header">
+                <div class="legend-title">مؤشر الإنذار المبكر</div>
+            </div>
             <div class="legend-items">
                 <div class="legend-row">
                     <div class="legend-swatch-group">
                         <span class="legend-swatch" style="background:#10b981; color:rgba(16,185,129,0.55);"></span>
-                        <span class="legend-label">75 - 100: مستقر / أداء ممتاز</span>
+                        <span class="legend-label"><bdi dir="ltr">100 - 75</bdi></span>
                     </div>
                 </div>
                 <div class="legend-row">
                     <div class="legend-swatch-group">
                         <span class="legend-swatch" style="background:#f59e0b; color:rgba(245,158,11,0.55);"></span>
-                        <span class="legend-label">50 - أقل من 75: تحت المتابعة</span>
+                        <span class="legend-label"><bdi dir="ltr">75 - 50</bdi></span>
                     </div>
                 </div>
                 <div class="legend-row">
                     <div class="legend-swatch-group">
                         <span class="legend-swatch" style="background:#ef4444; color:rgba(239,68,68,0.55);"></span>
-                        <span class="legend-label">أقل من 50: خطر / حرج</span>
+                        <span class="legend-label"><bdi dir="ltr">50 - 0</bdi></span>
                     </div>
                 </div>
             </div>
