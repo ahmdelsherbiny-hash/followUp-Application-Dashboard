@@ -2524,9 +2524,6 @@ function openEarlyWarningSidebar(projectName, countryName = null, branchName = n
                     <div style="font-size:11.5px;color:#94a3b8;font-weight:700;">مؤشر صحة المشروع المركب</div>
                     <div class="ew-score-num" style="color:${ew.color};">${ew.score}<span style="font-size:16px;">%</span></div>
                 </div>
-                <div class="ew-status-badge" style="background:${ew.color}22; color:${ew.color}; border:1px solid ${ew.color};">
-                    <span style="font-size:14px;">●</span> ${ew.levelLabel}
-                </div>
             </div>
 
             ${ew.groups.map(g => `
