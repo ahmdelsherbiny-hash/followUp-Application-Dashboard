@@ -802,14 +802,14 @@
         .country-kpi-project-value { color:#f8fafc; direction:ltr; unicode-bidi:isolate; font:900 17px Outfit,sans-serif; white-space:nowrap; }
         .country-kpi-project-number { font:inherit; }
         .country-kpi-project-unit { margin-left:5px; color:#94a3b8; font:700 13px Tajawal,sans-serif; }
-        .country-chart-card { min-height:340px; padding:18px; background:rgba(255,255,255,.05); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,.14); border-radius:12px; display:flex; flex-direction:column; }
+        .country-chart-card { min-height:340px; padding:18px; background:rgba(255,255,255,.05); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,.14); border-radius:12px; display:flex; flex-direction:column; align-items:stretch; }
         .country-chart-card.wide { grid-column:1/-1; min-height:400px; }
-        .country-chart-title { color:#f8fafc; font-size:16.5px; font-weight:900; margin-bottom:8px; }
-        .country-chart-sub { margin-top:4px; color:#94a3b8; font-size:12px; font-weight:700; }
-        .country-chart-canvas { position:relative; height:260px; margin-top:6px; }
+        .country-chart-title { color:#f8fafc; font-size:16.5px; font-weight:900; margin-bottom:8px; text-align:right; }
+        .country-chart-sub { margin-top:4px; color:#94a3b8; font-size:12px; font-weight:700; text-align:right; }
+        .country-chart-canvas { position:relative; width:100%; height:260px; margin-top:6px; display:flex; justify-content:center; align-items:center; }
         .country-chart-card.wide .country-chart-canvas { height:310px; }
-        .country-chart-metric { position:absolute; right:8px; bottom:8px; left:8px; color:#f1f5f9; font:800 13px Tajawal,sans-serif; text-align:center; pointer-events:none; }
-        .country-chart-canvas canvas { opacity:0.1; transform:scale(.96); transition:opacity .5s cubic-bezier(.16, 1, .3, 1), transform .5s cubic-bezier(.16, 1, .3, 1); }
+        .country-chart-metric { position:absolute; right:8px; bottom:8px; left:8px; color:#f1f5f9; font:800 13px Tajawal,sans-serif; text-align:center; pointer-events:none; z-index:2; }
+        .country-chart-canvas canvas { display:block !important; margin:0 auto !important; max-width:100% !important; max-height:100% !important; opacity:0.1; transform:scale(.96); transition:opacity .5s cubic-bezier(.16, 1, .3, 1), transform .5s cubic-bezier(.16, 1, .3, 1); }
         .country-chart-card.is-in-view .country-chart-canvas canvas { opacity:1; transform:scale(1); }
         .country-chart-card.is-empty .country-chart-canvas canvas { opacity:.08; }
         @media (prefers-reduced-motion: reduce) { .country-chart-canvas canvas { opacity:1; transform:none; } }
@@ -827,9 +827,9 @@
             .country-board-kpi { padding:10px 12px; }
             .kpi-main-label { font-size:11.5px; }
             .kpi-main-val { font-size:18px; }
-            .country-chart-card { min-height:280px; padding:14px; }
-            .country-chart-card.wide { grid-column:auto; min-height:300px; }
-            .country-chart-canvas { height:220px; }
+            .country-chart-card { min-height:auto; padding:16px 14px; }
+            .country-chart-card.wide { grid-column:auto; min-height:auto; }
+            .country-chart-canvas { height:220px; width:100%; display:flex; justify-content:center; align-items:center; }
             .country-chart-card.wide .country-chart-canvas { height:240px; }
             .country-kpi-project-list { grid-template-columns:1fr; max-height:240px; }
         }
