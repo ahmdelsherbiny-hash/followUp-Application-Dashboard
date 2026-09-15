@@ -1283,6 +1283,105 @@
         .ew-ans-neutral { background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); }
         .ew-item.is-deactivated { opacity: 0.6; }
 
+        @media (max-width: 768px) {
+            .early-warning-sidebar {
+                top: auto;
+                bottom: max(10px, env(safe-area-inset-bottom));
+                right: 8px;
+                left: 8px;
+                width: auto;
+                max-width: 440px;
+                margin: 0 auto;
+                max-height: min(58vh, 420px);
+                border-radius: 14px;
+                border-width: 1px;
+                box-shadow: 0 16px 45px rgba(0, 0, 0, 0.9), 0 0 20px rgba(239, 68, 68, 0.25);
+            }
+
+            .early-warning-sidebar.is-minimized {
+                top: auto;
+                bottom: max(10px, env(safe-area-inset-bottom));
+                right: 10px;
+                left: auto;
+                max-width: calc(100vw - 20px);
+                max-height: 36px;
+                padding: 4px 10px;
+            }
+
+            .ew-head {
+                padding: 7px 10px;
+                gap: 6px;
+            }
+
+            .ew-title-box i {
+                font-size: 13px;
+            }
+
+            .ew-title {
+                font-size: 12.5px;
+            }
+
+            .ew-project-name {
+                font-size: 10.5px;
+                max-width: 110px;
+            }
+
+            .ew-full-report-btn {
+                padding: 2.5px 7px;
+                font-size: 10px;
+                gap: 4px;
+            }
+
+            .ew-btn-icon {
+                width: 24px;
+                height: 24px;
+                font-size: 10.5px;
+                border-radius: 5px;
+            }
+
+            .ew-body {
+                padding: 8px 10px;
+                gap: 8px;
+            }
+
+            .ew-score-card {
+                padding: 6px 10px;
+                border-radius: 8px;
+            }
+
+            .ew-score-num {
+                font-size: 20px;
+            }
+
+            .ew-group {
+                gap: 4px;
+            }
+
+            .ew-group-title {
+                font-size: 11px;
+                padding-bottom: 2px;
+                gap: 4px;
+            }
+
+            .ew-item {
+                padding: 4.5px 7px;
+                gap: 5px;
+                border-radius: 6px;
+                font-size: 10.5px;
+            }
+
+            .ew-item-q {
+                font-size: 10.5px;
+                line-height: 1.25;
+            }
+
+            .ew-item-ans {
+                font-size: 9.5px;
+                padding: 1px 5px;
+                border-radius: 3px;
+            }
+        }
+
         @keyframes pulse-icon {
             0%, 100% { opacity: 1; transform: scale(1); }
             50% { opacity: 0.6; transform: scale(1.15); }
@@ -2393,6 +2492,6 @@
     <script src="geo_coords.js?v=8.0"></script>
     
     <!-- Dedicated Performance Map Application Logic -->
-    <script src="performance_map.js?v=9.00"></script>
+    <script src="performance_map.js?v=9.02"></script>
 </body>
 </html>
