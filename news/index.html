@@ -50,44 +50,29 @@
 <body class="bg-[#f8fafc] text-slate-900 font-sans antialiased min-h-screen pb-28">
 
   <!-- ================= TOP HEADER ================= -->
-  <header class="bg-white border-b border-slate-200 py-3.5 sticky top-0 z-40 shadow-xs">
-    <div class="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-      
-      <!-- Brand & Sync Status -->
-      <div class="flex items-center gap-3">
-        <h1 class="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
-          <span>RSS News Wire</span>
-        </h1>
-        <span class="text-xs text-slate-500 font-mono bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-          Client-Side Live
-        </span>
-        <span id="syncIndicator" class="text-xs text-emerald-600 font-medium flex items-center gap-1.5">
-          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span id="syncStatusText">Ready</span>
-        </span>
-      </div>
-
-      <!-- Search & Controls -->
-      <div class="flex items-center gap-2 w-full sm:w-auto">
-        <!-- Live Search -->
-        <div class="relative flex-1 sm:w-60">
+  <header class="bg-white border-b border-slate-200 py-2.5 sticky top-0 z-40 shadow-xs">
+    <h1 class="sr-only">RSS News Wire</h1>
+    <div class="max-w-5xl mx-auto px-4 flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-3">
+      <!-- Search and refresh -->
+      <div class="flex items-center gap-2 min-w-0 flex-1">
+        <div class="relative flex-1 min-w-0">
           <input 
             type="text" 
             id="searchInput" 
             placeholder="Search live news..." 
             oninput="renderNews()"
-            class="w-full bg-slate-50 border border-slate-300 rounded-md pl-8 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-slate-500 transition"
+            aria-label="Search live news"
+            class="w-full bg-slate-50 border border-slate-300 rounded-md pl-8 pr-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-slate-500 transition"
           >
           <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
         </div>
 
-        <!-- Live Refresh Button -->
         <button 
           id="fetchBtn" 
           onclick="fetchAllFeeds()" 
-          class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-md text-xs font-medium transition flex items-center gap-1.5 shrink-0 shadow-xs active:scale-95"
+          class="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-md text-xs font-medium transition flex items-center gap-1.5 shrink-0 shadow-xs active:scale-95"
           title="Fetch live feeds now"
         >
           <svg id="fetchSpinner" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -95,48 +80,55 @@
           </svg>
           <span id="fetchBtnLabel">Fetch Live</span>
         </button>
+        <span id="syncStatusText" class="sr-only" role="status" aria-live="polite">Ready</span>
+      </div>
 
-        <!-- Ticker Controls (Moved to Top) -->
-        <div class="flex items-center gap-1.5 bg-slate-100 border border-slate-300 rounded-md px-2 py-1 text-xs text-slate-700 shrink-0">
-          <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse"></span>
-          <span class="font-bold text-[11px] text-slate-800 font-mono">TICKER:</span>
-          <button id="tickerBtn" onclick="toggleTicker()" class="px-2 py-0.5 rounded bg-white hover:bg-slate-50 text-slate-800 text-xs font-medium border border-slate-300 transition" title="Pause / Play Ticker">
-            ⏸ Pause
-          </button>
-          <select onchange="setTickerSpeed(this.value)" class="bg-white border border-slate-300 rounded px-1.5 py-0.5 text-xs text-slate-800 focus:outline-none cursor-pointer font-mono" title="Ticker Speed">
-            <option value="300s">Slow</option>
-            <option value="180s" selected>Normal</option>
-            <option value="110s">Medium</option>
-            <option value="60s">Fast</option>
-          </select>
-        </div>
-
-        <!-- Sources Modal Trigger -->
+      <!-- Settings -->
+      <nav class="flex flex-wrap items-center gap-1.5 lg:flex-nowrap shrink-0" aria-label="News settings">
         <button 
           onclick="toggleModal('sourcesModal')" 
-          class="px-2.5 py-1.5 border border-slate-300 hover:bg-slate-100 rounded-md text-xs text-slate-700 font-medium transition shrink-0"
+          class="px-2.5 py-2 border border-slate-300 hover:bg-slate-100 rounded-md text-xs text-slate-700 font-medium transition shrink-0"
         >
-          Sources (<span id="sourceCountBadge">11</span>)
+          Sources (<span id="sourceCountBadge">26</span>)
         </button>
 
-        <!-- Keywords Modal Trigger -->
         <button 
           onclick="toggleModal('keywordsModal')" 
-          class="px-2.5 py-1.5 border border-slate-300 hover:bg-slate-100 rounded-md text-xs text-slate-700 font-medium transition shrink-0"
+          class="px-2.5 py-2 border border-slate-300 hover:bg-slate-100 rounded-md text-xs text-slate-700 font-medium transition shrink-0"
         >
           Keywords
         </button>
 
-        <!-- History Modal Trigger -->
+        <button
+          onclick="toggleModal('wordsModal')"
+          class="px-2.5 py-2 border border-slate-300 hover:bg-slate-100 rounded-md text-xs text-slate-700 font-medium transition shrink-0"
+        >
+          Words (<span id="wordFilterCount">0</span>)
+        </button>
+
         <button 
           onclick="toggleModal('historyModal')" 
-          class="px-2.5 py-1.5 border border-slate-300 hover:bg-slate-100 rounded-md text-xs text-slate-700 font-medium transition shrink-0"
+          class="px-2.5 py-2 border border-slate-300 hover:bg-slate-100 rounded-md text-xs text-slate-700 font-medium transition shrink-0"
           title="Manage LocalStorage History"
         >
           History
         </button>
-      </div>
+      </nav>
 
+      <!-- Ticker playback -->
+      <div class="flex items-center gap-1.5 bg-slate-100 border border-slate-300 rounded-md px-2 py-1.5 text-xs text-slate-700 shrink-0 self-start lg:self-auto">
+        <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse" aria-hidden="true"></span>
+        <span class="font-bold text-[11px] text-slate-800 font-mono">TICKER:</span>
+        <button id="tickerBtn" onclick="toggleTicker()" class="px-2 py-0.5 rounded bg-white hover:bg-slate-50 text-slate-800 text-xs font-medium border border-slate-300 transition" title="Pause / Play Ticker">
+          ⏸ Pause
+        </button>
+        <select onchange="setTickerSpeed(this.value)" class="bg-white border border-slate-300 rounded px-1.5 py-0.5 text-xs text-slate-800 focus:outline-none cursor-pointer font-mono" title="Ticker Speed" aria-label="Ticker speed">
+          <option value="300s">Slow</option>
+          <option value="180s" selected>Normal</option>
+          <option value="110s">Medium</option>
+          <option value="60s">Fast</option>
+        </select>
+      </div>
     </div>
   </header>
 
@@ -177,6 +169,17 @@
     <!-- Secondary Filters (Source, Language, Sort, History Scope) -->
     <div class="flex flex-wrap items-center justify-between text-xs text-slate-500 py-1 border-b border-slate-200 gap-2">
       <div class="flex items-center gap-4 flex-wrap">
+        <!-- Region Filter -->
+        <div class="flex items-center gap-1.5">
+          <span>Region:</span>
+          <select id="regionSelect" onchange="renderNews()" class="bg-transparent text-slate-800 font-medium focus:outline-none cursor-pointer">
+            <option value="all">All Regions</option>
+            <option value="egypt">Egypt</option>
+            <option value="mena">MENA (includes Egypt)</option>
+            <option value="world">World</option>
+          </select>
+        </div>
+
         <!-- Source Filter -->
         <div class="flex items-center gap-1.5">
           <span>Source:</span>
@@ -220,6 +223,7 @@
     <div id="fetchProgressContainer" class="hidden bg-slate-100 rounded-full h-1.5 overflow-hidden">
       <div id="fetchProgressBar" class="bg-slate-900 h-1.5 transition-all duration-300 w-0"></div>
     </div>
+    <p id="fetchFeedback" class="hidden text-[11px] text-slate-600" role="status" aria-live="polite"></p>
 
     <!-- News List -->
     <div id="newsList" class="divide-y divide-slate-200 bg-white border border-slate-200 rounded-lg shadow-xs">
@@ -228,7 +232,7 @@
 
     <!-- Empty State -->
     <div id="emptyNotice" class="hidden p-8 text-center bg-white border border-slate-200 rounded-lg text-slate-500 text-xs">
-      No articles found matching your criteria. Click <strong>Fetch Live</strong> to download real RSS news.
+      <span id="emptyNoticeText">No articles found matching your criteria.</span>
     </div>
 
   </main>
@@ -259,13 +263,18 @@
       </div>
 
       <!-- Add Source Form -->
-      <div class="flex gap-2">
-        <input id="newSrcName" placeholder="Name (e.g. Bloomberg)" class="w-1/4 bg-slate-50 border border-slate-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-slate-500">
-        <input id="newSrcUrl" placeholder="Feed URL (https://.../rss.xml)" class="flex-1 bg-slate-50 border border-slate-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-slate-500">
+      <div class="flex flex-wrap gap-2">
+        <input id="newSrcName" placeholder="Name (e.g. Bloomberg)" class="w-full sm:w-1/4 bg-slate-50 border border-slate-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-slate-500">
+        <input id="newSrcUrl" placeholder="Feed URL (https://.../rss.xml)" class="w-full sm:flex-1 bg-slate-50 border border-slate-300 rounded px-2 py-1 text-xs focus:outline-none focus:border-slate-500">
         <select id="newSrcPriority" class="bg-slate-50 border border-slate-300 rounded px-1.5 py-1 text-xs">
           <option value="10">P10</option>
           <option value="8" selected>P8</option>
           <option value="6">P6</option>
+        </select>
+        <select id="newSrcRegion" class="bg-slate-50 border border-slate-300 rounded px-1.5 py-1 text-xs" title="Source region">
+          <option value="egypt">Egypt</option>
+          <option value="mena">MENA</option>
+          <option value="world" selected>World</option>
         </select>
         <button onclick="addSource()" class="px-3 py-1 bg-slate-900 text-white rounded text-xs font-medium hover:bg-slate-800">Add</button>
       </div>
@@ -323,6 +332,42 @@
     </div>
   </div>
 
+  <!-- 3. Saved Words Modal -->
+  <div id="wordsModal" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl max-w-lg w-full max-h-[85vh] overflow-y-auto p-5 shadow-xl border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+        <div>
+          <h2 class="text-sm font-bold text-slate-900">Saved Word Filters</h2>
+          <p class="text-[11px] text-slate-500">Include any phrase; exclude phrases always win. Applies to title and summary.</p>
+        </div>
+        <button onclick="toggleModal('wordsModal')" class="text-slate-400 hover:text-slate-700 text-sm font-mono">X</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label for="includeWordInput" class="font-semibold text-emerald-700">Include</label>
+          <div class="flex gap-2 mt-1">
+            <input id="includeWordInput" placeholder="Word or phrase" class="flex-1 bg-slate-50 border border-slate-300 rounded px-2 py-1.5 focus:outline-none focus:border-slate-500">
+            <button onclick="addWordFilter('include')" class="px-3 py-1 bg-slate-900 text-white rounded font-medium">Add</button>
+          </div>
+          <div id="includeWordChips" class="flex flex-wrap gap-1.5 mt-2"></div>
+        </div>
+        <div>
+          <label for="excludeWordInput" class="font-semibold text-red-700">Exclude</label>
+          <div class="flex gap-2 mt-1">
+            <input id="excludeWordInput" placeholder="Word or phrase" class="flex-1 bg-slate-50 border border-slate-300 rounded px-2 py-1.5 focus:outline-none focus:border-slate-500">
+            <button onclick="addWordFilter('exclude')" class="px-3 py-1 bg-slate-900 text-white rounded font-medium">Add</button>
+          </div>
+          <div id="excludeWordChips" class="flex flex-wrap gap-1.5 mt-2"></div>
+        </div>
+      </div>
+
+      <div class="flex justify-end pt-2 border-t border-slate-100">
+        <button onclick="toggleModal('wordsModal')" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs">Done</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 3. History Modal -->
   <div id="historyModal" class="hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
     <div class="bg-white rounded-xl max-w-md w-full p-5 shadow-xl border border-slate-200 space-y-4">
@@ -358,20 +403,46 @@
     const LS_SOURCES_KEY = 'rss_live_sources_v4';
     const LS_CATEGORIES_KEY = 'rss_live_categories_v4';
     const LS_LAST_FETCH_KEY = 'rss_last_fetch_timestamp_v4';
+    const LS_WORD_FILTERS_KEY = 'rss_word_filters_v1';
+    const LS_REGION_MIGRATION_KEY = 'rss_source_regions_v1';
+    const LS_EGYPT_FEEDS_MIGRATION_KEY = 'rss_egypt_feeds_v1';
+    const LS_PRESIDENCY_FEEDS_MIGRATION_KEY = 'rss_presidency_feeds_v1';
+    const LS_PRESIDENCY_ERRORS_REMOVED_KEY = 'rss_presidency_errors_removed_v1';
+    const REMOVED_PRESIDENCY_FEED_URLS = new Set([
+      'https://www.presidency.eg/%D8%A7%D9%84%D9%85%D8%B4%D8%B1%D9%88%D8%B9%D8%A7%D8%AA-%D8%A7%D9%84%D9%82%D9%88%D9%85%D9%8A%D8%A9/',
+      'https://www.presidency.eg/%D8%A7%D9%84%D8%A3%D8%AE%D8%A8%D8%A7%D8%B1-%D8%A7%D9%84%D8%B1%D8%A6%D8%A7%D8%B3%D9%8A%D8%A9/'
+    ].map(url => url.replace(/\/$/, '').toLowerCase()));
+    const REGIONS = ['egypt', 'mena', 'world'];
 
-    // 11 Verified Fast RSS Feeds (Sub-second response, all tested!)
+    // Default RSS sources. Region describes the source, not each story's location.
     const VERIFIED_SOURCES = [
-      { id: 's1', name: 'BBC World', url: 'https://feeds.bbci.co.uk/news/world/rss.xml', priority: 10, enabled: true },
-      { id: 's2', name: 'BBC Business', url: 'https://feeds.bbci.co.uk/news/business/rss.xml', priority: 9, enabled: true },
-      { id: 's3', name: 'BBC Arabic', url: 'https://feeds.bbci.co.uk/arabic/rss.xml', priority: 9, enabled: true },
-      { id: 's4', name: 'OilPrice.com', url: 'https://oilprice.com/rss/main', priority: 9, enabled: true },
-      { id: 's5', name: 'CNBC Top News', url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html', priority: 8, enabled: true },
-      { id: 's6', name: 'Al Jazeera Arabic', url: 'https://www.aljazeera.net/aljazeerarss/a7c6e2fb-b7f7-42f4-8354-84598160d298/73d0e1b4-532f-45ef-b135-bfdff8b8cab9', priority: 8, enabled: true },
-      { id: 's7', name: 'Al Jazeera English', url: 'https://www.aljazeera.com/xml/rss/all.xml', priority: 8, enabled: true },
-      { id: 's8', name: 'MarketWatch', url: 'https://feeds.content.dowjones.io/public/rss/mw_topstories', priority: 8, enabled: true },
-      { id: 's9', name: 'Yahoo Finance', url: 'https://finance.yahoo.com/news/rssindex', priority: 8, enabled: true },
-      { id: 's10', name: 'TechCrunch', url: 'https://techcrunch.com/feed/', priority: 7, enabled: true },
-      { id: 's11', name: 'RT Arabic', url: 'https://arabic.rt.com/rss/', priority: 7, enabled: true }
+      { id: 's1', name: 'BBC World', url: 'https://feeds.bbci.co.uk/news/world/rss.xml', priority: 10, enabled: true, region: 'world' },
+      { id: 's2', name: 'BBC Business', url: 'https://feeds.bbci.co.uk/news/business/rss.xml', priority: 9, enabled: true, region: 'world' },
+      { id: 's3', name: 'BBC Arabic', url: 'https://feeds.bbci.co.uk/arabic/rss.xml', priority: 9, enabled: true, region: 'world' },
+      { id: 's4', name: 'OilPrice.com', url: 'https://oilprice.com/rss/main', priority: 9, enabled: true, region: 'world' },
+      { id: 's5', name: 'CNBC Top News', url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html', priority: 8, enabled: true, region: 'world' },
+      { id: 's6', name: 'Al Jazeera Arabic', url: 'https://www.aljazeera.net/aljazeerarss/a7c6e2fb-b7f7-42f4-8354-84598160d298/73d0e1b4-532f-45ef-b135-bfdff8b8cab9', priority: 8, enabled: true, region: 'mena' },
+      { id: 's7', name: 'Al Jazeera English', url: 'https://www.aljazeera.com/xml/rss/all.xml', priority: 8, enabled: true, region: 'mena' },
+      { id: 's8', name: 'MarketWatch', url: 'https://feeds.content.dowjones.io/public/rss/mw_topstories', priority: 8, enabled: true, region: 'world' },
+      { id: 's9', name: 'Yahoo Finance', url: 'https://finance.yahoo.com/news/rssindex', priority: 8, enabled: true, region: 'world' },
+      { id: 's10', name: 'TechCrunch', url: 'https://techcrunch.com/feed/', priority: 7, enabled: true, region: 'world' },
+      { id: 's11', name: 'RT Arabic', url: 'https://arabic.rt.com/rss/', priority: 7, enabled: true, region: 'world' },
+      { id: 's12', name: 'Egypt Independent', url: 'https://www.egyptindependent.com/feed/', priority: 8, enabled: true, region: 'egypt' },
+      { id: 's13', name: 'Al Masry Al Youm', url: 'https://www.almasryalyoum.com/rss/rssfeed', priority: 8, enabled: true, region: 'egypt' },
+      { id: 's14', name: 'Youm7 Politics', url: 'https://www.youm7.com/rss/SectionRss?SectionID=319', priority: 8, enabled: true, region: 'egypt' },
+      // The supplied Ahram URL could not be confirmed as an XML feed; keep it available for manual checking.
+      { id: 's15', name: 'Ahram Gate', url: 'https://gate.ahram.org.eg/RSS.aspx', priority: 8, enabled: false, region: 'egypt' },
+      { id: 's16', name: 'Shorouk News', url: 'https://www.shorouknews.com/rss/main', priority: 8, enabled: true, region: 'egypt' },
+      { id: 's17', name: 'Egypt Oil & Gas', url: 'https://egyptoil-gas.com/news/feed', priority: 8, enabled: true, region: 'egypt' },
+      { id: 's18', name: 'Al Borsa News', url: 'https://www.alborsaanews.com/feed', priority: 8, enabled: true, region: 'egypt' },
+      { id: 's19', name: 'Amwal Al Ghad', url: 'https://amwalalghad.com/feed', priority: 8, enabled: true, region: 'egypt' },
+      { id: 's20', name: 'Hapi', url: 'https://hapi.eg/feed', priority: 8, enabled: true, region: 'egypt' },
+      { id: 's21', name: 'Masrawy', url: 'https://www.masrawy.com/rss/feed/25/%D8%A3%D8%AE%D8%A8%D8%A7%D8%B1', priority: 8, enabled: true, region: 'egypt' },
+      { id: 's22', name: 'Al Mal News', url: 'https://almalnews.com/feed', priority: 8, enabled: true, region: 'egypt' },
+      { id: 's23', name: 'Enterprise Arabic', url: 'https://enterprise.press/ar/feed', priority: 8, enabled: true, region: 'egypt' },
+      { id: 's24', name: 'Invest-Gate', url: 'https://invest-gate.me/feed', priority: 8, enabled: true, region: 'egypt' },
+      { id: 's27', name: 'Presidency Events', url: 'https://www.presidency.eg/rss-%D8%A7%D9%84%D8%A3%D8%AD%D8%AF%D8%A7%D8%AB/', priority: 9, enabled: true, region: 'egypt' },
+      { id: 's28', name: 'Presidency Live Broadcasts', url: 'https://www.presidency.eg/%D8%A7%D9%84%D8%A8%D8%AB-%D8%A7%D9%84%D9%85%D8%A8%D8%A7%D8%B4%D8%B1/', priority: 9, enabled: true, region: 'egypt' }
     ];
 
     const DEFAULT_CATEGORIES = {
@@ -461,6 +532,7 @@
     let sources = loadSources();
     let categories = loadCategories();
     let allArticles = loadStoredArticles();
+    let wordFilters = loadWordFilters();
     let latestFetchedIds = new Set();
     let activeCat = 'all';
     let activeModalCat = 'oil';
@@ -470,7 +542,59 @@
     function loadSources() {
       try {
         const stored = localStorage.getItem(LS_SOURCES_KEY);
-        if (stored) return JSON.parse(stored);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            const defaultsByUrl = new Map(VERIFIED_SOURCES.map(source => [source.url, source.region]));
+            let normalized = parsed.map(source => ({
+              ...source,
+              region: REGIONS.includes(source.region) ? source.region : (defaultsByUrl.get(source.url) || 'world')
+            }));
+            if (!localStorage.getItem(LS_REGION_MIGRATION_KEY)) {
+              const egyptDefault = VERIFIED_SOURCES.find(source => source.id === 's12');
+              if (!normalized.some(source => source.url === egyptDefault.url)) normalized.push({ ...egyptDefault });
+              try { localStorage.setItem(LS_REGION_MIGRATION_KEY, '1'); } catch (e) {}
+            }
+            if (!localStorage.getItem(LS_EGYPT_FEEDS_MIGRATION_KEY)) {
+              const existingUrls = new Set(normalized.map(source => source.url.replace(/\/$/, '').toLowerCase()));
+              for (const source of VERIFIED_SOURCES.slice(12, 24)) {
+                const url = source.url.replace(/\/$/, '').toLowerCase();
+                if (!existingUrls.has(url)) {
+                  normalized.push({ ...source });
+                  existingUrls.add(url);
+                }
+              }
+              try {
+                localStorage.setItem(LS_SOURCES_KEY, JSON.stringify(normalized));
+                localStorage.setItem(LS_EGYPT_FEEDS_MIGRATION_KEY, '1');
+              } catch (e) {}
+            }
+            if (!localStorage.getItem(LS_PRESIDENCY_FEEDS_MIGRATION_KEY)) {
+              const existingUrls = new Set(normalized.map(source => source.url.replace(/\/$/, '').toLowerCase()));
+              for (const source of VERIFIED_SOURCES.slice(24)) {
+                const url = source.url.replace(/\/$/, '').toLowerCase();
+                if (!existingUrls.has(url)) {
+                  normalized.push({ ...source });
+                  existingUrls.add(url);
+                }
+              }
+              try {
+                localStorage.setItem(LS_SOURCES_KEY, JSON.stringify(normalized));
+                localStorage.setItem(LS_PRESIDENCY_FEEDS_MIGRATION_KEY, '1');
+              } catch (e) {}
+            }
+            if (!localStorage.getItem(LS_PRESIDENCY_ERRORS_REMOVED_KEY)) {
+              normalized = normalized.filter(source =>
+                !REMOVED_PRESIDENCY_FEED_URLS.has(source.url.replace(/\/$/, '').toLowerCase())
+              );
+              try {
+                localStorage.setItem(LS_SOURCES_KEY, JSON.stringify(normalized));
+                localStorage.setItem(LS_PRESIDENCY_ERRORS_REMOVED_KEY, '1');
+              } catch (e) {}
+            }
+            return normalized;
+          }
+        }
       } catch (e) {}
       return JSON.parse(JSON.stringify(VERIFIED_SOURCES));
     }
@@ -489,6 +613,23 @@
 
     function saveCategories() {
       try { localStorage.setItem(LS_CATEGORIES_KEY, JSON.stringify(categories)); } catch (e) {}
+    }
+
+    function loadWordFilters() {
+      try {
+        const stored = JSON.parse(localStorage.getItem(LS_WORD_FILTERS_KEY));
+        if (stored && Array.isArray(stored.include) && Array.isArray(stored.exclude)) {
+          return {
+            include: stored.include.filter(word => typeof word === 'string' && word.trim()),
+            exclude: stored.exclude.filter(word => typeof word === 'string' && word.trim())
+          };
+        }
+      } catch (e) {}
+      return { include: [], exclude: [] };
+    }
+
+    function saveWordFilters() {
+      try { localStorage.setItem(LS_WORD_FILTERS_KEY, JSON.stringify(wordFilters)); } catch (e) {}
     }
 
     function loadStoredArticles() {
@@ -518,6 +659,55 @@
         .replace(/ى/g, 'ي')
         .replace(/ـ/g, '')
         .toLowerCase();
+    }
+
+    function normalizeFilterText(text) {
+      return normalizeArabic(text)
+        .replace(/[^\p{L}\p{N}]+/gu, ' ')
+        .trim()
+        .replace(/\s+/g, ' ');
+    }
+
+    function phraseMatches(text, phrase) {
+      const needle = normalizeFilterText(phrase);
+      if (!needle) return false;
+      const paddedText = ` ${text} `;
+      if (paddedText.includes(` ${needle} `)) return true;
+      return /^[\u0600-\u06FF]+$/.test(needle) && paddedText.includes(` ال${needle} `);
+    }
+
+    function matchesSavedWords(item) {
+      const text = normalizeFilterText(item.title + ' ' + (item.summary || ''));
+      if (wordFilters.exclude.some(phrase => phraseMatches(text, phrase))) return false;
+      return wordFilters.include.length === 0 || wordFilters.include.some(phrase => phraseMatches(text, phrase));
+    }
+
+    function getArticleRegion(item) {
+      const source = sources.find(source => source.id === item.sourceId) ||
+        sources.find(source => source.name === item.source);
+      return source?.region || item.region || 'world';
+    }
+
+    function matchesRegion(item, selectedRegion) {
+      const region = getArticleRegion(item);
+      if (selectedRegion === 'all') return true;
+      if (selectedRegion === 'mena') return region === 'mena' || region === 'egypt';
+      return region === selectedRegion;
+    }
+
+    function escapeHtml(value) {
+      return String(value).replace(/[&<>"']/g, char => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      })[char]);
+    }
+
+    function safeArticleUrl(value) {
+      try {
+        const url = new URL(value);
+        return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : '#';
+      } catch (e) {
+        return '#';
+      }
     }
 
     function detectLanguage(text) {
@@ -590,12 +780,12 @@
       );
     }
 
-    function isDuplicate(newTitle, existingArticles) {
+    function findDuplicateArticle(newTitle, existingArticles) {
       const tokensA = getTokens(newTitle);
-      if (tokensA.size === 0) return false;
+      if (tokensA.size === 0) return null;
 
       for (const art of existingArticles) {
-        if (normalizeArabic(art.title) === normalizeArabic(newTitle)) return true;
+        if (normalizeArabic(art.title) === normalizeArabic(newTitle)) return art;
 
         const tokensB = getTokens(art.title);
         if (tokensB.size === 0) continue;
@@ -603,9 +793,9 @@
         tokensA.forEach(token => { if (tokensB.has(token)) intersection++; });
         const union = tokensA.size + tokensB.size - intersection;
         const jaccard = union > 0 ? (intersection / union) : 0;
-        if (jaccard >= 0.80) return true;
+        if (jaccard >= 0.80) return art;
       }
-      return false;
+      return null;
     }
 
     // High Speed Fetch: Try rss2json first, with fallback to allorigins XML
@@ -624,6 +814,8 @@
               summary: (item.description || item.content || '').replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim().slice(0, 260),
               url: item.link || '',
               source: sourceMeta.name,
+              sourceId: sourceMeta.id,
+              region: sourceMeta.region,
               sourcePriority: sourceMeta.priority,
               publishedAt: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString()
             }));
@@ -661,6 +853,8 @@
               summary: desc,
               url: link,
               source: sourceMeta.name,
+              sourceId: sourceMeta.id,
+              region: sourceMeta.region,
               sourcePriority: sourceMeta.priority,
               publishedAt
             });
@@ -683,6 +877,7 @@
       const progressBox = document.getElementById('fetchProgressContainer');
       const progressBar = document.getElementById('fetchProgressBar');
       const statusText = document.getElementById('syncStatusText');
+      const feedback = document.getElementById('fetchFeedback');
 
       spinner.classList.add('animate-spin');
       btn.disabled = true;
@@ -692,7 +887,11 @@
 
       const enabledSources = sources.filter(s => s.enabled);
       let newlyAdded = 0;
+      let fetchedStories = 0;
+      let respondingSources = 0;
       latestFetchedIds.clear();
+      feedback.classList.remove('hidden');
+      feedback.textContent = `Fetching ${enabledSources.length} RSS sources...`;
 
       // Launch all feed requests concurrently in parallel!
       const fetchPromises = enabledSources.map(async src => {
@@ -708,10 +907,15 @@
 
       results.forEach(res => {
         if (res.status === 'fulfilled' && Array.isArray(res.value)) {
+          if (res.value.length > 0) respondingSources++;
+          fetchedStories += res.value.length;
           for (const raw of res.value) {
             if (!raw.title) continue;
 
-            if (!isDuplicate(raw.title, allArticles)) {
+            const existingArticle = findDuplicateArticle(raw.title, allArticles);
+            if (existingArticle) {
+              latestFetchedIds.add(existingArticle.id);
+            } else {
               const classification = classifyArticle(raw.title, raw.summary);
               const lang = detectLanguage(raw.title + " " + raw.summary);
 
@@ -721,6 +925,8 @@
                 summary: raw.summary,
                 url: raw.url,
                 source: raw.source,
+                sourceId: raw.sourceId,
+                region: raw.region,
                 sourcePriority: raw.sourcePriority,
                 publishedAt: raw.publishedAt,
                 categories: classification.categories,
@@ -740,13 +946,16 @@
 
       progressBar.style.width = '100%';
       saveStoredArticles();
-      localStorage.setItem(LS_LAST_FETCH_KEY, new Date().toISOString());
+      try { localStorage.setItem(LS_LAST_FETCH_KEY, new Date().toISOString()); } catch (e) {}
 
       spinner.classList.remove('animate-spin');
       btn.disabled = false;
       btnLabel.innerText = 'Fetch Live';
       setTimeout(() => progressBox.classList.add('hidden'), 600);
       statusText.innerText = `Synced (${allArticles.length} total • +${newlyAdded} new)`;
+      feedback.textContent = respondingSources > 0
+        ? `Fetched ${fetchedStories} stories from ${respondingSources}/${enabledSources.length} sources (${newlyAdded} new).`
+        : 'No RSS sources returned stories. Check your connection and try Fetch Live again.';
 
       renderNews();
       renderTicker();
@@ -766,15 +975,15 @@
       function buildTickerItem(item) {
         const catBadge = item.categories.length > 0 ? item.categories[0].toUpperCase() : 'NEWS';
         return `
-          <a href="${item.url}" target="_blank" class="inline-flex flex-col justify-center px-4 py-1 border-r border-slate-200 shrink-0 hover:bg-slate-50 transition group">
+          <a href="${escapeHtml(safeArticleUrl(item.url))}" target="_blank" rel="noopener noreferrer" class="inline-flex flex-col justify-center px-4 py-1 border-r border-slate-200 shrink-0 hover:bg-slate-50 transition group">
             <div class="flex items-center gap-2 text-xs font-mono">
               ${item.isBreaking ? '<span class="bg-red-600 text-white font-bold px-1.5 py-0.2 rounded text-[10px] animate-pulse">BREAKING</span>' : ''}
               <span class="bg-slate-100 text-slate-800 font-semibold px-1.5 py-0.2 rounded text-[10px] uppercase border border-slate-200">${catBadge}</span>
-              <span class="font-bold text-slate-800">${item.source}</span>
+              <span class="font-bold text-slate-800">${escapeHtml(item.source)}</span>
               <span class="text-slate-400">• ${timeAgo(item.publishedAt)}</span>
             </div>
             <div class="text-sm font-semibold text-slate-900 group-hover:text-blue-600 mt-0.5 max-w-xl truncate ${item.language === 'ar' ? 'arabic-text' : ''}">
-              ${item.title}
+              ${escapeHtml(item.title)}
             </div>
           </a>
         `;
@@ -803,7 +1012,7 @@
         tech: "bg-purple-50 text-purple-700",
         construction: "bg-orange-50 text-orange-700"
       };
-      return `<span class="px-1.5 py-0.5 rounded text-[10px] font-medium uppercase ${map[cat] || 'bg-slate-100 text-slate-600'}">${cat}</span>`;
+      return `<span class="px-1.5 py-0.5 rounded text-[10px] font-medium uppercase ${map[cat] || 'bg-slate-100 text-slate-600'}">${escapeHtml(cat)}</span>`;
     }
 
     function updateCategoryCounts() {
@@ -826,9 +1035,11 @@
       const lang = document.getElementById('langSelect').value;
       const sort = document.getElementById('sortSelect').value;
       const scope = document.getElementById('scopeSelect').value;
+      const region = document.getElementById('regionSelect').value;
 
       let filtered = allArticles.filter(item => {
         if (scope === 'live' && !latestFetchedIds.has(item.id)) return false;
+        if (!matchesRegion(item, region) || !matchesSavedWords(item)) return false;
         if (activeCat === 'breaking' && !item.isBreaking) return false;
         if (activeCat !== 'all' && activeCat !== 'breaking' && !item.categories.includes(activeCat)) return false;
         if (src !== 'all' && item.source !== src) return false;
@@ -843,6 +1054,11 @@
 
       if (filtered.length === 0) {
         list.innerHTML = '';
+        document.getElementById('emptyNoticeText').textContent = allArticles.length === 0
+          ? 'No RSS news has loaded yet. Check your connection and try Fetch Live again.'
+          : scope === 'live' && latestFetchedIds.size === 0
+            ? 'This fetch returned no stories. Choose All Articles to see saved news.'
+            : 'No stories match the current filters. Try All News, All Regions, or review saved Words.';
         empty.classList.remove('hidden');
         return;
       }
@@ -853,7 +1069,7 @@
           <div class="flex items-center justify-between text-xs text-slate-500">
             <div class="flex items-center gap-2 flex-wrap">
               ${item.isBreaking ? '<span class="bg-red-600 text-white font-semibold px-1.5 py-0.2 rounded text-[10px]">Breaking</span>' : ''}
-              <span class="font-semibold text-slate-800">${item.source}</span>
+              <span class="font-semibold text-slate-800">${escapeHtml(item.source)}</span>
               <span>•</span>
               <span class="font-mono text-[11px]">${timeAgo(item.publishedAt)}</span>
               ${item.categories.length > 0 ? '<span>•</span><div class="flex gap-1">' + item.categories.map(c => getCatBadge(c)).join('') + '</div>' : ''}
@@ -862,21 +1078,21 @@
           </div>
 
           <h2 class="text-sm font-semibold text-slate-900 hover:text-blue-600 ${item.language === 'ar' ? 'arabic-text leading-relaxed' : 'leading-snug'}">
-            <a href="${item.url}" target="_blank" class="hover:underline">
-              ${item.title}
+            <a href="${escapeHtml(safeArticleUrl(item.url))}" target="_blank" rel="noopener noreferrer" class="hover:underline">
+              ${escapeHtml(item.title)}
             </a>
           </h2>
 
           ${item.summary ? `
             <p class="text-xs text-slate-600 line-clamp-2 ${item.language === 'ar' ? 'arabic-text' : ''}">
-              ${item.summary}
+              ${escapeHtml(item.summary)}
             </p>
           ` : ''}
 
           ${item.keywords && item.keywords.length > 0 ? `
             <div class="flex items-center gap-1 text-[10px] text-slate-400 pt-0.5 flex-wrap">
               <span>Keywords:</span>
-              ${item.keywords.map(k => `<span class="bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded font-mono">${k}</span>`).join('')}
+              ${item.keywords.map(k => `<span class="bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded font-mono">${escapeHtml(k)}</span>`).join('')}
             </div>
           ` : ''}
         </article>
@@ -918,6 +1134,7 @@
       m.classList.toggle('hidden');
       if (id === 'sourcesModal') renderSourcesList();
       if (id === 'keywordsModal') renderKeywordsUI();
+      if (id === 'wordsModal') renderWordsUI();
       if (id === 'historyModal') renderHistoryStats();
     }
 
@@ -925,7 +1142,7 @@
       const select = document.getElementById('sourceSelect');
       const uniqueSources = [...new Set(sources.map(s => s.name))];
       select.innerHTML = '<option value="all">All Sources (' + uniqueSources.length + ')</option>' +
-        uniqueSources.map(name => `<option value="${name}">${name}</option>`).join('');
+        uniqueSources.map(name => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join('');
       document.getElementById('sourceCountBadge').innerText = sources.length;
       document.getElementById('modalSourceCount').innerText = sources.length;
     }
@@ -933,19 +1150,22 @@
     function renderSourcesList() {
       const container = document.getElementById('sourcesListUI');
       container.innerHTML = sources.map(s => `
-        <div class="py-2 flex items-center justify-between">
+        <div class="py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div class="min-w-0 flex-1 pr-2">
             <div class="font-medium text-slate-800 flex items-center gap-1.5">
               <span class="w-2 h-2 rounded-full ${s.enabled ? 'bg-emerald-500' : 'bg-slate-300'}"></span>
-              <span>${s.name}</span>
+              <span>${escapeHtml(s.name)}</span>
             </div>
-            <div class="text-[10px] text-slate-400 truncate max-w-sm font-mono">${s.url}</div>
+            <div class="text-[10px] text-slate-400 truncate max-w-sm font-mono">${escapeHtml(s.url)}</div>
           </div>
-          <div class="flex items-center gap-2 shrink-0">
-            <button onclick="toggleSourceEnable('${s.id}')" class="text-xs px-2 py-0.5 rounded ${s.enabled ? 'bg-slate-100 text-slate-700' : 'bg-slate-200 text-slate-500'}">
+          <div class="flex items-center gap-2 flex-wrap shrink-0">
+            <select data-source-id="${escapeHtml(s.id)}" onchange="setSourceRegion(this.dataset.sourceId, this.value)" class="bg-slate-50 border border-slate-300 rounded px-1 py-0.5 text-xs" title="Source region">
+              ${REGIONS.map(region => `<option value="${region}" ${s.region === region ? 'selected' : ''}>${region.toUpperCase()}</option>`).join('')}
+            </select>
+            <button data-source-id="${escapeHtml(s.id)}" onclick="toggleSourceEnable(this.dataset.sourceId)" class="text-xs px-2 py-0.5 rounded ${s.enabled ? 'bg-slate-100 text-slate-700' : 'bg-slate-200 text-slate-500'}">
               ${s.enabled ? 'Enabled' : 'Disabled'}
             </button>
-            <button onclick="removeSource('${s.id}')" class="text-red-500 hover:underline text-xs">Remove</button>
+            <button data-source-id="${escapeHtml(s.id)}" onclick="removeSource(this.dataset.sourceId)" class="text-red-500 hover:underline text-xs">Remove</button>
           </div>
         </div>
       `).join('');
@@ -960,17 +1180,28 @@
       }
     }
 
+    function setSourceRegion(id, region) {
+      if (!REGIONS.includes(region)) return;
+      const source = sources.find(source => source.id === id);
+      if (!source) return;
+      source.region = region;
+      saveSources();
+      renderNews();
+    }
+
     function addSource() {
       const name = document.getElementById('newSrcName').value.trim();
       const url = document.getElementById('newSrcUrl').value.trim();
       const priority = parseInt(document.getElementById('newSrcPriority').value, 10) || 8;
+      const region = document.getElementById('newSrcRegion').value;
       if (!name || !url) return;
-      sources.push({ id: 's-' + Date.now(), name, url, priority, enabled: true });
+      sources.push({ id: 's-' + Date.now(), name, url, priority, enabled: true, region });
       saveSources();
       document.getElementById('newSrcName').value = '';
       document.getElementById('newSrcUrl').value = '';
       populateSourceDropdown();
       renderSourcesList();
+      renderNews();
     }
 
     function removeSource(id) {
@@ -978,6 +1209,7 @@
       saveSources();
       populateSourceDropdown();
       renderSourcesList();
+      renderNews();
     }
 
     function resetDefaultSources() {
@@ -986,7 +1218,43 @@
         saveSources();
         populateSourceDropdown();
         renderSourcesList();
+        renderNews();
       }
+    }
+
+    function renderWordsUI() {
+      for (const type of ['include', 'exclude']) {
+        const container = document.getElementById(type + 'WordChips');
+        container.innerHTML = wordFilters[type].map((word, index) => `
+          <span class="bg-slate-100 border border-slate-200 rounded px-2 py-1 flex items-center gap-1.5">
+            <span>${escapeHtml(word)}</span>
+            <button onclick="removeWordFilter('${type}', ${index})" class="text-slate-400 hover:text-red-600" title="Remove phrase">X</button>
+          </span>
+        `).join('') || '<span class="text-slate-400">No phrases</span>';
+      }
+      document.getElementById('wordFilterCount').textContent = wordFilters.include.length + wordFilters.exclude.length;
+    }
+
+    function addWordFilter(type) {
+      if (type !== 'include' && type !== 'exclude') return;
+      const input = document.getElementById(type + 'WordInput');
+      const word = input.value.trim();
+      if (!normalizeFilterText(word)) return;
+      if (!wordFilters[type].some(existing => normalizeFilterText(existing) === normalizeFilterText(word))) {
+        wordFilters[type].push(word);
+        saveWordFilters();
+      }
+      input.value = '';
+      renderWordsUI();
+      renderNews();
+    }
+
+    function removeWordFilter(type, index) {
+      if (type !== 'include' && type !== 'exclude') return;
+      wordFilters[type].splice(index, 1);
+      saveWordFilters();
+      renderWordsUI();
+      renderNews();
     }
 
     function renderKeywordsUI() {
@@ -1059,7 +1327,9 @@
     }
 
     // Initialize
+    saveSources();
     populateSourceDropdown();
+    renderWordsUI();
     updateCategoryCounts();
     renderNews();
     renderTicker();
