@@ -1295,9 +1295,9 @@ function getCountryBoundaryStyle(feature) {
 
     if (isEarlyWarningMode) {
         const ewCounts = getMarketHighlightCounts(countryName, isoCode);
-        const ewData = evaluateCountryEarlyWarning(countryName, isoCode);
-        const hasEwProjects = counts.projectsCount > 0 || counts.reportsCount > 0 || ewCounts.projectsCount > 0 || ewCounts.reportsCount > 0 || (ewData && ewData.projectsCount > 0);
+        const hasEwProjects = counts.projectsCount > 0 || counts.reportsCount > 0 || ewCounts.projectsCount > 0 || ewCounts.reportsCount > 0;
         if (hasEwProjects) {
+            const ewData = evaluateCountryEarlyWarning(countryName, isoCode);
             const fillOpacity = ewData.level === 'danger' ? 0.46 : (ewData.level === 'medium' ? 0.36 : 0.28);
             return {
                 color: ewData.color,
@@ -2400,6 +2400,12 @@ function evaluateCountryEarlyWarning(countryName, isoCode = null) {
     const targetIso = isoCode || (geo ? geo.id : null);
     const countryGroup = MARKET_HIGHLIGHT_COUNTRY_GROUPS.find(g => targetIso && g.includes(targetIso));
 
+    // Fast path: if this country has no projects in precomputed stats and not grouped, return default immediately
+    const preStats = (targetIso && precomputedCountryStats.get(targetIso)) || (clean && precomputedCountryStats.get(clean));
+    if (preStats && !preStats.hasData && !countryGroup) {
+        return defaultCountryEarlyWarning();
+    }
+
     const countryProjects = [];
     const seen = new Set();
     reportsData.forEach(report => {
@@ -2418,7 +2424,10 @@ function evaluateCountryEarlyWarning(countryName, isoCode = null) {
         }
     });
 
-    return summarizeCountryEarlyWarning(countryProjects);
+    const result = summarizeCountryEarlyWarning(countryProjects);
+    if (targetIso) precomputedEarlyWarningStats.set(targetIso, result);
+    if (clean) precomputedEarlyWarningStats.set(clean, result);
+    return result;
 }
 
 function getEarlyWarningColor(score) {
@@ -2539,6 +2548,7 @@ function renderAllEarlyWarningMarkers(targetCountry = null) {
     reportsData.forEach(r => {
         if (!r || !r.projectName || seen.has(r.projectName)) return;
         if (isProjectExcludedByCompletion(r)) return;
+        const c = r.country || branchToCountryMap[r.branchName] || '';
         if (targetCountry) {
             const targetGeo = typeof findCountryGeo === 'function' ? findCountryGeo(targetCountry) : null;
             const targetIso = targetGeo ? targetGeo.id : null;
