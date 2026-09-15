@@ -377,8 +377,8 @@ const COUNTRIES_GEO = {
         lat: -4.0383,
         lng: 21.7587,
         zoom: 5.5,
-        center: [-4.4419, 15.2663], // Kinshasa
-        aliases: ['الكونغو', 'جمهورية الكونغو', 'congo', 'cg', 'republic of the congo', 'congo (brazzaville)']
+        center: [-4.2634, 15.2429], // Brazzaville
+        aliases: ['الكونغو', 'جمهورية الكونغو', 'congo', 'cg', 'republic of the congo', 'congo (brazzaville)', 'congo-brazzaville']
     },
     'KM': {
         id: 'KM',
@@ -476,7 +476,7 @@ const COUNTRIES_GEO = {
         lng: 21.7587,
         zoom: 5,
         center: [-4.3220, 15.3222],
-        aliases: ['الكونغو الديمقراطية', 'كونغو', 'congo', 'drc', 'cd', 'democratic congo', 'democratic republic of the congo', 'dr congo', 'dr. congo', 'd.r. congo', 'congo (kinshasa)']
+        aliases: ['الكونغو الديمقراطية', 'كونغو ديمقراطية', 'drc', 'cd', 'democratic congo', 'democratic republic of the congo', 'dr congo', 'dr. congo', 'd.r. congo', 'congo (kinshasa)']
     },
     'NA': {
         id: 'NA',

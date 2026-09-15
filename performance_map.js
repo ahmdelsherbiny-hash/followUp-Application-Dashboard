@@ -1027,8 +1027,7 @@ const MARKET_STATE_COLORS = {
 };
 
 const MARKET_HIGHLIGHT_COUNTRY_GROUPS = [
-    ['SD', 'SS'],
-    ['CG', 'CD']
+    ['SD', 'SS']
 ];
 
 const precomputedCountryStats = new Map();
@@ -1057,13 +1056,35 @@ function combinedMarketHighlightStats(countryIds, countryIndexes) {
     return stats;
 }
 
+function combinedGroupEarlyWarningStats(countryIds, countryIndexes) {
+    const pList = [];
+    const seenP = new Set();
+    countryIds.forEach(countryId => {
+        const rList = countryIndexes.reports.get(countryId) || [];
+        rList.forEach(r => {
+            if (r && r.projectName && !seenP.has(r.projectName)) {
+                seenP.add(r.projectName);
+                if (!isProjectExcludedByCompletion(r)) {
+                    pList.push(r);
+                }
+            }
+        });
+    });
+    return pList.length > 0 ? summarizeCountryEarlyWarning(pList) : null;
+}
+
 function cacheCombinedMarketHighlights(countryIndexes, getKeysForCountry) {
     precomputedMarketHighlightStats.clear();
     MARKET_HIGHLIGHT_COUNTRY_GROUPS.forEach(countryIds => {
         const combinedStats = combinedMarketHighlightStats(countryIds, countryIndexes);
+        const combinedEw = combinedGroupEarlyWarningStats(countryIds, countryIndexes);
         countryIds.flatMap(getKeysForCountry).forEach(alias => {
             precomputedMarketHighlightStats.set(alias, combinedStats);
             precomputedMarketHighlightStats.set(alias.toLowerCase(), combinedStats);
+            if (combinedEw) {
+                precomputedEarlyWarningStats.set(alias, combinedEw);
+                precomputedEarlyWarningStats.set(alias.toLowerCase(), combinedEw);
+            }
         });
     });
 }
@@ -1273,8 +1294,10 @@ function getCountryBoundaryStyle(feature) {
     }
 
     if (isEarlyWarningMode) {
-        if (counts.projectsCount > 0 || counts.reportsCount > 0) {
-            const ewData = evaluateCountryEarlyWarning(countryName, isoCode);
+        const ewCounts = getMarketHighlightCounts(countryName, isoCode);
+        const ewData = evaluateCountryEarlyWarning(countryName, isoCode);
+        const hasEwProjects = counts.projectsCount > 0 || counts.reportsCount > 0 || ewCounts.projectsCount > 0 || ewCounts.reportsCount > 0 || (ewData && ewData.projectsCount > 0);
+        if (hasEwProjects) {
             const fillOpacity = ewData.level === 'danger' ? 0.46 : (ewData.level === 'medium' ? 0.36 : 0.28);
             return {
                 color: ewData.color,
@@ -1284,7 +1307,7 @@ function getCountryBoundaryStyle(feature) {
                 fillOpacity: fillOpacity,
                 className: 'country-ew-feature outline-none focus:outline-none select-none'
             };
-        } else if (counts.branchesCount > 0) {
+        } else if (counts.branchesCount > 0 || ewCounts.branchesCount > 0) {
             return {
                 color: '#64748b',
                 weight: 1.5,
@@ -1432,7 +1455,7 @@ function renderGeoJsonBoundaries() {
 
             // Countries WITH projects or branches: Glow on hover and enable interactive drawer
             layer.on('mouseover', (event) => {
-                if (!counts.hasData && !isBusinessAnalysisMode) return;
+                if (!counts.hasData && !groupedMarketCounts.hasData) return;
                 resetHoveredCountryLayers();
                 currentHoveredCountryLayers = hoveredCountryLayers(layer, isoCode);
                 const hoverCounts = isBusinessAnalysisMode
@@ -1452,7 +1475,7 @@ function renderGeoJsonBoundaries() {
                 let hoverStyle;
                 
                 if (isEarlyWarningMode) {
-                    const ewData = evaluateCountryEarlyWarning(countryName);
+                    const ewData = evaluateCountryEarlyWarning(countryName, isoCode);
                     hoverStyle = {
                         color: ewData.color,
                         weight: 3.5,
@@ -1488,15 +1511,20 @@ function renderGeoJsonBoundaries() {
             });
 
             layer.on('click', (e) => {
-                if (!counts.hasData) return;
+                if (!counts.hasData && !groupedMarketCounts.hasData) return;
                 if (e && e.originalEvent && e.originalEvent.target && typeof e.originalEvent.target.blur === 'function') {
                     e.originalEvent.target.blur();
                 }
                 if (isEarlyWarningMode) {
-                    if (counts.projectsCount > 0 || counts.reportsCount > 0) {
+                    if (counts.projectsCount > 0 || counts.reportsCount > 0 || groupedMarketCounts.projectsCount > 0 || groupedMarketCounts.reportsCount > 0) {
                         try {
-                            const b = layer.getBounds();
-                            executiveMap.flyToBounds(b, {
+                            const groupLayers = hoveredCountryLayers(layer, isoCode);
+                            let bounds = layer.getBounds();
+                            if (groupLayers && groupLayers.length > 1) {
+                                bounds = groupLayers[0].getBounds();
+                                groupLayers.slice(1).forEach(l => bounds.extend(l.getBounds()));
+                            }
+                            executiveMap.flyToBounds(bounds, {
                                 padding: [40, 40],
                                 maxZoom: 6.0,
                                 duration: 1.0,
@@ -2367,6 +2395,11 @@ function evaluateCountryEarlyWarning(countryName, isoCode = null) {
         }
     }
 
+    const clean = countryName ? String(countryName).trim() : '';
+    const geo = typeof findCountryGeo === 'function' ? (findCountryGeo(clean) || (isoCode ? findCountryGeo(isoCode) : null)) : null;
+    const targetIso = isoCode || (geo ? geo.id : null);
+    const countryGroup = MARKET_HIGHLIGHT_COUNTRY_GROUPS.find(g => targetIso && g.includes(targetIso));
+
     const countryProjects = [];
     const seen = new Set();
     reportsData.forEach(report => {
@@ -2376,7 +2409,10 @@ function evaluateCountryEarlyWarning(countryName, isoCode = null) {
             || branchToCountryMap[report.branchName]
             || projectToCountryMap[report.projectName]
             || '';
-        if (countriesMatch(country, countryName) || (isoCode && countriesMatch(country, isoCode))) {
+        const repGeo = typeof findCountryGeo === 'function' ? findCountryGeo(country) : null;
+        const repIso = repGeo ? repGeo.id : null;
+        const inGroup = countryGroup && repIso && countryGroup.includes(repIso);
+        if (inGroup || countriesMatch(country, countryName) || (isoCode && countriesMatch(country, isoCode))) {
             seen.add(report.projectName);
             countryProjects.push(report);
         }
@@ -2503,9 +2539,14 @@ function renderAllEarlyWarningMarkers(targetCountry = null) {
     reportsData.forEach(r => {
         if (!r || !r.projectName || seen.has(r.projectName)) return;
         if (isProjectExcludedByCompletion(r)) return;
-        const c = r.country || branchToCountryMap[r.branchName] || '';
         if (targetCountry) {
-            if (c === targetCountry || (typeof countriesMatch === 'function' && countriesMatch(c, targetCountry))) {
+            const targetGeo = typeof findCountryGeo === 'function' ? findCountryGeo(targetCountry) : null;
+            const targetIso = targetGeo ? targetGeo.id : null;
+            const targetGroup = MARKET_HIGHLIGHT_COUNTRY_GROUPS.find(g => targetIso && g.includes(targetIso));
+            const repGeo = typeof findCountryGeo === 'function' ? findCountryGeo(c) : null;
+            const repIso = repGeo ? repGeo.id : null;
+            const inGroup = targetGroup && repIso && targetGroup.includes(repIso);
+            if (c === targetCountry || (typeof countriesMatch === 'function' && countriesMatch(c, targetCountry)) || inGroup) {
                 seen.add(r.projectName);
                 uniqueProjects.push(r);
             }
@@ -2877,7 +2918,23 @@ function openCountryBoard(countryGeo, countryName, initialProjectName = null) {
     const dialog = document.getElementById('country-drawer');
     if (!overlay || !dialog) return;
 
-    const reports = reportsData.filter(report => countriesMatch(report.country, countryName));
+    let targetCountryGeo = countryGeo;
+    let targetCountryName = countryName;
+    let reports = reportsData.filter(report => countriesMatch(report.country, targetCountryName));
+    if (reports.length === 0) {
+        const iso = targetCountryGeo ? targetCountryGeo.id : (typeof findCountryGeo === 'function' ? findCountryGeo(targetCountryName)?.id : null);
+        const group = MARKET_HIGHLIGHT_COUNTRY_GROUPS.find(g => iso && g.includes(iso));
+        if (group) {
+            const partnerIso = group.find(id => id !== iso);
+            if (partnerIso && typeof COUNTRIES_GEO !== 'undefined' && COUNTRIES_GEO[partnerIso]) {
+                const partnerReports = reportsData.filter(report => countriesMatch(report.country, COUNTRIES_GEO[partnerIso].nameAr) || countriesMatch(report.country, COUNTRIES_GEO[partnerIso].nameEn));
+                if (partnerReports.length > 0) {
+                    reports = partnerReports;
+                    targetCountryGeo = COUNTRIES_GEO[partnerIso];
+                }
+            }
+        }
+    }
     const latestByProject = latestReportsByProject(reports);
     let countryProjects = [...latestByProject.values()];
     if (!isBusinessAnalysisMode && mapControlState.completionSlicerEnabled) {
@@ -2888,7 +2945,7 @@ function openCountryBoard(countryGeo, countryName, initialProjectName = null) {
     );
     const registeredCountryEntityTypes = new Set(
         registeredEntities
-            .filter(entity => countriesMatch(entity.country, countryName))
+            .filter(entity => countriesMatch(entity.country, targetCountryName) || (targetCountryGeo && countriesMatch(entity.country, targetCountryGeo.nameAr)))
             .map(entity => entity.entityType)
             .filter(entityType => ENTITY_TYPES.has(entityType))
     );
