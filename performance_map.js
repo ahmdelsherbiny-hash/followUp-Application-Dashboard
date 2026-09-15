@@ -73,8 +73,8 @@ const MENA_AFRICA_BOUNDS = [
 ];
 
 const ALLOWED_NAV_BOUNDS = [
-    [-38.0, -35.0],
-    [62.0, 105.0]   // Fully covers Middle East, Gulf, Asia & Indian Ocean without edge collisions
+    [-52.0, -50.0],
+    [72.0, 120.0]   // Generously covers Africa, Europe, Middle East, Gulf & Asia without edge collision
 ];
 
 let currentHoveredCountryLayers = [];
@@ -921,10 +921,10 @@ function initExecutiveMap() {
     executiveMap = L.map('standalone-executive-map', {
         center: [10.5, 22.0],
         zoom: 3.8,
-        minZoom: 3.5,
+        minZoom: 2.5,
         maxZoom: 16,
         maxBounds: ALLOWED_NAV_BOUNDS,
-        maxBoundsViscosity: 0.65,
+        maxBoundsViscosity: 0.5,
         dragging: true,
         touchZoom: true,
         // Keep wheel zoom anchored to the map center so it does not feel like panning.
