@@ -1526,7 +1526,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const verifyPerformanceMapPassword = () => {
         if (performanceMapPwdInput.value === '1911') {
             closePerformanceMapModal();
-            window.open('performance_map.html', '_blank', 'noopener');
+            window.open('/map', '_blank', 'noopener');
         } else {
             performanceMapPwdError.classList.remove('hidden');
             performanceMapPwdInput.focus();

@@ -3,12 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="0; url=/map">
-    <script>
-        if (window.location.pathname.endsWith('performance_map.html')) {
-            window.location.replace('/map' + window.location.search + window.location.hash);
-        }
-    </script>
     <title>خريطة تحليل الأداء والمشروعات الحية | المقاولون العرب</title>
     
     <!-- Google Fonts -->
@@ -26,7 +20,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     
     <!-- Main Stylesheet -->
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../style.css">
     
     <style>
         body, html {
@@ -2492,12 +2486,12 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     
     <!-- GeoJSON boundaries (Direct memory load for 100% offline & local file reliability) -->
-    <script src="mena_geojson.js"></script>
+    <script src="../mena_geojson.js"></script>
 
     <!-- High-Precision Geographic Coordinates Dictionary -->
-    <script src="geo_coords.js?v=8.0"></script>
+    <script src="../geo_coords.js?v=8.0"></script>
     
     <!-- Dedicated Performance Map Application Logic -->
-    <script src="performance_map.js?v=9.02"></script>
+    <script src="../performance_map.js?v=9.02"></script>
 </body>
 </html>
