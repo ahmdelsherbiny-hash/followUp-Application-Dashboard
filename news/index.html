@@ -89,7 +89,7 @@
           onclick="toggleModal('sourcesModal')" 
           class="px-2.5 py-2 border border-slate-300 hover:bg-slate-100 rounded-md text-xs text-slate-700 font-medium transition shrink-0"
         >
-          Sources (<span id="sourceCountBadge">26</span>)
+          Sources (<span id="sourceCountBadge">28</span>)
         </button>
 
         <button 
@@ -406,12 +406,7 @@
     const LS_WORD_FILTERS_KEY = 'rss_word_filters_v1';
     const LS_REGION_MIGRATION_KEY = 'rss_source_regions_v1';
     const LS_EGYPT_FEEDS_MIGRATION_KEY = 'rss_egypt_feeds_v1';
-    const LS_PRESIDENCY_FEEDS_MIGRATION_KEY = 'rss_presidency_feeds_v1';
-    const LS_PRESIDENCY_ERRORS_REMOVED_KEY = 'rss_presidency_errors_removed_v1';
-    const REMOVED_PRESIDENCY_FEED_URLS = new Set([
-      'https://www.presidency.eg/%D8%A7%D9%84%D9%85%D8%B4%D8%B1%D9%88%D8%B9%D8%A7%D8%AA-%D8%A7%D9%84%D9%82%D9%88%D9%85%D9%8A%D8%A9/',
-      'https://www.presidency.eg/%D8%A7%D9%84%D8%A3%D8%AE%D8%A8%D8%A7%D8%B1-%D8%A7%D9%84%D8%B1%D8%A6%D8%A7%D8%B3%D9%8A%D8%A9/'
-    ].map(url => url.replace(/\/$/, '').toLowerCase()));
+    const LS_BLOOMBERG_FEEDS_MIGRATION_KEY = 'rss_bloomberg_feeds_v1';
     const REGIONS = ['egypt', 'mena', 'world'];
 
     // Default RSS sources. Region describes the source, not each story's location.
@@ -441,8 +436,10 @@
       { id: 's22', name: 'Al Mal News', url: 'https://almalnews.com/feed', priority: 8, enabled: true, region: 'egypt' },
       { id: 's23', name: 'Enterprise Arabic', url: 'https://enterprise.press/ar/feed', priority: 8, enabled: true, region: 'egypt' },
       { id: 's24', name: 'Invest-Gate', url: 'https://invest-gate.me/feed', priority: 8, enabled: true, region: 'egypt' },
-      { id: 's27', name: 'Presidency Events', url: 'https://www.presidency.eg/rss-%D8%A7%D9%84%D8%A3%D8%AD%D8%AF%D8%A7%D8%AB/', priority: 9, enabled: true, region: 'egypt' },
-      { id: 's28', name: 'Presidency Live Broadcasts', url: 'https://www.presidency.eg/%D8%A7%D9%84%D8%A8%D8%AB-%D8%A7%D9%84%D9%85%D8%A8%D8%A7%D8%B4%D8%B1/', priority: 9, enabled: true, region: 'egypt' }
+      { id: 's29', name: 'Bloomberg Markets', url: 'https://feeds.bloomberg.com/markets/news.rss', priority: 9, enabled: true, region: 'world' },
+      { id: 's30', name: 'Bloomberg Politics', url: 'https://feeds.bloomberg.com/politics/news.rss', priority: 9, enabled: true, region: 'world' },
+      { id: 's31', name: 'Bloomberg Technology', url: 'https://feeds.bloomberg.com/technology/news.rss', priority: 9, enabled: true, region: 'world' },
+      { id: 's32', name: 'Bloomberg Wealth', url: 'https://feeds.bloomberg.com/wealth/news.rss', priority: 9, enabled: true, region: 'world' }
     ];
 
     const DEFAULT_CATEGORIES = {
@@ -546,7 +543,10 @@
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed)) {
             const defaultsByUrl = new Map(VERIFIED_SOURCES.map(source => [source.url, source.region]));
-            let normalized = parsed.map(source => ({
+            // Remove all Presidency feeds, including custom entries and previously migrated URLs.
+            const normalized = parsed.filter(source =>
+              !/^https?:\/\/(?:[^/]+\.)?presidency\.eg(?:[/:?#]|$)/i.test(source.url.trim())
+            ).map(source => ({
               ...source,
               region: REGIONS.includes(source.region) ? source.region : (defaultsByUrl.get(source.url) || 'world')
             }));
@@ -569,9 +569,9 @@
                 localStorage.setItem(LS_EGYPT_FEEDS_MIGRATION_KEY, '1');
               } catch (e) {}
             }
-            if (!localStorage.getItem(LS_PRESIDENCY_FEEDS_MIGRATION_KEY)) {
+            if (!localStorage.getItem(LS_BLOOMBERG_FEEDS_MIGRATION_KEY)) {
               const existingUrls = new Set(normalized.map(source => source.url.replace(/\/$/, '').toLowerCase()));
-              for (const source of VERIFIED_SOURCES.slice(24)) {
+              for (const source of VERIFIED_SOURCES.filter(source => source.url.startsWith('https://feeds.bloomberg.com/'))) {
                 const url = source.url.replace(/\/$/, '').toLowerCase();
                 if (!existingUrls.has(url)) {
                   normalized.push({ ...source });
@@ -580,16 +580,7 @@
               }
               try {
                 localStorage.setItem(LS_SOURCES_KEY, JSON.stringify(normalized));
-                localStorage.setItem(LS_PRESIDENCY_FEEDS_MIGRATION_KEY, '1');
-              } catch (e) {}
-            }
-            if (!localStorage.getItem(LS_PRESIDENCY_ERRORS_REMOVED_KEY)) {
-              normalized = normalized.filter(source =>
-                !REMOVED_PRESIDENCY_FEED_URLS.has(source.url.replace(/\/$/, '').toLowerCase())
-              );
-              try {
-                localStorage.setItem(LS_SOURCES_KEY, JSON.stringify(normalized));
-                localStorage.setItem(LS_PRESIDENCY_ERRORS_REMOVED_KEY, '1');
+                localStorage.setItem(LS_BLOOMBERG_FEEDS_MIGRATION_KEY, '1');
               } catch (e) {}
             }
             return normalized;
