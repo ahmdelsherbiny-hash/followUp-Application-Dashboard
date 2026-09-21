@@ -2518,7 +2518,7 @@ function updateFloatingMapLegend() {
                 <div class="legend-row">
                     <div class="legend-swatch-group">
                         <span class="legend-swatch" style="background:#fca5a5; color:rgba(252,165,165,0.75);"></span>
-                        <span class="legend-label">فروع أعمالها شارفت على الانتهاء</span>
+                        <span class="legend-label">فروع أعمالها شارفت على الانتهاء<br>(نسبة إنجاز أكبر من <bdi dir="ltr">95%</bdi>)</span>
                     </div>
                 </div>
                 <div class="legend-row">
@@ -3597,6 +3597,7 @@ async function loadMapPageData() {
         const registryIndex = buildMapRegistryIndex(entities);
         applyMapRegistry([...registryIndex.values()]);
         const mainReports = parseFinalMainReports(mainTable);
+        loadMissingMapReports(mainTable, registryIndex);
         const earlyAlerts = parseFinalEarlyAlerts(earlyAlertTable);
         const registeredMainReports = joinMainReportsWithRegistry(mainReports, registryIndex);
         globalRawReports = mergeEarlyAlertAnswers(registeredMainReports, earlyAlerts);
@@ -3617,6 +3618,9 @@ async function loadMapPageData() {
         if (loader) loader.classList.add('hidden');
     } catch (err) {
         console.error("Error loading performance map data:", err);
+        setMissingReportsMessage('تعذّر تحميل بيانات التقارير. أعد تحميل الصفحة للمحاولة مرة أخرى.', true);
+        updateHeaderLastDataDate();
+        openMapDataDisclaimer();
         const loader = document.getElementById('loader-overlay');
         if (loader) loader.classList.add('hidden');
     }
@@ -3626,6 +3630,45 @@ async function loadMapPageData() {
 // Minimalist Smooth 5s Counters (Header)
 // ==========================================
 let headerCountersAnimated = false;
+let mapDataDisclaimerPreviousFocus = null;
+
+function initMapDataDisclaimer() {
+    const backdrop = document.getElementById('map-data-disclaimer-backdrop');
+    const closeButton = document.getElementById('map-data-disclaimer-close');
+    if (!backdrop || !closeButton || backdrop.dataset.initialized === 'true') return;
+
+    backdrop.dataset.initialized = 'true';
+    closeButton.addEventListener('click', closeMapDataDisclaimer);
+    document.addEventListener('keydown', event => {
+        if (backdrop.hidden) return;
+        if (event.key === 'Escape') closeMapDataDisclaimer();
+        if (event.key === 'Tab') {
+            event.preventDefault();
+            closeButton.focus();
+        }
+    });
+}
+
+function openMapDataDisclaimer() {
+    const backdrop = document.getElementById('map-data-disclaimer-backdrop');
+    const closeButton = document.getElementById('map-data-disclaimer-close');
+    if (!backdrop || !closeButton || !backdrop.hidden) return;
+
+    mapDataDisclaimerPreviousFocus = document.activeElement;
+    backdrop.hidden = false;
+    closeButton.focus();
+}
+
+function closeMapDataDisclaimer() {
+    const backdrop = document.getElementById('map-data-disclaimer-backdrop');
+    if (!backdrop || backdrop.hidden) return;
+
+    backdrop.hidden = true;
+    if (mapDataDisclaimerPreviousFocus && typeof mapDataDisclaimerPreviousFocus.focus === 'function') {
+        mapDataDisclaimerPreviousFocus.focus();
+    }
+    mapDataDisclaimerPreviousFocus = null;
+}
 
 function animateNumberCounting(elementId, targetNumber, duration = 5000) {
     const el = document.getElementById(elementId);
@@ -3660,7 +3703,8 @@ function animateNumberCounting(elementId, targetNumber, duration = 5000) {
 function updateHeaderLastDataDate() {
     const dateElements = [
         document.getElementById('header-last-update-date'),
-        ...document.querySelectorAll('.header-last-update-date-ref')
+        ...document.querySelectorAll('.header-last-update-date-ref'),
+        document.getElementById('map-data-disclaimer-date')
     ].filter(Boolean);
     if (!dateElements.length) return;
     const latestTimestamp = (reportsData || []).reduce((latest, report) => {
@@ -3688,6 +3732,7 @@ function updateHeaderLastDataDate() {
 
 function updateHeaderKPIStats() {
     updateHeaderLastDataDate();
+    openMapDataDisclaimer();
     if (headerCountersAnimated) return;
     headerCountersAnimated = true;
 
@@ -3718,6 +3763,8 @@ function updateHeaderKPIStats() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    initMapDataDisclaimer();
+    initMissingReportsPanel();
     restoreMapControlState();
     syncMapControlCenterUI();
     loadMapPageData();

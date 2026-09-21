@@ -1,5 +1,7 @@
 # Agent Handoff Document
 
+> Current handoff (2026-09-16): read [HANDOFF-2026-09-16-missing-reports.md](HANDOFF-2026-09-16-missing-reports.md). The map missing-reports feature is implemented and automated validation is complete; visual preview, commit, and deployment remain undone. The content below is historical and does not represent the current working tree.
+
 ## Project Context
 **Project:** Arabic live project compliance dashboard (`followUp-Application-Dashboard-arabcont`)
 **Path:** `C:\Users\ahmed\Documents\antigravity\gallant-hawking`

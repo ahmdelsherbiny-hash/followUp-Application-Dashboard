@@ -99,6 +99,201 @@
             font-weight: 700;
         }
 
+        .missing-reports-trigger {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 28px;
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            border: 0;
+            background: transparent;
+            color: #94a3b8;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        .missing-reports-trigger > span {
+            display: grid;
+            place-items: center;
+            width: 17px;
+            height: 17px;
+            border: 1px solid currentColor;
+            border-radius: 50%;
+            font: bold 13px/1 Georgia, serif;
+        }
+        .missing-reports-trigger.has-missing-reports,
+        .missing-reports-trigger:hover,
+        .missing-reports-trigger[aria-expanded="true"] { color: #d8b05a; }
+        .missing-reports-trigger:focus-visible,
+        .missing-reports-close:focus-visible,
+        .missing-reports-body:focus-visible { outline: 2px solid #d8b05a; outline-offset: 2px; }
+        .missing-reports-panel {
+            position: fixed;
+            z-index: 3000;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-sizing: border-box;
+            direction: rtl;
+            text-align: right;
+            color: #e2e8f0;
+            background: #111e34;
+            border: 1px solid rgba(216,176,90,.4);
+            border-radius: 14px;
+            box-shadow: 0 18px 48px rgba(0,0,0,.4);
+            font-family: Tajawal, sans-serif;
+        }
+        .missing-reports-panel[hidden] { display: none; }
+        .missing-reports-panel-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 16px;
+            border-bottom: 1px solid rgba(148,163,184,.22);
+        }
+        .missing-reports-panel-heading h2 { margin: 0; font-size: 17px; color: #d8b05a; }
+        .missing-reports-panel-heading p { margin: 5px 0 0; font-size: 12px; line-height: 1.5; }
+        .missing-reports-panel-heading p:empty { display: none; }
+        .missing-reports-close {
+            flex: 0 0 32px;
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border: 1px solid rgba(148,163,184,.3);
+            border-radius: 8px;
+            background: transparent;
+            color: inherit;
+            font-size: 23px;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        .missing-reports-close:hover { background: rgba(148,163,184,.15); }
+        .missing-reports-body {
+            min-height: 0;
+            max-height: 460px;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            touch-action: pan-y;
+            padding: 0 16px;
+            scrollbar-width: thin;
+        }
+        .missing-reports-country { padding: 14px 0; }
+        .missing-reports-country + .missing-reports-country { border-top: 1px solid rgba(148,163,184,.22); }
+        .missing-reports-country-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+        .missing-reports-country-heading h3 { margin: 0; font-size: 15px; }
+        .missing-reports-country-heading span { font-size: 11px; color: #94a3b8; }
+        .missing-reports-country-heading b { color: #f5ce82; }
+        .missing-reports-country ul { margin: 10px 0 0; padding-inline-start: 18px; }
+        .missing-reports-country li { padding-inline-start: 3px; font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
+        .missing-reports-country li + li { margin-top: 6px; }
+        .missing-reports-country li::marker { color: #d8b05a; }
+        .missing-reports-message { margin: 18px 0; font-size: 13px; line-height: 1.7; }
+        .missing-reports-message.is-error { color: #fca5a5; }
+        .missing-reports-completion { font-size: 12px; color: #94a3b8; white-space: nowrap; }
+        [data-theme="aegov"] .missing-reports-panel { color: #334155; background: #fff; box-shadow: 0 18px 48px rgba(15,23,42,.18); }
+        [data-theme="aegov"] .missing-reports-trigger { color: #64748b; }
+        [data-theme="aegov"] .missing-reports-trigger.has-missing-reports,
+        [data-theme="aegov"] .missing-reports-trigger:hover,
+        [data-theme="aegov"] .missing-reports-trigger[aria-expanded="true"],
+        [data-theme="aegov"] .missing-reports-panel-heading h2,
+        [data-theme="aegov"] .missing-reports-country-heading b { color: #856018; }
+        [data-theme="aegov"] .missing-reports-country-heading span { color: #64748b; }
+        [data-theme="aegov"] .missing-reports-completion { color: #64748b; }
+        [data-theme="aegov"] .missing-reports-message.is-error { color: #b91c1c; }
+
+        .map-data-disclaimer-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 4000;
+            display: grid;
+            place-items: center;
+            box-sizing: border-box;
+            padding: 20px;
+            background: rgba(3, 8, 20, .48);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            animation: map-disclaimer-fade-in 220ms ease-out both;
+        }
+        .map-data-disclaimer-backdrop[hidden] { display: none; }
+        .map-data-disclaimer {
+            position: relative;
+            width: min(520px, 100%);
+            box-sizing: border-box;
+            padding: 30px 54px 28px 28px;
+            direction: rtl;
+            text-align: center;
+            color: #e2e8f0;
+            background: rgba(17, 30, 52, .96);
+            border: 1px solid rgba(216, 176, 90, .42);
+            border-radius: 18px;
+            box-shadow: 0 22px 64px rgba(0, 0, 0, .38);
+            font-family: Tajawal, sans-serif;
+            animation: map-disclaimer-rise-in 260ms ease-out both;
+        }
+        .map-data-disclaimer p {
+            margin: 0;
+            font-size: clamp(16px, 2.4vw, 20px);
+            font-weight: 600;
+            line-height: 1.9;
+        }
+        .map-data-disclaimer time {
+            display: inline-block;
+            direction: ltr;
+            color: #f5ce82;
+            font-family: Outfit, Tajawal, sans-serif;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+        .map-data-disclaimer-followup {
+            display: block;
+            max-width: 100%;
+            white-space: nowrap;
+            font-size: clamp(9px, 2.9vw, 16px);
+        }
+        .map-data-disclaimer-close {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            display: grid;
+            place-items: center;
+            width: 34px;
+            height: 34px;
+            padding: 0;
+            border: 1px solid rgba(148, 163, 184, .32);
+            border-radius: 50%;
+            color: #cbd5e1;
+            background: rgba(148, 163, 184, .08);
+            font: 400 23px/1 Arial, sans-serif;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        .map-data-disclaimer-close:hover { color: #fff; background: rgba(148, 163, 184, .18); }
+        .map-data-disclaimer-close:focus-visible { outline: 2px solid #d8b05a; outline-offset: 3px; }
+        [data-theme="aegov"] .map-data-disclaimer-backdrop { background: rgba(15, 23, 42, .3); }
+        [data-theme="aegov"] .map-data-disclaimer {
+            color: #334155;
+            background: rgba(255, 255, 255, .98);
+            box-shadow: 0 22px 64px rgba(15, 23, 42, .22);
+        }
+        [data-theme="aegov"] .map-data-disclaimer time { color: #856018; }
+        [data-theme="aegov"] .map-data-disclaimer-close { color: #475569; }
+        @keyframes map-disclaimer-fade-in { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes map-disclaimer-rise-in {
+            from { opacity: 0; transform: translateY(10px) scale(.985); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @media (max-width: 480px) {
+            .map-data-disclaimer-backdrop { padding: 14px; }
+            .map-data-disclaimer { padding: 54px 22px 24px; border-radius: 15px; }
+            .map-data-disclaimer-close { top: 12px; right: 12px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .map-data-disclaimer-backdrop,
+            .map-data-disclaimer { animation: none; }
+        }
+
         .minimal-stats-group {
             display: flex;
             align-items: center;
@@ -2287,6 +2482,7 @@
                     <div class="header-last-update">
                         <span>آخر تحديث بيانات بتاريخ:</span>
                         <time id="header-last-update-date">--</time>
+                        <button type="button" class="missing-reports-trigger" data-missing-reports-trigger aria-label="عرض التقارير الناقصة" aria-expanded="false" aria-controls="missing-reports-panel" aria-haspopup="dialog" title="التقارير الناقصة"><span aria-hidden="true">i</span></button>
                     </div>
                 </div>
             </div>
@@ -2297,6 +2493,7 @@
                     <div class="header-last-update mobile-only-update">
                         <span>آخر تحديث:</span>
                         <time class="header-last-update-date-ref">--</time>
+                        <button type="button" class="missing-reports-trigger" data-missing-reports-trigger aria-label="عرض التقارير الناقصة" aria-expanded="false" aria-controls="missing-reports-panel" aria-haspopup="dialog" title="التقارير الناقصة"><span aria-hidden="true">i</span></button>
                     </div>
                 </div>
             </div>
@@ -2409,6 +2606,30 @@
     </div>
 
     <!-- Floating Early Warning Left Sidebar -->
+    <section id="missing-reports-panel" class="missing-reports-panel" role="dialog" aria-labelledby="missing-reports-title" hidden>
+        <div class="missing-reports-panel-heading">
+            <div>
+                <h2 id="missing-reports-title">التقارير الناقصة</h2>
+                <p id="missing-reports-summary" role="status"></p>
+            </div>
+            <button type="button" id="missing-reports-close" class="missing-reports-close" aria-label="إغلاق قائمة التقارير الناقصة">×</button>
+        </div>
+        <div id="missing-reports-body" class="missing-reports-body" tabindex="0" role="region" aria-label="قائمة المشروعات ذات التقارير الناقصة" aria-busy="true">
+            <p class="missing-reports-message" role="status">جاري التحقق من التقارير الناقصة…</p>
+        </div>
+    </section>
+
+    <div id="map-data-disclaimer-backdrop" class="map-data-disclaimer-backdrop" hidden>
+        <section id="map-data-disclaimer" class="map-data-disclaimer" role="dialog" aria-modal="true" aria-labelledby="map-data-disclaimer-text">
+            <button type="button" id="map-data-disclaimer-close" class="map-data-disclaimer-close" aria-label="إغلاق التنبيه">×</button>
+            <p id="map-data-disclaimer-text">
+                البيانات المعروضه في الموقع محدثه حتى تاريخ
+                <time id="map-data-disclaimer-date">--</time>
+                <span class="map-data-disclaimer-followup">وفقا لبرامج المتابعة مع الفروع و الشركات الخارجية</span>
+            </p>
+        </section>
+    </div>
+
     <aside id="early-warning-sidebar" class="early-warning-sidebar hidden" onclick="handleEarlyWarningSidebarClick(event)">
         <div class="ew-head">
             <div class="ew-title-box">
@@ -2493,6 +2714,7 @@
     <script src="geo_coords.js?v=8.1"></script>
     
     <!-- Dedicated Performance Map Application Logic -->
-    <script src="performance_map.js?v=9.07"></script>
+    <script src="missing_reports.js?v=1.0"></script>
+    <script src="performance_map.js?v=9.09"></script>
 </body>
 </html>
