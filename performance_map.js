@@ -30,6 +30,7 @@ const MAP_CONTROL_STATE_KEY = 'mapControlCenterStateV1';
 const MAP_CONTROL_TABS = new Set(['map', 'ticker', 'settings']);
 const TICKER_SORT_CRITERIA = new Set(['projectCount', 'healthScore', 'progressAverage']);
 let mapControlState = normalizeMapControlState(null, 'corporate');
+if (typeof window !== 'undefined') window.mapControlState = mapControlState;
 let activeMapControlMenu = null;
 
 function normalizeMapControlState(storedStateCandidate, legacyTheme) {
@@ -1888,6 +1889,10 @@ function setCompletionSlicerEnabled(isEnabled) {
         const { countryGeo, countryName } = activeCountryBoardContext;
         openCountryBoard(countryGeo, countryName);
     }
+
+    if (typeof refreshMissingMapReports === 'function') {
+        refreshMissingMapReports();
+    }
 }
 
 function toggleCompletionSlicerEnabled() {
@@ -2022,6 +2027,9 @@ function toggleBusinessAnalysisMode() {
     }
     updateFloatingMapLegend();
     persistMapModeState();
+    if (typeof refreshMissingMapReports === 'function') {
+        refreshMissingMapReports();
+    }
 }
 
 /* ==================================================== */

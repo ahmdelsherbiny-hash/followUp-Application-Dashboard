@@ -1,5 +1,15 @@
 const EXPECTED_MAP_PROJECTS_GID = '1907104609';
 let missingReportsTrigger = null;
+let _missingCache = null;
+
+function setMissingReportsCache(cache) {
+    _missingCache = cache;
+    if (typeof window !== 'undefined') window._missingCache = cache;
+}
+
+function getMissingReportsCache() {
+    return (typeof window !== 'undefined' && window._missingCache) || _missingCache;
+}
 
 function parseExpectedMapProjects(table) {
     validateGvizTable(table, 3, 'new map data source04');
@@ -32,12 +42,28 @@ function missingReportCountry(entityId, registryIndex) {
     };
 }
 
+function isMissingReportSlicerActive() {
+    const state = (typeof mapControlState !== 'undefined' ? mapControlState : (typeof window !== 'undefined' ? window.mapControlState : null));
+    if (!state) return false;
+    const isAnalysis = (typeof isBusinessAnalysisMode !== 'undefined' ? isBusinessAnalysisMode : (typeof window !== 'undefined' ? window.isBusinessAnalysisMode : false));
+    if (isAnalysis) return false;
+    return state.completionSlicerEnabled === true;
+}
+
+function isMissingReportExcludedByCompletion(project) {
+    if (!isMissingReportSlicerActive()) return false;
+    if (!project) return false;
+    const completion = Number(project.completion);
+    return project.completion !== null && Number.isFinite(completion) && completion >= 95;
+}
+
 function summarizeMissingMapReports(projects, mainTable, registryIndex) {
     const reportedIds = new Set(mainTable.rows
         .filter(row => gvizCellText(row, 5))
         .map(row => String(gvizCellValue(row, 2) ?? '').trim()));
     const countries = new Map();
-    projects.forEach(project => {
+    const effectiveProjects = projects.filter(project => !isMissingReportExcludedByCompletion(project));
+    effectiveProjects.forEach(project => {
         const country = missingReportCountry(project.entityId, registryIndex);
         if (!countries.has(country.key)) {
             countries.set(country.key, { countryName: country.name, total: 0, missing: [] });
@@ -78,10 +104,11 @@ function setMissingReportsMessage(message, isError = false) {
 }
 
 function renderMissingMapReports(projects, groups) {
+    const effectiveProjects = projects.filter(project => !isMissingReportExcludedByCompletion(project));
     const totalMissing = groups.reduce((sum, group) => sum + group.missing.length, 0);
     if (!projects.length) return setMissingReportsMessage('لا توجد مشروعات في قائمة المصدر.');
-    if (!totalMissing) return setMissingReportsMessage('كل المشروعات محدثة. لا توجد مشاريع غير محدثة.');
-    document.getElementById('missing-reports-summary').textContent = `${totalMissing} مشروع غير محدث من ${projects.length} مشروع`;
+    if (!effectiveProjects.length || !totalMissing) return setMissingReportsMessage('كل المشروعات محدثة. لا توجد مشاريع غير محدثة.');
+    document.getElementById('missing-reports-summary').textContent = `${totalMissing} مشروع غير محدث من ${effectiveProjects.length} مشروع`;
     const body = document.getElementById('missing-reports-body');
     body.setAttribute('aria-busy', 'false');
     body.innerHTML = groups.map(renderMissingReportCountry).join('');
@@ -97,11 +124,20 @@ async function loadMissingMapReports(mainTable, registryIndex) {
     try {
         const table = await fetchSheetByGidJSONP(EXPECTED_MAP_PROJECTS_GID, 'new map data source04');
         const projects = parseExpectedMapProjects(table);
+        setMissingReportsCache({ projects, mainTable, registryIndex });
         renderMissingMapReports(projects, summarizeMissingMapReports(projects, mainTable, registryIndex));
     } catch (error) {
         console.error('Unable to check missing map reports:', error);
         setMissingReportsMessage('تعذّر التحقق من المشاريع غير المحدثة. أعد تحميل الصفحة للمحاولة مرة أخرى.', true);
     }
+}
+
+function refreshMissingMapReports() {
+    const cache = getMissingReportsCache();
+    if (!cache) return;
+    const { projects, mainTable, registryIndex } = cache;
+    renderMissingMapReports(projects, summarizeMissingMapReports(projects, mainTable, registryIndex));
+    positionMissingReportsPanel();
 }
 
 function positionMissingReportsPanel() {

@@ -68,10 +68,10 @@ test('missing project names render as text and per-country denominators include 
     const groups = w.summarizeMissingMapReports(projects, main([[2, 'Received']]), new Map([['SA00', { country: 'Saudi Arabia' }]]));
     w.renderMissingMapReports(projects, groups);
     const body = w.document.getElementById('missing-reports-body');
-    assert.equal(body.querySelector('li').textContent, name);
+    assert.equal(body.querySelector('li').textContent.trim(), `${name} (0%)`);
     assert.equal(body.querySelector('img'), null);
-    assert.match(body.textContent, /1 تقارير ناقصة من 2 مشروع/);
-    assert.match(w.document.getElementById('missing-reports-summary').textContent, /1 تقرير ناقص من 2 مشروع/);
+    assert.match(body.textContent, /1 مشاريع من أصل 2 مشاريع/);
+    assert.match(w.document.getElementById('missing-reports-summary').textContent, /1 مشروع غير محدث من 2 مشروع/);
 });
 
 test('loading, no expected projects, all received, and failed source remain distinct', async t => {
@@ -80,7 +80,7 @@ test('loading, no expected projects, all received, and failed source remain dist
     const registry = new Map([['SA00', { country: 'Saudi Arabia' }]]);
     for (const scenario of [
         { table: roster([]), message: /لا توجد مشروعات في قائمة المصدر/ },
-        { table: roster([['SA00', 1, 'Project']]), message: /كل المشروعات لها تقارير/ },
+        { table: roster([['SA00', 1, 'Project']]), message: /كل المشروعات محدثة/ },
         { error: new Error('Network unavailable'), message: /تعذّر التحقق/ }
     ]) {
         let resolveRequest, rejectRequest;
@@ -94,6 +94,48 @@ test('loading, no expected projects, all received, and failed source remain dist
         assert.equal(body.getAttribute('aria-busy'), 'false');
         assert.match(body.textContent, scenario.message);
     }
+});
+
+test('95% completion slicer filters out projects with completion >= 95%', async t => {
+    const w = await setup(t);
+    const customHeaders = ['BRANCH ID', 'PROJECT ID', 'PROJECT NAME', '', '', 'PERCENT'];
+    const customRow = values => ({ c: values.map(v => v === null ? null : { v, f: String(v) }) });
+    const customTable = {
+        cols: customHeaders.map(label => ({ label })),
+        rows: [
+            customRow(['SA00', 101, 'Project Near Complete', null, null, '95%']),
+            customRow(['SA00', 102, 'Project In Progress', null, null, '60%']),
+            customRow(['SA00', 103, 'Project No Progress', null, null, 'MISSING REPORT']),
+            customRow(['SA00', 104, 'Project Complete Reported', null, null, '98%'])
+        ]
+    };
+    const projects = w.parseExpectedMapProjects(customTable);
+    const registry = new Map([['SA00', { country: 'Saudi Arabia' }]]);
+    const reports = main([[104, 'Project Complete Reported']]);
+
+    w.mapControlState.completionSlicerEnabled = false;
+    let groups = w.summarizeMissingMapReports(projects, reports, registry);
+    w.renderMissingMapReports(projects, groups);
+
+    assert.equal(groups[0].missing.length, 3);
+    assert.equal(groups[0].total, 4);
+    assert.match(w.document.getElementById('missing-reports-summary').textContent, /3 مشروع غير محدث من 4 مشروع/);
+
+    w.mapControlState.completionSlicerEnabled = true;
+    groups = w.summarizeMissingMapReports(projects, reports, registry);
+    w.renderMissingMapReports(projects, groups);
+
+    assert.equal(groups[0].missing.length, 2);
+    assert.equal(groups[0].total, 2);
+    assert.deepEqual(Array.from(groups[0].missing, p => p.projectId), ['102', '103']);
+    assert.match(w.document.getElementById('missing-reports-summary').textContent, /2 مشروع غير محدث من 2 مشروع/);
+
+    w._missingCache = { projects, mainTable: reports, registryIndex: registry };
+    w.setCompletionSlicerEnabled(false);
+    assert.match(w.document.getElementById('missing-reports-summary').textContent, /3 مشروع غير محدث من 4 مشروع/);
+
+    w.setCompletionSlicerEnabled(true);
+    assert.match(w.document.getElementById('missing-reports-summary').textContent, /2 مشروع غير محدث من 2 مشروع/);
 });
 
 test('both header triggers open the same panel, with keyboard and outside-click dismissal', async t => {
