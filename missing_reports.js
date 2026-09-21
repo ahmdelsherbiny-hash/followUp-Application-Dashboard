@@ -14,7 +14,9 @@ function parseExpectedMapProjects(table) {
         const projectId = String(gvizCellValue(row, 1) ?? '').trim();
         const projectName = gvizCellText(row, 2);
         if (!projectId || !projectName || projectId.toUpperCase() === 'PROJECT ID') return;
-        const completion = gvizCellPercent(row, 5);
+        const completionRaw = gvizCellText(row, 5);
+        const isMissingReport = completionRaw.toUpperCase().includes('MISSING REPORT');
+        const completion = isMissingReport ? null : gvizCellPercent(row, 5);
         projects.set(projectId, { entityId, projectId, projectName, completion });
     });
     return [...projects.values()];
@@ -54,9 +56,12 @@ function renderMissingReportCountry(group) {
     return `<section class="missing-reports-country">
         <div class="missing-reports-country-heading">
             <h3>${escapeHtml(group.countryName)}</h3>
-            <span><b>${group.missing.length}</b> تقارير ناقصة من <b>${group.total}</b> مشروع</span>
+            <span><b>${group.missing.length}</b> مشاريع من أصل <b>${group.total}</b> مشاريع</span>
         </div>
-        <ul>${projects.map(project => `<li><bdi>${escapeHtml(project.projectName)}</bdi> <span class="missing-reports-completion">(${Math.round(project.completion)}%)</span></li>`).join('')}</ul>
+        <ul>${projects.map(project => {
+            const pct = project.completion === null ? '-' : `${Math.round(project.completion)}%`;
+            return `<li><bdi>${escapeHtml(project.projectName)}</bdi> <span class="missing-reports-completion">(${pct})</span></li>`;
+        }).join('')}</ul>
     </section>`;
 }
 
@@ -68,26 +73,26 @@ function setMissingReportsMessage(message, isError = false) {
     body.innerHTML = `<p class="missing-reports-message${isError ? ' is-error' : ''}" role="status">${escapeHtml(message)}</p>`;
     document.querySelectorAll('[data-missing-reports-trigger]').forEach(button => {
         button.classList.remove('has-missing-reports');
-        button.setAttribute('aria-label', 'عرض التقارير الناقصة');
+        button.setAttribute('aria-label', 'مشاريع غير محدثة');
     });
 }
 
 function renderMissingMapReports(projects, groups) {
     const totalMissing = groups.reduce((sum, group) => sum + group.missing.length, 0);
     if (!projects.length) return setMissingReportsMessage('لا توجد مشروعات في قائمة المصدر.');
-    if (!totalMissing) return setMissingReportsMessage('كل المشروعات لها تقارير. لا توجد تقارير ناقصة.');
-    document.getElementById('missing-reports-summary').textContent = `${totalMissing} تقرير ناقص من ${projects.length} مشروع`;
+    if (!totalMissing) return setMissingReportsMessage('كل المشروعات محدثة. لا توجد مشاريع غير محدثة.');
+    document.getElementById('missing-reports-summary').textContent = `${totalMissing} مشروع غير محدث من ${projects.length} مشروع`;
     const body = document.getElementById('missing-reports-body');
     body.setAttribute('aria-busy', 'false');
     body.innerHTML = groups.map(renderMissingReportCountry).join('');
     document.querySelectorAll('[data-missing-reports-trigger]').forEach(button => {
         button.classList.add('has-missing-reports');
-        button.setAttribute('aria-label', `عرض التقارير الناقصة: ${totalMissing} تقرير`);
+        button.setAttribute('aria-label', `مشاريع غير محدثة: ${totalMissing} مشروع`);
     });
 }
 
 async function loadMissingMapReports(mainTable, registryIndex) {
-    setMissingReportsMessage('جاري التحقق من التقارير الناقصة…');
+    setMissingReportsMessage('جاري التحقق من المشاريع غير المحدثة…');
     document.getElementById('missing-reports-body').setAttribute('aria-busy', 'true');
     try {
         const table = await fetchSheetByGidJSONP(EXPECTED_MAP_PROJECTS_GID, 'new map data source04');
@@ -95,7 +100,7 @@ async function loadMissingMapReports(mainTable, registryIndex) {
         renderMissingMapReports(projects, summarizeMissingMapReports(projects, mainTable, registryIndex));
     } catch (error) {
         console.error('Unable to check missing map reports:', error);
-        setMissingReportsMessage('تعذّر التحقق من التقارير الناقصة. أعد تحميل الصفحة للمحاولة مرة أخرى.', true);
+        setMissingReportsMessage('تعذّر التحقق من المشاريع غير المحدثة. أعد تحميل الصفحة للمحاولة مرة أخرى.', true);
     }
 }
 
