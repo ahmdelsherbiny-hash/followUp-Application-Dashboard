@@ -28,7 +28,7 @@ let projectToCountryMap = {};
 
 const MAP_CONTROL_STATE_KEY = 'mapControlCenterStateV1';
 const MAP_CONTROL_TABS = new Set(['map', 'ticker', 'settings']);
-const TICKER_SORT_CRITERIA = new Set(['projectCount', 'healthScore', 'progressAverage']);
+const TICKER_SORT_CRITERIA = new Set(['projectCount', 'healthScore', 'progressAverage', 'timeElapsedAggregatePercent']);
 let mapControlState = normalizeMapControlState(null, 'corporate');
 if (typeof window !== 'undefined') window.mapControlState = mapControlState;
 let activeMapControlMenu = null;
@@ -614,6 +614,8 @@ function getCountryTickerIdentity(countryName) {
 function summarizeCountryTickerGroup(countryGroup) {
     const countryWarning = evaluateCountryEarlyWarning(countryGroup.countryName, countryGroup.isoCode);
     const progressTotal = countryGroup.reports.reduce((sum, report) => sum + (Number(report.executionProgressPercent) || 0), 0);
+    const elapsedDaysTotal = countryGroup.reports.reduce((sum, report) => sum + (Number(report.elapsedDays) || 0), 0);
+    const approvedDaysTotal = countryGroup.reports.reduce((sum, report) => sum + (Number(report.totalDurationDays) || 0), 0);
     return {
         countryName: countryGroup.countryName,
         isoCode: countryGroup.isoCode,
@@ -621,7 +623,10 @@ function summarizeCountryTickerGroup(countryGroup) {
         projectCount: countryGroup.reports.length,
         healthScore: Number.isFinite(Number(countryWarning.score)) ? Number(countryWarning.score) : 0,
         healthColor: countryWarning.color || '#64748b',
-        progressAverage: Math.round((progressTotal / countryGroup.reports.length) * 10) / 10
+        progressAverage: Math.round((progressTotal / countryGroup.reports.length) * 10) / 10,
+        timeElapsedAggregatePercent: approvedDaysTotal > 0
+            ? Math.round(elapsedDaysTotal / approvedDaysTotal * 1000) / 10
+            : null
     };
 }
 
@@ -642,6 +647,11 @@ function sortCountryTickerItems(countryItems, criterion, direction) {
     const sortCriterion = TICKER_SORT_CRITERIA.has(criterion) ? criterion : 'projectCount';
     const directionFactor = direction === 'asc' ? 1 : -1;
     return [...countryItems].sort((countryA, countryB) => {
+        if (sortCriterion === 'timeElapsedAggregatePercent') {
+            const missingA = countryA[sortCriterion] === null;
+            const missingB = countryB[sortCriterion] === null;
+            if (missingA !== missingB) return missingA ? 1 : -1;
+        }
         const metricDifference = (Number(countryA[sortCriterion]) || 0) - (Number(countryB[sortCriterion]) || 0);
         if (metricDifference !== 0) return metricDifference * directionFactor;
         return countryA.countryName.localeCompare(countryB.countryName, 'ar');
@@ -681,6 +691,10 @@ function generateCountryTickerItemHtml(country, rank) {
             <div class="ticker-row-metric">
                 <span class="ticker-metric-label">نسبة إنجاز المشروعات :</span>
                 <span class="ticker-metric-val prog"><bdi dir="ltr">${country.progressAverage.toFixed(1)}%</bdi></span>
+            </div>
+            <div class="ticker-row-metric">
+                <span class="ticker-metric-label">اجملي نسب انقضاء المدد الزمنيه :</span>
+                <span class="ticker-metric-val elapsed"><bdi dir="ltr">${country.timeElapsedAggregatePercent === null ? '—' : `${country.timeElapsedAggregatePercent.toFixed(1)}%`}</bdi></span>
             </div>
         </div>
         <span class="stock-ticker-separator">•</span>
