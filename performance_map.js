@@ -339,15 +339,16 @@ function earlyAlertAnswers(row) {
         claimsStatus: gvizCellText(row, 3),
         hasBillOfQuantities: gvizCellText(row, 4),
         boqAccuracy: gvizCellText(row, 5),
-        lgIssued: gvizCellText(row, 6),
-        meetingClient15Days: gvizCellText(row, 7),
-        formalLetterSent: gvizCellText(row, 8),
-        supplySchedulePrepared: gvizCellText(row, 9),
-        mepApproved: gvizCellText(row, 10),
-        cashFlowPlanPrepared: gvizCellText(row, 11),
-        negativeCashFlow: gvizCellText(row, 12),
-        subcontractorsDueAnswer: gvizCellText(row, 13),
-        subcontractorsDue: gvizCellNumber(row, 13)
+        advancePaymentReceived: gvizCellText(row, 6),
+        lgIssued: gvizCellText(row, 7),
+        meetingClient15Days: gvizCellText(row, 8),
+        formalLetterSent: gvizCellText(row, 9),
+        supplySchedulePrepared: gvizCellText(row, 10),
+        mepApproved: gvizCellText(row, 11),
+        cashFlowPlanPrepared: gvizCellText(row, 12),
+        negativeCashFlow: gvizCellText(row, 13),
+        subcontractorsDueAnswer: gvizCellText(row, 14),
+        subcontractorsDue: gvizCellNumber(row, 14)
     };
 }
 
@@ -2185,7 +2186,7 @@ const EARLY_WARNING_QUESTIONS = [
     {
         groupKey: 'contract',
         question: 'موقف المطالبات والتحكيم',
-        maxPoints: 14,
+        maxPoints: 12,
         readAnswer: report => report.claimsStatus,
         scoreRatio: answer => isEarlyWarningNoAnswer(answer) ? 1 : 0
     },
@@ -2202,6 +2203,13 @@ const EARLY_WARNING_QUESTIONS = [
         maxPoints: 6,
         readAnswer: report => report.boqAccuracy,
         scoreRatio: boqAccuracyRatio
+    },
+    {
+        groupKey: 'contract',
+        question: 'هل تم صرف الدفعة المقدمة من العميل؟',
+        maxPoints: 6,
+        readAnswer: report => report.advancePaymentReceived,
+        scoreRatio: answer => isEarlyWarningYesAnswer(answer) ? 1 : 0
     },
     {
         groupKey: 'contract',
@@ -2241,14 +2249,14 @@ const EARLY_WARNING_QUESTIONS = [
     {
         groupKey: 'delivery',
         question: 'هل تم إعداد ومراجعة برنامج التدفقات النقدية؟',
-        maxPoints: 13,
+        maxPoints: 12,
         readAnswer: report => report.cashFlowPlanPrepared,
         scoreRatio: answer => isEarlyWarningYesAnswer(answer) ? 1 : 0
     },
     {
         groupKey: 'delivery',
         question: 'هل يوجد تدفق نقدي سالب؟',
-        maxPoints: 15,
+        maxPoints: 12,
         readAnswer: report => report.negativeCashFlow,
         scoreRatio: answer => isEarlyWarningNoAnswer(answer) ? 1 : 0
     },
@@ -2263,39 +2271,19 @@ const EARLY_WARNING_QUESTIONS = [
 ];
 
 function evaluateEarlyWarningQuestions(report) {
-    const isQ9Yes = isEarlyWarningYesAnswer(report ? report.cashFlowPlanPrepared : null);
+    const isQ10No = isEarlyWarningNoAnswer(report ? report.cashFlowPlanPrepared : null);
+    const isQ4Yes = isEarlyWarningYesAnswer(report ? report.advancePaymentReceived : null);
 
-    // Condition 01: If Q9 is "No" (or not Yes), deactivate Q10 (0%) and redistribute its 15% weight equally across the remaining 10 questions
-    const dynamicWeights = isQ9Yes ? [
-        14, // Q1: موقف المطالبات والتحكيم
-        5,  // Q2: هل يوجد مقايسة للمشروع (BOQ)؟
-        6,  // Q3: ما مدى دقة مقايسة المشروع؟
-        5,  // Q4: إصدار خطابات الضمان وبداية المشروع
-        5,  // Q5: الاجتماع مع العميل لعرض المعوقات
-        5,  // Q6: إرسال خطاب رسمي بالمعوقات
-        10, // Q7: برنامج التوريدات ومراحل الشراء
-        12, // Q8: اعتماد مهمات الكهروميكانيك
-        13, // Q9: إعداد برنامج التدفقات النقدية ومراجعته
-        15, // Q10: هل يوجد Negative cashflow؟
-        10  // Q11: إجمالي قيمة مستحقات مقاولي الباطن
-    ] : [
-        16, // Q1: +2% -> 16%
-        6,  // Q2: +1% -> 6%
-        7,  // Q3: +1% -> 7%
-        6,  // Q4: +1% -> 6%
-        6,  // Q5: +1% -> 6%
-        6,  // Q6: +1% -> 6%
-        12, // Q7: +2% -> 12%
-        14, // Q8: +2% -> 14%
-        15, // Q9: +2% -> 15%
-        0,  // Q10: -15% -> 0% (معطل)
-        12  // Q11: +2% -> 12%
-    ];
+    // Q10 = No: Q11 is inactive; use the revised whole-point weights in the supplied matrix.
+    const dynamicWeights = isQ10No
+        ? [12, 6, 7, 7, 6, 6, 6, 12, 13, 13, 0, 12]
+        : EARLY_WARNING_QUESTIONS.map(question => question.maxPoints);
 
     return EARLY_WARNING_QUESTIONS.map((questionDefinition, index) => {
         const maxPoints = dynamicWeights[index] !== undefined ? dynamicWeights[index] : questionDefinition.maxPoints;
         const answer = questionDefinition.readAnswer(report);
-        const ratio = maxPoints === 0 ? 0 : questionDefinition.scoreRatio(answer, report);
+        // Q4 = Yes: Q5 earns its full weight regardless of the recorded Q5 answer.
+        const ratio = maxPoints === 0 ? 0 : (index === 4 && isQ4Yes ? 1 : questionDefinition.scoreRatio(answer, report));
         const points = Math.round(maxPoints * ratio * 10) / 10;
         return {
             ...questionDefinition,
@@ -3599,7 +3587,7 @@ async function loadMapPageData() {
         ]);
 
         validateGvizTable(mainTable, 29, 'Main Questions');
-        validateGvizTable(earlyAlertTable, 14, 'Early Alert');
+        validateGvizTable(earlyAlertTable, 15, 'Early Alert');
         validateGvizTable(registryTable, 5, 'Map Registry');
         const entities = parseMapRegistry(registryTable);
         const registryIndex = buildMapRegistryIndex(entities);
